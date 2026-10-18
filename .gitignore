@@ -34,3 +34,5 @@ pnpm-debug.log*
 
 # Artefactos de herramientas
 .playwright-mcp/
+.vercel
+.env*

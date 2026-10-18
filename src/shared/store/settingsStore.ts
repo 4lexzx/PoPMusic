@@ -125,7 +125,7 @@ export const GENRES = [
 ]
 
 const APPEARANCE_DEFAULTS = {
-  glassOpacity: 0.62,
+  glassOpacity: 0.82,
   glassBlur: 24,
   glassDim: 0,
   wallpaper: null,
@@ -194,11 +194,13 @@ export const useSettingsStore = create<SettingsState>()(
     }),
     {
       name: 'liner-settings-v1',
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const state = (persisted ?? {}) as Partial<SettingsState>
-        if (version < 3) return { ...state, accent: 'graphite' }
-        return state
+        const next = { ...state }
+        if (version < 3) next.accent = 'graphite'
+        if (version < 4) next.glassOpacity = APPEARANCE_DEFAULTS.glassOpacity
+        return next
       },
     },
   ),

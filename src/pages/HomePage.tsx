@@ -147,7 +147,11 @@ export function HomePage() {
             />
             <p className="relative text-[11px] uppercase tracking-wider text-muted">Empieza ahora</p>
             <h2 className="relative mt-1 text-xl font-bold">{demoPlaylist.name}</h2>
-            <p className="relative mt-1 text-sm text-muted">{demoPlaylist.description}</p>
+            <p className="relative mt-1 text-sm text-muted">
+              {IS_DEMO
+                ? demoPlaylist.description
+                : 'Una muestra para empezar. Busca en YouTube para añadir tu propia música.'}
+            </p>
             <Button
               className="relative mt-4"
               icon={<PlayIcon size={18} />}
