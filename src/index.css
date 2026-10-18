@@ -1,0 +1,598 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Tokens de diseño (Tailwind v4 · estética Liner)
+   Inspirado en tryliner/desktop: negro puro, superficies en capas,
+   glass con blur 20px/saturate 160%, acento rojo de marca.
+   ========================================================================== */
+@theme {
+  --color-bg: #000000;
+  --color-bg-elev: #0a0a0b;
+  --color-surface: #0d0d0f;
+  --color-surface-2: #17171a;
+  --color-surface-3: #232327;
+  --color-line: #1d1d21;
+  --color-line-strong: #2a2a30;
+  --color-ink: #ffffff;
+  --color-muted: #b4b4bb;
+  --color-faint: #74747c;
+
+  /* Botones rellenos: blanco sobre negro (estilo Liner) */
+  --color-primary: #f4f4f5;
+  --color-primary-soft: #ffffff;
+
+  /* Acento de marca (personalizable en Ajustes) — por defecto: grafito neutro */
+  --color-accent: #d7d7de;
+  --color-accent-soft: #ececf2;
+  --color-accent-ink: #0a0a0d;
+  --color-danger: #ff4d4d;
+
+  --font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+    sans-serif;
+
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-3xl: 16px;
+  --radius-4xl: 20px;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ==========================================================================
+   Tema en tiempo de ejecución (oscuro por defecto, claro opcional)
+   Los valores los inyecta `settingsStore.applyAppearance()`; aquí van los
+   respaldos para que la app se vea bien incluso antes de ejecutar JS.
+   ========================================================================== */
+:root {
+  --bg-rgb: 0, 0, 0;
+  --surface-rgb: 13, 13, 15;
+  --elev-rgb: 10, 10, 11;
+
+  --glass-alpha: 0.62;
+  --glass-blur: 24px;
+  --glass-dim: 0;
+  --wallpaper-blur: 0px;
+  --wallpaper-opacity: 1;
+  --wallpaper-dim: 0.35;
+
+  /* Superposiciones semánticas (se adaptan al tema) */
+  --overlay-1: rgba(255, 255, 255, 0.06);
+  --overlay-2: rgba(255, 255, 255, 0.1);
+  --overlay-3: rgba(255, 255, 255, 0.16);
+  --hair: rgba(255, 255, 255, 0.08);
+  --hair-strong: rgba(255, 255, 255, 0.14);
+
+  --color-bg: rgb(var(--bg-rgb));
+  --color-bg-elev: rgb(var(--elev-rgb));
+  --color-surface: rgb(var(--surface-rgb));
+  --color-ink: #ffffff;
+  --color-muted: #b4b4bb;
+  --color-faint: #74747c;
+  --color-primary: #f4f4f5;
+  --color-primary-soft: #ffffff;
+}
+
+[data-theme='light'] {
+  --color-ink: #0b0b0d;
+  --color-muted: #55555d;
+  --color-faint: #8c8c95;
+  --color-primary: #101013;
+  --color-primary-soft: #000000;
+
+  --overlay-1: rgba(15, 15, 22, 0.05);
+  --overlay-2: rgba(15, 15, 22, 0.08);
+  --overlay-3: rgba(15, 15, 22, 0.13);
+  --hair: rgba(15, 15, 22, 0.1);
+  --hair-strong: rgba(15, 15, 22, 0.18);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  background: var(--color-bg);
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+  overflow-x: hidden;
+}
+
+/* Grano sutil para dar profundidad al vidrio */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@layer base {
+  button {
+    font: inherit;
+    color: inherit;
+    border: none;
+    background: none;
+    cursor: pointer;
+  }
+
+  input,
+  textarea {
+    font: inherit;
+    color: inherit;
+    user-select: text;
+  }
+
+  input::placeholder {
+    color: var(--color-faint);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+}
+
+/* ==========================================================================
+   Utilidades
+   ========================================================================== */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Superposiciones semánticas reutilizables */
+.surface-1 {
+  background: var(--overlay-1);
+}
+.surface-2 {
+  background: var(--overlay-2);
+}
+.surface-3 {
+  background: var(--overlay-3);
+}
+.tap {
+  transition: background-color 0.16s ease;
+}
+.tap:active {
+  background: var(--overlay-2);
+}
+
+/* Cristal principal: paneles flotantes (mini reproductor, barras, hojas) */
+.glass {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    rgba(var(--surface-rgb), var(--glass-alpha));
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--hair);
+}
+
+/* Vidrio 3D en relieve: highlight interior + sombra exterior profunda */
+.glass-panel {
+  position: relative;
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.07),
+      rgba(255, 255, 255, 0.015) 42%,
+      rgba(255, 255, 255, 0.01)
+    ),
+    rgba(var(--surface-rgb), var(--glass-alpha));
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  border: 1px solid var(--hair);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
+    inset 0 -1px 0 0 rgba(0, 0, 0, calc(0.25 + var(--glass-dim))),
+    0 24px 48px -24px rgba(0, 0, 0, 0.85);
+}
+
+/* Pastilla de vidrio tipo Apple (botones sobre portada) */
+.glass-pill {
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.38) 100%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.glass-pill-light {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.08) 100%);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.hairline {
+  border: 1px solid var(--hair);
+}
+
+/* Ajustes del cristal en tema claro (los realces blancos se ven mal) */
+[data-theme='light'] .glass {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.65), rgba(255, 255, 255, 0.35)),
+    rgba(var(--surface-rgb), var(--glass-alpha));
+}
+[data-theme='light'] .glass-panel {
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.92),
+      rgba(255, 255, 255, 0.6) 45%,
+      rgba(255, 255, 255, 0.45)
+    ),
+    rgba(var(--surface-rgb), var(--glass-alpha));
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+    0 20px 44px -26px rgba(20, 20, 45, 0.3);
+}
+
+/* Capa del fondo de pantalla personalizado */
+.wallpaper-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.wallpaper-layer__image {
+  position: absolute;
+  inset: -6%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(var(--wallpaper-blur));
+  opacity: var(--wallpaper-opacity);
+}
+.wallpaper-layer__dim {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: var(--wallpaper-dim);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ==========================================================================
+   Letras animadas (blur + escala + opacidad, como en Liner)
+   ========================================================================== */
+.lyric-line {
+  --line-scale: 0.96;
+  --line-opacity: 0.34;
+  --line-blur: 0.4px;
+  transform: scale(var(--line-scale));
+  opacity: var(--line-opacity);
+  filter: blur(var(--line-blur));
+  transform-origin: left center;
+  transition:
+    transform 0.32s var(--ease-out-soft),
+    opacity 0.32s var(--ease-out-soft),
+    filter 0.32s ease,
+    color 0.32s ease;
+  will-change: transform, opacity, filter;
+}
+
+.lyric-line--past {
+  --line-opacity: 0.22;
+}
+
+.lyric-line--active {
+  --line-scale: 1.03;
+  --line-opacity: 1;
+  --line-blur: 0px;
+}
+
+/* ==========================================================================
+   Animaciones
+   ========================================================================== */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0);
+    filter: blur(2.5px);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    filter: blur(0px);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spinSlow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes floatGlow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -6%, 0) scale(1.08);
+  }
+}
+
+@keyframes floatGlowAlt {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+  50% {
+    transform: translate3d(4%, 6%, 0) scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Barras del ecualizador (indicador de reproducción) */
+@keyframes equalize {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.eq {
+  height: 14px;
+}
+.eq-bar {
+  display: block;
+  width: 3px;
+  height: 100%;
+  border-radius: 999px;
+  background: currentColor;
+  transform-origin: bottom center;
+  animation: equalize 0.9s ease-in-out infinite;
+}
+
+/* Ondas concéntricas del reconocimiento de música */
+@keyframes pulseRing {
+  0% {
+    transform: scale(0.7);
+    opacity: 0.55;
+  }
+  80% {
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.9);
+    opacity: 0;
+  }
+}
+
+.pulse-ring {
+  position: absolute;
+  height: 8rem;
+  width: 8rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  opacity: 0.35;
+  animation: pulseRing 2.2s ease-out infinite;
+}
+
+.pulse-ring--slow {
+  animation-duration: 3.2s;
+  animation-delay: 0.6s;
+}
+
+/* Aparición al hacer scroll */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.5s var(--ease-out-soft),
+    transform 0.5s var(--ease-out-soft);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Línea de tiempo animada (barra de progreso) */
+@keyframes progressShine {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 220% 50%;
+  }
+}
+
+.progress-fill {
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(
+    90deg,
+    var(--color-accent) 0%,
+    var(--color-accent-soft) 45%,
+    #ffffff 50%,
+    var(--color-accent-soft) 55%,
+    var(--color-accent) 100%
+  );
+  background-size: 220% 100%;
+  animation: progressShine 2.6s linear infinite;
+  box-shadow: 0 0 12px -2px var(--color-accent);
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 2.2s var(--ease-out-soft) infinite;
+}
+
+.progress-thumb {
+  background: #fff;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--color-accent) 35%, transparent),
+    0 0 14px 2px var(--color-accent);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.animate-page-in {
+  animation: pageIn 0.3s var(--ease-out-soft) both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.24s ease both;
+}
+
+.animate-sheet-up {
+  animation: sheetUp 0.34s var(--ease-out-soft) both;
+}
+
+.animate-pop {
+  animation: popIn 0.24s var(--ease-out-soft) both;
+}
+
+.animate-spin-slow {
+  animation: spinSlow 16s linear infinite;
+}
+
+.glow-a {
+  animation: floatGlow 18s ease-in-out infinite;
+}
+
+.glow-b {
+  animation: floatGlowAlt 24s ease-in-out infinite;
+}
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.06);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 35%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 65%,
+    transparent 100%
+  );
+  animation: shimmer 2.2s var(--ease-out-soft) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+  .skeleton::after {
+    display: none;
+  }
+}
