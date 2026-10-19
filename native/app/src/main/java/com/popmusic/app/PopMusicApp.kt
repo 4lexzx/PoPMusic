@@ -9,12 +9,15 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.media3.common.Player
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -22,6 +25,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.popmusic.app.player.PlayerViewModel
 import com.popmusic.app.ui.components.MiniPlayer
 import com.popmusic.app.ui.navigation.PoPBottomBar
 import com.popmusic.app.ui.navigation.Routes
@@ -40,12 +44,24 @@ fun PopMusicApp() {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
     val isNowPlaying = currentRoute == Routes.NOW_PLAYING
-    var isPlaying by remember { mutableStateOf(true) }
+
+    val playerViewModel: PlayerViewModel = viewModel()
+    val playerState by playerViewModel.state.collectAsState()
+    val isLoading by playerViewModel.isLoading.collectAsState()
 
     fun openPlayer() {
         navController.navigate(Routes.NOW_PLAYING) {
             launchSingleTop = true
         }
+    }
+
+    fun cycleRepeatMode() {
+        val next = when (playerState.repeatMode) {
+            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+            else -> Player.REPEAT_MODE_OFF
+        }
+        playerViewModel.setRepeatMode(next)
     }
 
     Scaffold(
@@ -55,12 +71,12 @@ fun PopMusicApp() {
             if (!isNowPlaying) {
                 Column(modifier = Modifier.background(Black)) {
                     MiniPlayer(
-                        title = "Sin señal",
-                        artist = "PoP Music",
-                        artworkUrl = null,
-                        isPlaying = isPlaying,
-                        onTogglePlay = { isPlaying = !isPlaying },
-                        onNext = {},
+                        title = playerState.title.ifBlank { "Sin reproducción" },
+                        artist = playerState.artist.ifBlank { "Busca una canción para empezar" },
+                        artworkUrl = playerState.artworkUrl,
+                        isPlaying = playerState.isPlaying,
+                        onTogglePlay = { playerViewModel.togglePlayPause() },
+                        onNext = { playerViewModel.next() },
                         onClick = { openPlayer() },
                     )
                     Spacer(Modifier.height(6.dp))
@@ -91,7 +107,12 @@ fun PopMusicApp() {
                 )
             }
             composable(Routes.SEARCH) {
-                SearchScreen(onOpenPlayer = { openPlayer() })
+                SearchScreen(
+                    onPlay = { songs, startIndex ->
+                        playerViewModel.play(songs, startIndex)
+                    },
+                    onOpenPlayer = { openPlayer() },
+                )
             }
             composable(Routes.RECOGNIZE) {
                 RecognizeScreen()
@@ -113,7 +134,17 @@ fun PopMusicApp() {
                 )
             }
             composable(Routes.NOW_PLAYING) {
-                NowPlayingScreen(onBack = { navController.popBackStack() })
+                NowPlayingScreen(
+                    state = playerState,
+                    isLoading = isLoading,
+                    onBack = { navController.popBackStack() },
+                    onTogglePlayPause = { playerViewModel.togglePlayPause() },
+                    onNext = { playerViewModel.next() },
+                    onPrevious = { playerViewModel.previous() },
+                    onSeek = { playerViewModel.seekTo(it) },
+                    onToggleShuffle = { playerViewModel.setShuffle(!playerState.shuffle) },
+                    onCycleRepeat = { cycleRepeatMode() },
+                )
             }
             composable(Routes.SETTINGS) {
                 SettingsScreen(onBack = { navController.popBackStack() })
