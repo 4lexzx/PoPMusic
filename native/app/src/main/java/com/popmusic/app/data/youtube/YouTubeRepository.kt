@@ -2,6 +2,7 @@ package com.popmusic.app.data.youtube
 
 import com.popmusic.app.domain.Song
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
@@ -35,21 +36,32 @@ class YouTubeRepository {
     }
 
     suspend fun resolveAudioUrl(videoId: String): String? = withContext(Dispatchers.IO) {
-        val info = StreamInfo.getInfo(
-            ServiceList.YouTube,
-            "https://www.youtube.com/watch?v=$videoId",
-        )
+        repeat(ATTEMPTS) { attempt ->
+            val url = runCatching {
+                StreamInfo.getInfo(
+                    ServiceList.YouTube,
+                    "https://www.youtube.com/watch?v=$videoId",
+                ).audioStreams
+                    .filter { !it.url.isNullOrBlank() }
+                    .maxByOrNull { it.averageBitrate }
+                    ?.url
+            }.getOrNull()
 
-        info.audioStreams
-            .filter { !it.url.isNullOrBlank() }
-            .maxByOrNull { it.averageBitrate }
-            ?.url
+            if (!url.isNullOrBlank()) return@withContext url
+            if (attempt < ATTEMPTS - 1) delay(RETRY_DELAY_MS)
+        }
+        null
     }
 
     private fun videoIdFrom(url: String): String? {
         val match = Regex("[?&]v=([^&]+)").find(url)
         if (match != null) return match.groupValues[1]
         return url.takeIf { it.isNotBlank() }?.substringAfterLast("/")?.takeIf { it.isNotBlank() }
+    }
+
+    private companion object {
+        const val ATTEMPTS = 2
+        const val RETRY_DELAY_MS = 700L
     }
 }
 

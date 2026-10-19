@@ -7,10 +7,10 @@ biblioteca y playlists.
 ## Stack
 
 - Kotlin + Jetpack Compose + Material 3
-- Media3 / ExoPlayer + `MediaSessionService`
+- Media3 / ExoPlayer + `MediaSessionService` (cola real con `onAddMediaItems`)
 - NewPipeExtractor (búsqueda y streams de YouTube)
-- Room + DataStore · Ktor · Coil
-- GPLv3
+- Biblioteca persistida en JSON local (favoritos y playlists)
+- Coil · GPLv3
 
 ## Requisitos
 
@@ -42,23 +42,23 @@ Para ejecutar en un dispositivo: abre la carpeta `native/` en Android Studio y p
 ```
 app/src/main/java/com/popmusic/app/
 ├─ ui/        temas, navegación, componentes y pantallas
-├─ data/      repositorios, Room, red (pendiente)
-├─ domain/    modelos y casos de uso (pendiente)
-├─ player/    Media3 y sesión multimedia (pendiente)
-└─ di/        inyección de dependencias (pendiente)
+├─ data/      YouTube (NewPipe), letras (LrcLib), reconocimiento (AudD) y biblioteca
+├─ domain/    modelos (Song, Playlist, Lyrics, ...)
+└─ player/    Media3, sesión multimedia y cola de reproducción
 ```
 
 ## Estado
 
 - [x] Proyecto Gradle + Compose + tema
-- [x] Navegación y esqueleto de pantallas
+- [x] Navegación y pantallas
 - [x] Búsqueda y resolución de audio con NewPipeExtractor
 - [x] Reproductor Media3 + sesión multimedia (segundo plano)
+- [x] Cola real: anterior/siguiente, aleatorio y repetir (incluye pantalla de bloqueo)
 - [x] Letras sincronizadas con LrcLib
 - [x] Reconocimiento de canciones con AudD
-- [ ] Biblioteca y playlists persistidas (Room)
-- [ ] Cola real y repetir/aleatorio entre pistas
-- [ ] APK de release
+- [x] Biblioteca y playlists persistidas (favoritos, crear playlist, añadir/quitar)
+- [x] Home con secciones reales de YouTube
+- [ ] APK de release firmado
 
 ## Licencia
 

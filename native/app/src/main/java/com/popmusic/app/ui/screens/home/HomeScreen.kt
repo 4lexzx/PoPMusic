@@ -1,56 +1,53 @@
 package com.popmusic.app.ui.screens.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.popmusic.app.domain.Song
 import com.popmusic.app.ui.components.MediaCard
 import com.popmusic.app.ui.components.SectionHeader
 import com.popmusic.app.ui.components.TrackRow
 import com.popmusic.app.ui.theme.Faint
-
-private data class DemoItem(val title: String, val subtitle: String)
-
-private val demoMixes = listOf(
-    DemoItem("Mezcla diaria 1", "PoP Music"),
-    DemoItem("Descubrimiento", "Para ti"),
-    DemoItem("Noche tranquila", "Relax"),
-    DemoItem("Éxitos del momento", "Top 50"),
-)
-
-private val demoTracks = listOf(
-    DemoItem("Sin señal", "PoP Music"),
-    DemoItem("Madrugada", "PoP Music"),
-    DemoItem("Vuelve a empezar", "PoP Music"),
-    DemoItem("Ciudad dormida", "PoP Music"),
-)
+import java.util.Calendar
 
 @Composable
 fun HomeScreen(
     onOpenPlayer: () -> Unit,
     onOpenSettings: () -> Unit,
+    onPlay: (List<Song>, Int) -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: HomeViewModel = viewModel(),
 ) {
+    val state by viewModel.state.collectAsState()
+    val libraryState by viewModel.favorites.collectAsState()
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -70,7 +67,7 @@ fun HomeScreen(
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "Buenas noches",
+                        text = greeting(),
                         style = MaterialTheme.typography.headlineLarge,
                     )
                 }
@@ -82,36 +79,82 @@ fun HomeScreen(
                     )
                 }
             }
-            Spacer(Modifier.height(24.dp))
-            SectionHeader(title = "Sugerencias para ti")
         }
 
-        Spacer(Modifier.height(14.dp))
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            items(demoMixes) { item ->
-                MediaCard(
-                    title = item.title,
-                    subtitle = item.subtitle,
-                    onClick = onOpenPlayer,
-                )
+        Spacer(Modifier.height(8.dp))
+
+        when {
+            state.isLoading && state.sections.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.height(28.dp),
+                        strokeWidth = 2.dp,
+                    )
+                }
+            }
+
+            state.error != null && state.sections.isEmpty() -> {
+                Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                    Text(
+                        text = state.error ?: "No se pudo cargar",
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    androidx.compose.material3.TextButton(onClick = viewModel::load) {
+                        Text("Reintentar")
+                    }
+                }
             }
         }
 
-        Spacer(Modifier.height(28.dp))
-        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
-            SectionHeader(title = "Escuchado recientemente")
-            Spacer(Modifier.height(8.dp))
-            demoTracks.forEach { item ->
-                TrackRow(
-                    title = item.title,
-                    artist = item.subtitle,
-                    onClick = onOpenPlayer,
-                )
-            }
+        state.sections.forEach { section ->
             Spacer(Modifier.height(24.dp))
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                SectionHeader(title = section.title)
+            }
+            Spacer(Modifier.height(12.dp))
+            LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                itemsIndexed(section.songs) { index, song ->
+                    MediaCard(
+                        title = song.title,
+                        subtitle = song.artist,
+                        artworkUrl = song.thumbnailUrl,
+                        onClick = { onPlay(section.songs, index) },
+                    )
+                }
+            }
         }
+
+        if (libraryState.favorites.isNotEmpty()) {
+            Spacer(Modifier.height(28.dp))
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+                SectionHeader(title = "Tus favoritos")
+                Spacer(Modifier.height(8.dp))
+                libraryState.favorites.take(6).forEach { song ->
+                    TrackRow(
+                        title = song.title,
+                        artist = song.artist,
+                        artworkUrl = song.thumbnailUrl,
+                        onClick = { onPlay(libraryState.favorites, libraryState.favorites.indexOf(song)) },
+                    )
+                }
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
     }
+}
+
+private fun greeting(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
+    in 6..11 -> "Buenos días"
+    in 12..19 -> "Buenas tardes"
+    else -> "Buenas noches"
 }

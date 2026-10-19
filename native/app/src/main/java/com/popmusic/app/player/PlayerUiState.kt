@@ -6,6 +6,7 @@ data class PlayerUiState(
     val isPlaying: Boolean = false,
     val isBuffering: Boolean = false,
     val hasMedia: Boolean = false,
+    val mediaId: String = "",
     val title: String = "",
     val artist: String = "",
     val artworkUrl: String? = null,
@@ -13,4 +14,5 @@ data class PlayerUiState(
     val durationMs: Long = 0L,
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
     val shuffle: Boolean = false,
+    val error: String? = null,
 )

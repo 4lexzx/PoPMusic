@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreVert
@@ -57,7 +58,8 @@ import com.popmusic.app.ui.theme.Surface2
 @Composable
 fun NowPlayingScreen(
     state: PlayerUiState,
-    isLoading: Boolean,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit,
     onBack: () -> Unit,
     onTogglePlayPause: () -> Unit,
     onNext: () -> Unit,
@@ -66,6 +68,7 @@ fun NowPlayingScreen(
     onToggleShuffle: () -> Unit,
     onCycleRepeat: () -> Unit,
     onOpenLyrics: () -> Unit,
+    onAddToPlaylist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isDragging by remember { mutableStateOf(false) }
@@ -207,7 +210,7 @@ fun NowPlayingScreen(
                     .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center,
             ) {
-                if (isLoading || state.isBuffering) {
+                if (state.isBuffering) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(30.dp),
                         strokeWidth = 2.dp,
@@ -250,11 +253,11 @@ fun NowPlayingScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = {}) {
+            IconButton(onClick = onToggleFavorite) {
                 Icon(
-                    imageVector = Icons.Rounded.FavoriteBorder,
-                    contentDescription = "Me gusta",
-                    tint = Faint,
+                    imageVector = if (isFavorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
+                    tint = if (isFavorite) Accent else Faint,
                 )
             }
             IconButton(onClick = onOpenLyrics) {
@@ -264,10 +267,10 @@ fun NowPlayingScreen(
                     tint = Faint,
                 )
             }
-            IconButton(onClick = {}) {
+            IconButton(onClick = onAddToPlaylist) {
                 Icon(
                     imageVector = Icons.Rounded.QueueMusic,
-                    contentDescription = "Cola",
+                    contentDescription = "Añadir a playlist",
                     tint = Faint,
                 )
             }
