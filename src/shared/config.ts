@@ -18,3 +18,14 @@ export const IS_DEMO: boolean = !HAS_YT_KEY
 
 /** Ruta relativa a la Serverless Function de Spotify. */
 export const SPOTIFY_API_PATH = '/api/spotify'
+
+/**
+ * URL base del backend de audio (extrae el audio de YouTube con yt-dlp).
+ * Si está configurado, las canciones de YouTube se reproducen como audio
+ * directo → suenan en segundo plano y en la pantalla de bloqueo.
+ * Ejemplo: https://audio.tudominio.com  (sin barra final)
+ */
+export const AUDIO_API: string = (import.meta.env.VITE_AUDIO_API?.trim() ?? '').replace(/\/$/, '')
+
+/** ¿Hay backend de audio configurado? */
+export const HAS_AUDIO_BACKEND: boolean = AUDIO_API.length > 0

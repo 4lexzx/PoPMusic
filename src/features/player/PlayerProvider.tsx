@@ -112,10 +112,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Estado del motor `<audio>` (Audius): se refleja igual que el de YouTube.
+  // Estado del motor `<audio>` (Audius o backend): se refleja igual que el de YouTube.
   useEffect(() => {
     audioEngine.onState((state) => usePlayerStore.getState().applyPlayerState(state))
-    return () => audioEngine.onState(null)
+    audioEngine.onError(() => usePlayerStore.getState().handleEngineError())
+    return () => {
+      audioEngine.onState(null)
+      audioEngine.onError(null)
+    }
   }, [])
 
   // Actualiza posición y duración mientras se reproduce.

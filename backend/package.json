@@ -1,0 +1,14 @@
+{
+  "name": "pop-music-audio-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend que extrae el audio de YouTube (con yt-dlp) y lo sirve como stream directo para PoP Music, habilitando la reproduccion en segundo plano.",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

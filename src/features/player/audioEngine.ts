@@ -14,6 +14,7 @@ type EngineKind = 'youtube' | 'html'
 let audioEl: HTMLAudioElement | null = null
 let kind: EngineKind = 'youtube'
 let stateListener: ((state: number) => void) | null = null
+let errorListener: (() => void) | null = null
 
 function ensureAudio(): HTMLAudioElement {
   if (audioEl) return audioEl
@@ -26,6 +27,7 @@ function ensureAudio(): HTMLAudioElement {
   el.addEventListener('waiting', () => stateListener?.(YT_STATE.BUFFERING))
   el.addEventListener('loadstart', () => stateListener?.(YT_STATE.BUFFERING))
   el.addEventListener('ended', () => stateListener?.(YT_STATE.ENDED))
+  el.addEventListener('error', () => errorListener?.())
   audioEl = el
   return el
 }
@@ -34,6 +36,11 @@ export const audioEngine = {
   /** Escucha los cambios de estado del motor HTML (emula onStateChange de YouTube). */
   onState(listener: ((state: number) => void) | null): void {
     stateListener = listener
+  },
+
+  /** Escucha errores del motor HTML (p. ej. el backend no responde). */
+  onError(listener: (() => void) | null): void {
+    errorListener = listener
   },
 
   attachYouTube(player: YouTubePlayerLike): void {

@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { resolveAudiusStream } from '@/shared/api/audius'
+import { resolveAudioStream } from '@/shared/api/audioStream'
 import { resolveYouTubeVideoId } from '@/shared/api/youtube'
+import { HAS_AUDIO_BACKEND } from '@/shared/config'
 import { useLibraryStore } from '@/shared/store/libraryStore'
 import type { RepeatMode, Track } from '@/shared/types/track'
 import { audioEngine } from '@/features/player/audioEngine'
@@ -39,6 +41,7 @@ interface PlayerState {
   applyPlayerState: (state: number) => void
   setPosition: (position: number) => void
   setDuration: (duration: number) => void
+  handleEngineError: () => void
 }
 
 async function resolveVideoId(track: Track): Promise<string | null> {
@@ -58,7 +61,7 @@ async function loadAndPlay(track: Track): Promise<void> {
     duration: track.duration || 0,
   })
 
-  // 1) Pistas de Audius: audio directo que continúa en segundo plano.
+  // 1) Pistas de Audius: ya traen un stream directo (segundo plano).
   if (track.source === 'audius' && track.stream) {
     audioEngine.loadUrl(track.stream, true)
     usePlayerStore.setState({ isLoadingTrack: false })
@@ -66,20 +69,7 @@ async function loadAndPlay(track: Track): Promise<void> {
     return
   }
 
-  // 2) Otras pistas: si existe una versión clara en Audius, se usa para el 2º plano.
-  try {
-    const stream = await resolveAudiusStream(track.title, track.artist)
-    if (stream) {
-      audioEngine.loadUrl(stream, true)
-      usePlayerStore.setState({ isLoadingTrack: false })
-      useLibraryStore.getState().addToHistory(track)
-      return
-    }
-  } catch {
-    // Sin emparejamiento: se reproduce con YouTube.
-  }
-
-  // 3) YouTube IFrame (no continúa en segundo plano en móvil).
+  // 2) Resolver el id de YouTube de la pista (canciones propias, Spotify, etc.).
   const videoId = await resolveVideoId(track)
 
   if (!videoId) {
@@ -94,6 +84,26 @@ async function loadAndPlay(track: Track): Promise<void> {
     ),
   }))
 
+  // 3) Backend de audio: reproduce el audio directo → segundo plano + bloqueo.
+  if (HAS_AUDIO_BACKEND) {
+    audioEngine.loadUrl(resolveAudioStream(videoId), true)
+    useLibraryStore.getState().addToHistory({ ...track, videoId })
+    return
+  }
+
+  // 4) Sin backend: intentar una versión en Audius (segundo plano limitado).
+  try {
+    const stream = await resolveAudiusStream(track.title, track.artist)
+    if (stream) {
+      audioEngine.loadUrl(stream, true)
+      useLibraryStore.getState().addToHistory({ ...track, videoId })
+      return
+    }
+  } catch {
+    // Sin emparejamiento: se reproduce con YouTube.
+  }
+
+  // 5) YouTube IFrame (no continúa en segundo plano en móvil).
   audioEngine.loadVideo(videoId, true)
   useLibraryStore.getState().addToHistory({ ...track, videoId })
 }
@@ -268,6 +278,28 @@ export const usePlayerStore = create<PlayerState>()(
       setPosition: (position) => set({ position }),
 
       setDuration: (duration) => set({ duration }),
+
+      // El motor `<audio>` (Audius o backend) falló: probamos YouTube como último recurso.
+      handleEngineError: () => {
+        const track = selectCurrentTrack(get())
+        if (!track) {
+          set({ isPlaying: false })
+          return
+        }
+        void (async () => {
+          const videoId = await resolveVideoId(track)
+          if (!videoId) {
+            set({ isPlaying: false })
+            return
+          }
+          set((state) => ({
+            queue: state.queue.map((item) =>
+              item.id === track.id && item.source === track.source ? { ...item, videoId } : item,
+            ),
+          }))
+          audioEngine.loadVideo(videoId, true)
+        })()
+      },
     }),
     {
       name: 'liner-player-v1',
