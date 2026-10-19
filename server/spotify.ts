@@ -172,6 +172,9 @@ export async function handleSpotify(
     )
 
     if (!metaResponse.ok) {
+      if (metaResponse.status === 403) {
+        return { status: 403, body: { error: 'spotify_restricted' } }
+      }
       const status = metaResponse.status === 404 ? 404 : 502
       return { status, body: { error: 'playlist_not_found' } }
     }

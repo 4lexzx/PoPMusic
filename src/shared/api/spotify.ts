@@ -48,6 +48,11 @@ function friendlyError(error: unknown): Error {
       )
     }
     if (error.status === 404) return new Error('No se encontró la playlist de Spotify.')
+    if (error.status === 403) {
+      return new Error(
+        'Spotify no permite importar esta playlist con una app nueva (restricción de su API desde 2024). Prueba una playlist pública creada por un usuario.',
+      )
+    }
     if (error.status === 502) return new Error('Spotify rechazó la petición. Revisa tus credenciales.')
   }
   return new Error(
