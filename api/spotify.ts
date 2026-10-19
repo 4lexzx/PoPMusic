@@ -1,4 +1,4 @@
-import { handleSpotify } from '../server/spotify'
+import { handleSpotify } from '../server/spotify.js'
 
 /**
  * Serverless Function de Vercel.
