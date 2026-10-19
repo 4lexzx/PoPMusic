@@ -37,6 +37,33 @@ El APK queda en `app/build/outputs/apk/debug/app-debug.apk`.
 
 Para ejecutar en un dispositivo: abre la carpeta `native/` en Android Studio y pulsa **Run**.
 
+## Release firmado
+
+1. Crea el keystore y `keystore.properties` (ambos ignorados por git; **haz copia de
+   seguridad**, sin ellos no podrás actualizar la app):
+
+   ```bash
+   keytool -genkeypair -v -keystore keystore/popmusic-release.jks -alias popmusic \
+     -keyalg RSA -keysize 4096 -validity 10000
+   ```
+
+   ```properties
+   # keystore.properties
+   storeFile=keystore/popmusic-release.jks
+   storePassword=...
+   keyAlias=popmusic
+   keyPassword=...
+   ```
+
+2. Compila y verifica:
+
+   ```bash
+   ./gradlew assembleRelease
+   "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk
+   ```
+
+El APK firmado queda en `app/build/outputs/apk/release/app-release.apk`.
+
 ## Estructura
 
 ```
@@ -58,7 +85,9 @@ app/src/main/java/com/popmusic/app/
 - [x] Reconocimiento de canciones con AudD
 - [x] Biblioteca y playlists persistidas (favoritos, crear playlist, añadir/quitar)
 - [x] Home con secciones reales de YouTube
-- [ ] APK de release firmado
+- [x] APK de release firmado (v0.1.0)
+- [ ] R8/minify y perfil de baseline para reducir tamaño
+- [ ] Firma de release en CI
 
 ## Licencia
 
