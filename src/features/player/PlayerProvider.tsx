@@ -1,7 +1,8 @@
 import { useEffect, type ReactNode } from 'react'
 import { selectCurrentTrack, usePlayerStore } from '@/shared/store/playerStore'
 import type { Track } from '@/shared/types/track'
-import { playerController, type YouTubePlayerLike } from './youtubeController'
+import { audioEngine } from './audioEngine'
+import type { YouTubePlayerLike } from './youtubeController'
 
 const SCRIPT_ID = 'youtube-iframe-api'
 const HOST_ID = 'yt-player-host'
@@ -94,9 +95,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         events: {
           onReady: () => {
             const store = usePlayerStore.getState()
-            playerController.attach(player)
-            playerController.setVolume(store.muted ? 0 : store.volume)
-            if (store.muted) playerController.mute()
+            audioEngine.attachYouTube(player)
+            audioEngine.setVolume(store.muted ? 0 : store.volume)
+            if (store.muted) audioEngine.mute()
           },
           onStateChange: (event: { data: number }) => {
             usePlayerStore.getState().applyPlayerState(event.data)
@@ -107,22 +108,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     return () => {
       disposed = true
-      playerController.detach()
+      audioEngine.detach()
     }
+  }, [])
+
+  // Estado del motor `<audio>` (Audius): se refleja igual que el de YouTube.
+  useEffect(() => {
+    audioEngine.onState((state) => usePlayerStore.getState().applyPlayerState(state))
+    return () => audioEngine.onState(null)
   }, [])
 
   // Actualiza posición y duración mientras se reproduce.
   useEffect(() => {
     const interval = window.setInterval(() => {
-      if (!playerController.isReady()) return
+      if (!audioEngine.isReady()) return
       const store = usePlayerStore.getState()
 
-      const duration = playerController.duration()
+      const duration = audioEngine.duration()
       if (Number.isFinite(duration) && duration > 0 && Math.abs(duration - store.duration) > 0.5) {
         store.setDuration(duration)
       }
 
-      const position = playerController.currentTime()
+      const position = audioEngine.currentTime()
       if (Number.isFinite(position) && Math.abs(position - store.position) > 0.2) {
         store.setPosition(position)
       }

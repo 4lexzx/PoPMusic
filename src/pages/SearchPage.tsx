@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ChevronRightIcon, CloseIcon, MusicIcon, SearchIcon, SparklesIcon } from '@/components/Icons'
 import { ScreenHeader, Spinner } from '@/components/ui'
-import { HomeSuggestions, SuggestionRail } from '@/features/home/SuggestionRail'
+import { AudiusRail, HomeSuggestions, SuggestionRail } from '@/features/home/SuggestionRail'
 import { SearchResults } from '@/features/search/SearchResults'
+import { searchAudius } from '@/shared/api/audius'
 import { searchTracks } from '@/shared/api/youtube'
 import { IS_DEMO } from '@/shared/config'
 import { demoTracks } from '@/shared/data/demo'
@@ -37,6 +38,7 @@ const SUGGESTION_POOL = [
 export function SearchPage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Track[]>([])
+  const [audiusResults, setAudiusResults] = useState<Track[]>([])
   const [status, setStatus] = useState<SearchStatus>('idle')
   const inputRef = useRef<HTMLInputElement>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -73,8 +75,12 @@ export function SearchPage() {
     addSearch(value)
     inputRef.current?.blur()
     try {
-      const tracks = await searchTracks(value)
+      const [tracks, audius] = await Promise.all([
+        searchTracks(value).catch(() => [] as Track[]),
+        searchAudius(value, 12),
+      ])
       setResults(tracks)
+      setAudiusResults(audius)
       setStatus('done')
     } catch {
       setStatus('error')
@@ -85,6 +91,7 @@ export function SearchPage() {
   const reset = () => {
     setQuery('')
     setResults([])
+    setAudiusResults([])
     setStatus('idle')
     inputRef.current?.focus()
   }
@@ -214,6 +221,8 @@ export function SearchPage() {
 
           <HomeSuggestions />
 
+          <AudiusRail />
+
           {algorithmReady ? (
             <SuggestionRail
               algorithm
@@ -261,7 +270,16 @@ export function SearchPage() {
         </div>
       ) : null}
 
-      {status === 'done' && results.length === 0 ? (
+      {status === 'done' && audiusResults.length > 0 ? (
+        <section className="mt-6">
+          <h2 className="mb-2 px-5 text-xs font-semibold uppercase tracking-wider text-faint">
+            Suena en segundo plano · Audius
+          </h2>
+          <SearchResults results={audiusResults} />
+        </section>
+      ) : null}
+
+      {status === 'done' && results.length === 0 && audiusResults.length === 0 ? (
         <div className="mt-16 flex flex-col items-center gap-2 px-8 text-center text-muted">
           <MusicIcon size={30} />
           <p className="text-sm">Sin resultados para «{query}».</p>

@@ -1,9 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { resolveAudiusStream } from '@/shared/api/audius'
 import { resolveYouTubeVideoId } from '@/shared/api/youtube'
 import { useLibraryStore } from '@/shared/store/libraryStore'
 import type { RepeatMode, Track } from '@/shared/types/track'
-import { playerController, YT_STATE } from '@/features/player/youtubeController'
+import { audioEngine } from '@/features/player/audioEngine'
+import { YT_STATE } from '@/features/player/youtubeController'
 
 interface PlayerState {
   queue: Track[]
@@ -56,6 +58,28 @@ async function loadAndPlay(track: Track): Promise<void> {
     duration: track.duration || 0,
   })
 
+  // 1) Pistas de Audius: audio directo que continúa en segundo plano.
+  if (track.source === 'audius' && track.stream) {
+    audioEngine.loadUrl(track.stream, true)
+    usePlayerStore.setState({ isLoadingTrack: false })
+    useLibraryStore.getState().addToHistory(track)
+    return
+  }
+
+  // 2) Otras pistas: si existe una versión clara en Audius, se usa para el 2º plano.
+  try {
+    const stream = await resolveAudiusStream(track.title, track.artist)
+    if (stream) {
+      audioEngine.loadUrl(stream, true)
+      usePlayerStore.setState({ isLoadingTrack: false })
+      useLibraryStore.getState().addToHistory(track)
+      return
+    }
+  } catch {
+    // Sin emparejamiento: se reproduce con YouTube.
+  }
+
+  // 3) YouTube IFrame (no continúa en segundo plano en móvil).
   const videoId = await resolveVideoId(track)
 
   if (!videoId) {
@@ -70,7 +94,7 @@ async function loadAndPlay(track: Track): Promise<void> {
     ),
   }))
 
-  playerController.load(videoId, true)
+  audioEngine.loadVideo(videoId, true)
   useLibraryStore.getState().addToHistory({ ...track, videoId })
 }
 
@@ -122,10 +146,10 @@ export const usePlayerStore = create<PlayerState>()(
         const { isPlaying, queue } = get()
         if (queue.length === 0) return
         if (isPlaying) {
-          playerController.pause()
+          audioEngine.pause()
           set({ isPlaying: false })
         } else {
-          playerController.play()
+          audioEngine.play()
           set({ isPlaying: true })
         }
       },
@@ -135,8 +159,8 @@ export const usePlayerStore = create<PlayerState>()(
         if (queue.length === 0) return
 
         if (auto && repeat === 'one') {
-          playerController.seek(0)
-          playerController.play()
+          audioEngine.seek(0)
+          audioEngine.play()
           set({ position: 0 })
           return
         }
@@ -164,7 +188,7 @@ export const usePlayerStore = create<PlayerState>()(
         const { queue, currentIndex, position } = get()
         if (queue.length === 0) return
         if (position > 3) {
-          playerController.seek(0)
+          audioEngine.seek(0)
           set({ position: 0 })
           return
         }
@@ -173,25 +197,25 @@ export const usePlayerStore = create<PlayerState>()(
       },
 
       seek: (seconds) => {
-        playerController.seek(seconds)
+        audioEngine.seek(seconds)
         set({ position: seconds })
       },
 
       setVolume: (volume) => {
         const clamped = Math.max(0, Math.min(100, Math.round(volume)))
-        playerController.setVolume(clamped)
-        if (clamped > 0) playerController.unmute()
+        audioEngine.setVolume(clamped)
+        if (clamped > 0) audioEngine.unmute()
         set({ volume: clamped, muted: clamped === 0 })
       },
 
       toggleMute: () => {
         const { muted, volume } = get()
         if (muted) {
-          playerController.setVolume(volume)
-          playerController.unmute()
+          audioEngine.setVolume(volume)
+          audioEngine.unmute()
           set({ muted: false })
         } else {
-          playerController.mute()
+          audioEngine.mute()
           set({ muted: true })
         }
       },

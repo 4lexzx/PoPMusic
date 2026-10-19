@@ -11,7 +11,7 @@ import {
 } from '@/components/Icons'
 import { Logo } from '@/components/Logo'
 import { Button, Reveal } from '@/components/ui'
-import { HomeSuggestions, SuggestionRail } from '@/features/home/SuggestionRail'
+import { AudiusRail, HomeSuggestions, SuggestionRail } from '@/features/home/SuggestionRail'
 import { PlaylistCard } from '@/features/library/PlaylistCard'
 import { TrackCard } from '@/features/library/TrackCard'
 import { TrackRow } from '@/features/library/TrackRow'
@@ -207,6 +207,8 @@ export function HomePage() {
       ) : null}
 
       <HomeSuggestions />
+
+      <AudiusRail />
 
       {algorithmReady ? (
         <SuggestionRail

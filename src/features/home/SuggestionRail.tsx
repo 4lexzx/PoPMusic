@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { ChevronRightIcon, SparklesIcon } from '@/components/Icons'
 import { Reveal } from '@/components/ui'
 import { TrackCard } from '@/features/library/TrackCard'
+import { fetchAudiusTrending } from '@/shared/api/audius'
 import { searchTracks } from '@/shared/api/youtube'
 import { IS_DEMO } from '@/shared/config'
 import { demoTracks } from '@/shared/data/demo'
@@ -183,5 +184,52 @@ export function HomeSuggestions() {
       query={topArtist ? `${topArtist} mejores canciones` : undefined}
       limit={10}
     />
+  )
+}
+
+/**
+ * Fila de Audius: audio directo (URL de streaming) que sí continúa
+ * reproduciéndose en segundo plano y en la pantalla de bloqueo.
+ */
+export function AudiusRail({ title = 'Suena en segundo plano' }: { title?: string }) {
+  const [items, setItems] = useState<Track[]>([])
+
+  useEffect(() => {
+    let cancelled = false
+    fetchAudiusTrending(12)
+      .then((tracks) => {
+        if (!cancelled) setItems(tracks)
+      })
+      .catch(() => {
+        if (!cancelled) setItems([])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (items.length < 2) return null
+
+  return (
+    <Reveal>
+      <section className="mt-7">
+        <div className="mb-3 flex items-center justify-between px-5">
+          <h2 className="flex items-center gap-2 text-[1.05rem] font-semibold tracking-tight">
+            <SparklesIcon size={18} className="text-accent" />
+            {title}
+          </h2>
+        </div>
+        <div className="no-scrollbar flex gap-3.5 overflow-x-auto px-5 pb-1">
+          {items.map((track, index) => (
+            <TrackCard
+              key={`${track.source}-${track.id}-${index}`}
+              track={track}
+              queue={items}
+              index={index}
+            />
+          ))}
+        </div>
+      </section>
+    </Reveal>
   )
 }

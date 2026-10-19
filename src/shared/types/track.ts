@@ -1,7 +1,7 @@
-export type TrackSource = 'youtube' | 'spotify'
+export type TrackSource = 'youtube' | 'spotify' | 'audius'
 
 export interface Track {
-  /** Identificador interno (videoId de YouTube o id de Spotify). */
+  /** Identificador interno (videoId de YouTube o id de Spotify/Audius). */
   id: string
   title: string
   artist: string
@@ -11,6 +11,8 @@ export interface Track {
   source: TrackSource
   /** videoId de YouTube resuelto (obligatorio para reproducir). */
   videoId?: string
+  /** URL de audio directa (Audius): permite reproducir en segundo plano. */
+  stream?: string
 }
 
 export interface Playlist {
