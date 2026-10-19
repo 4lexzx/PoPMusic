@@ -17,6 +17,15 @@ biblioteca y playlists.
 - Android Studio reciente (JDK incluido)
 - SDK Android 37 (`compileSdk 37`), `minSdk 26`
 
+## Claves
+
+El reconocimiento de canciones usa AudD. Añade tu clave en `local.properties`
+(ignorado por git):
+
+```properties
+audd.apiKey=tu_clave
+```
+
 ## Compilar
 
 ```bash
@@ -43,9 +52,12 @@ app/src/main/java/com/popmusic/app/
 
 - [x] Proyecto Gradle + Compose + tema
 - [x] Navegación y esqueleto de pantallas
-- [ ] Capa de datos (NewPipeExtractor, Room, DataStore)
-- [ ] Reproductor en segundo plano
-- [ ] Letras sincronizadas y reconocimiento
+- [x] Búsqueda y resolución de audio con NewPipeExtractor
+- [x] Reproductor Media3 + sesión multimedia (segundo plano)
+- [x] Letras sincronizadas con LrcLib
+- [x] Reconocimiento de canciones con AudD
+- [ ] Biblioteca y playlists persistidas (Room)
+- [ ] Cola real y repetir/aleatorio entre pistas
 - [ ] APK de release
 
 ## Licencia

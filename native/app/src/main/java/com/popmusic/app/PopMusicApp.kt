@@ -31,6 +31,7 @@ import com.popmusic.app.ui.navigation.PoPBottomBar
 import com.popmusic.app.ui.navigation.Routes
 import com.popmusic.app.ui.screens.home.HomeScreen
 import com.popmusic.app.ui.screens.library.LibraryScreen
+import com.popmusic.app.ui.screens.lyrics.LyricsScreen
 import com.popmusic.app.ui.screens.player.NowPlayingScreen
 import com.popmusic.app.ui.screens.playlist.PlaylistScreen
 import com.popmusic.app.ui.screens.recognize.RecognizeScreen
@@ -43,7 +44,7 @@ fun PopMusicApp() {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val isNowPlaying = currentRoute == Routes.NOW_PLAYING
+    val isFullScreen = currentRoute == Routes.NOW_PLAYING || currentRoute == Routes.LYRICS
 
     val playerViewModel: PlayerViewModel = viewModel()
     val playerState by playerViewModel.state.collectAsState()
@@ -68,7 +69,7 @@ fun PopMusicApp() {
         containerColor = Black,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
-            if (!isNowPlaying) {
+            if (!isFullScreen) {
                 Column(modifier = Modifier.background(Black)) {
                     MiniPlayer(
                         title = playerState.title.ifBlank { "Sin reproducción" },
@@ -115,7 +116,12 @@ fun PopMusicApp() {
                 )
             }
             composable(Routes.RECOGNIZE) {
-                RecognizeScreen()
+                RecognizeScreen(
+                    onFound = { song ->
+                        playerViewModel.play(listOf(song), 0)
+                        openPlayer()
+                    },
+                )
             }
             composable(Routes.LIBRARY) {
                 LibraryScreen(
@@ -144,6 +150,15 @@ fun PopMusicApp() {
                     onSeek = { playerViewModel.seekTo(it) },
                     onToggleShuffle = { playerViewModel.setShuffle(!playerState.shuffle) },
                     onCycleRepeat = { cycleRepeatMode() },
+                    onOpenLyrics = { navController.navigate(Routes.LYRICS) },
+                )
+            }
+            composable(Routes.LYRICS) {
+                LyricsScreen(
+                    title = playerState.title,
+                    artist = playerState.artist,
+                    positionMs = playerState.positionMs,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.SETTINGS) {

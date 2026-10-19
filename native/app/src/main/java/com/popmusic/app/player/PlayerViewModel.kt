@@ -86,6 +86,5 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     override fun onCleared() {
         loadJob?.cancel()
-        super.onCleared()
     }
 }

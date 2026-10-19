@@ -65,6 +65,7 @@ fun NowPlayingScreen(
     onSeek: (Long) -> Unit,
     onToggleShuffle: () -> Unit,
     onCycleRepeat: () -> Unit,
+    onOpenLyrics: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var isDragging by remember { mutableStateOf(false) }
@@ -256,7 +257,7 @@ fun NowPlayingScreen(
                     tint = Faint,
                 )
             }
-            IconButton(onClick = {}) {
+            IconButton(onClick = onOpenLyrics) {
                 Icon(
                     imageVector = Icons.Rounded.Subtitles,
                     contentDescription = "Letras",
