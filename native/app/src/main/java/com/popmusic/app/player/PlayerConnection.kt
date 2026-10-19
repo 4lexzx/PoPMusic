@@ -3,6 +3,7 @@ package com.popmusic.app.player
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -25,6 +26,7 @@ class PlayerConnection(private val context: Context) {
 
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
+    private var pendingPlay: Pair<Song, String>? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val _state = MutableStateFlow(PlayerUiState())
@@ -60,16 +62,34 @@ class PlayerConnection(private val context: Context) {
         controllerFuture = future
 
         future.addListener({
-            runCatching { future.get() }.onSuccess { mediaController ->
-                controller = mediaController
-                mediaController.addListener(listener)
-                updateState(mediaController)
-            }
+            runCatching { future.get() }
+                .onSuccess { mediaController ->
+                    Log.d(TAG, "MediaController connected")
+                    controller = mediaController
+                    mediaController.addListener(listener)
+                    updateState(mediaController)
+                    pendingPlay?.let { (song, url) ->
+                        pendingPlay = null
+                        play(mediaController, song, url)
+                    }
+                }
+                .onFailure { Log.e(TAG, "MediaController connection failed", it) }
         }, ContextCompat.getMainExecutor(context))
     }
 
     fun play(song: Song, url: String) {
-        val mediaController = controller ?: return
+        val mediaController = controller
+        if (mediaController == null) {
+            Log.w(TAG, "Controller not ready, queueing playback for ${song.id}")
+            pendingPlay = song to url
+            connect()
+            return
+        }
+        play(mediaController, song, url)
+    }
+
+    private fun play(mediaController: MediaController, song: Song, url: String) {
+        Log.d(TAG, "Playing ${song.id} from $url")
 
         val metadata = MediaMetadata.Builder()
             .setTitle(song.title)
@@ -129,5 +149,9 @@ class PlayerConnection(private val context: Context) {
         controllerFuture?.let { MediaController.releaseFuture(it) }
         controllerFuture = null
         controller = null
+    }
+
+    private companion object {
+        const val TAG = "PlayerConnection"
     }
 }

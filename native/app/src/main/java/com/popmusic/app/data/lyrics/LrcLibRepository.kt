@@ -1,5 +1,6 @@
 package com.popmusic.app.data.lyrics
 
+import android.util.Log
 import com.popmusic.app.domain.LyricLine
 import com.popmusic.app.domain.Lyrics
 import kotlinx.coroutines.Dispatchers
@@ -7,6 +8,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
+import org.json.JSONObject
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
 
@@ -18,28 +20,82 @@ class LrcLibRepository {
         .build()
 
     suspend fun search(title: String, artist: String): Lyrics? = withContext(Dispatchers.IO) {
-        val query = URLEncoder.encode("$title $artist".trim(), "UTF-8")
+        val cleanTitle = clean(title)
+        val cleanArtist = clean(artist)
+
+        getExact(cleanTitle, cleanArtist)
+            ?: getExact(cleanTitle, null)
+            ?: fromSearchQuery("$cleanTitle $cleanArtist".trim())
+            ?: fromSearchQuery(cleanTitle)
+    }
+
+    private fun getExact(trackName: String, artistName: String?): Lyrics? {
+        if (trackName.isBlank()) return null
+        val url = buildString {
+            append("https://lrclib.net/api/get?track_name=")
+            append(encode(trackName))
+            if (!artistName.isNullOrBlank()) {
+                append("&artist_name=")
+                append(encode(artistName))
+            }
+        }
+
+        val json = request(url) ?: return null
+        val item = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (item.has("statusCode")) return null
+        return item.toLyrics()
+    }
+
+    private fun fromSearchQuery(query: String): Lyrics? {
+        if (query.isBlank()) return null
+        val url = "https://lrclib.net/api/search?q=${encode(query)}"
+
+        val json = request(url) ?: return null
+        val array = runCatching { JSONArray(json) }.getOrNull() ?: return null
+
+        var plain: Lyrics? = null
+        for (index in 0 until array.length()) {
+            val item = array.optJSONObject(index) ?: continue
+            val lyrics = item.toLyrics() ?: continue
+            if (lyrics.lines.isNotEmpty()) return lyrics
+            if (plain == null) plain = lyrics
+        }
+        Log.d(TAG, "No synced lyrics for \"$query\" (${array.length()} candidates)")
+        return plain
+    }
+
+    private fun request(url: String): String? {
         val request = Request.Builder()
-            .url("https://lrclib.net/api/search?q=$query")
-            .header("User-Agent", "PoPMusic/0.1 (https://github.com/4lexzx/PoPMusic)")
+            .url(url)
+            .header("User-Agent", USER_AGENT)
             .build()
 
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) return@withContext null
-
-            val array = JSONArray(response.body.string())
-            for (index in 0 until array.length()) {
-                val item = array.optJSONObject(index) ?: continue
-                val synced = item.optString("syncedLyrics").takeIf { it.isNotBlank() }
-                if (synced != null) {
-                    return@withContext Lyrics(
-                        lines = parseLrc(synced),
-                        plainText = item.optString("plainLyrics").takeIf { it.isNotBlank() },
-                    )
-                }
+        return runCatching {
+            client.newCall(request).execute().use { response ->
+                Log.d(TAG, "GET $url -> ${response.code}")
+                if (!response.isSuccessful) return null
+                response.body.string()
             }
-            null
-        }
+        }.onFailure { Log.e(TAG, "Request failed: $url", it) }.getOrNull()
+    }
+
+    private fun JSONObject.toLyrics(): Lyrics? {
+        val synced = optString("syncedLyrics").takeIf { it.isNotBlank() }
+        val plain = optString("plainLyrics").takeIf { it.isNotBlank() }
+        if (synced == null && plain == null) return null
+        return Lyrics(
+            lines = synced?.let(::parseLrc).orEmpty(),
+            plainText = plain,
+        )
+    }
+
+    private fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")
+
+    private fun clean(value: String): String {
+        var result = value
+        BRACKETS.forEach { result = result.replace(it, " ") }
+        JUNK.forEach { result = result.replace(it, " ", ignoreCase = true) }
+        return result.replace(Regex("\\s+"), " ").trim().trim('-', '–', '—').trim()
     }
 
     private fun parseLrc(lrc: String): List<LyricLine> {
@@ -71,5 +127,22 @@ class LrcLibRepository {
             .filter { it.text.isNotBlank() }
             .sortedBy { it.timeMs }
             .toList()
+    }
+
+    private companion object {
+        const val TAG = "LrcLib"
+        const val USER_AGENT = "PoPMusic/0.1 (https://github.com/4lexzx/PoPMusic)"
+
+        val BRACKETS = listOf(
+            Regex("[\\(\\[].*?[\\)\\]]"),
+            Regex("\\([^)]*$"),
+        )
+
+        val JUNK = listOf(
+            "official video", "official music video", "official audio", "official",
+            "lyric video", "lyrics video", "lyrics", "letra", "video oficial",
+            "music video", "audio", "hd", "hq", "4k", "8k", "remastered",
+            "remaster", "visualizer", "live", "en vivo",
+        )
     }
 }
