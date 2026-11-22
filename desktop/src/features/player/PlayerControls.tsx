@@ -31,7 +31,7 @@ export function ProgressBar({ position, duration, onSeek }: ProgressBarProps) {
       <Slider
         value={shown}
         ariaLabel="Progreso de la canción"
-        trackClassName="h-1.5 bg-[color:var(--overlay-3)]"
+        trackClassName="h-[3px] bg-[color:var(--overlay-3)]"
         fillClassName="progress-fill"
         thumbClassName="progress-thumb"
         onChange={(next) => setScrub(next)}

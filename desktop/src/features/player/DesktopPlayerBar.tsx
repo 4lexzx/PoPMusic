@@ -110,7 +110,7 @@ export function DesktopPlayerBar() {
           <Slider
             value={progress}
             ariaLabel="Progreso"
-            trackClassName="h-1 bg-[color:var(--overlay-3)]"
+            trackClassName="h-[3px] bg-[color:var(--overlay-3)]"
             fillClassName="progress-fill"
             thumbClassName="progress-thumb"
             onChange={(value) => seek(value * total)}
@@ -159,7 +159,7 @@ export function DesktopPlayerBar() {
               value={muted ? 0 : volume / 100}
               ariaLabel="Volumen"
               className="playerbar__volume"
-              trackClassName="h-1 bg-[color:var(--overlay-3)]"
+              trackClassName="h-[3px] bg-[color:var(--overlay-3)]"
               fillClassName="bg-ink/60"
               onChange={(value) => setVolume(value * 100)}
             />

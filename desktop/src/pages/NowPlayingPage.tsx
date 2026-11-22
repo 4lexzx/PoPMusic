@@ -130,7 +130,7 @@ export function NowPlayingPage() {
             <Slider
               value={total > 0 ? Math.min(1, position / total) : 0}
               ariaLabel="Progreso"
-              trackClassName="h-1.5 bg-[color:var(--overlay-3)]"
+              trackClassName="h-[3px] bg-[color:var(--overlay-3)]"
               fillClassName="progress-fill"
               thumbClassName="progress-thumb"
               onChange={(value) => seek(value * total)}

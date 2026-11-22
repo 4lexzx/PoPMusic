@@ -497,36 +497,14 @@ body::before {
   }
 }
 
+/* Línea de progreso fina y plana, sin relleno brillante. */
 .progress-fill {
-  position: relative;
-  overflow: hidden;
-  background-image: linear-gradient(
-    90deg,
-    var(--color-accent) 0%,
-    var(--color-accent-soft) 45%,
-    #ffffff 50%,
-    var(--color-accent-soft) 55%,
-    var(--color-accent) 100%
-  );
-  background-size: 220% 100%;
-  animation: progressShine 2.6s linear infinite;
-  box-shadow: 0 0 12px -2px var(--color-accent);
-}
-
-.progress-fill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
-  transform: translateX(-100%);
-  animation: shimmer 2.2s var(--ease-out-soft) infinite;
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .progress-thumb {
   background: #fff;
-  box-shadow:
-    0 0 0 4px color-mix(in srgb, var(--color-accent) 35%, transparent),
-    0 0 14px 2px var(--color-accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
 }
 
 html {

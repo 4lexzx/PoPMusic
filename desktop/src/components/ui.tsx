@@ -212,7 +212,7 @@ export function Slider({
   ariaLabel = 'Slider',
   className = '',
   showThumb = true,
-  trackClassName = 'h-1.5 bg-[color:var(--overlay-3)]',
+  trackClassName = 'h-[3px] bg-[color:var(--overlay-3)]',
   fillClassName = 'bg-ink',
   thumbClassName = 'bg-white',
   disabled,
@@ -286,10 +286,10 @@ export function Slider({
       </div>
       {showThumb ? (
         <div
-          className={`absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full shadow-md transition-transform ${thumbClassName} ${
+          className={`absolute top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full transition-transform ${thumbClassName} ${
             dragging ? 'scale-125' : 'scale-100'
           }`}
-          style={{ left: `calc(${percent}% - 7px)` }}
+          style={{ left: `calc(${percent}% - 5px)` }}
         />
       ) : null}
     </div>
