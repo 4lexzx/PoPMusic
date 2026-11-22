@@ -18,6 +18,9 @@ interface MusicServiceRepository {
     /** Crea una playlist en el servicio externo y devuelve su id. */
     suspend fun createPlaylist(name: String): String?
 
+    /** Cambia el nombre de una playlist ya creada en el servicio externo. */
+    suspend fun renamePlaylist(externalPlaylistId: String, name: String): Boolean
+
     /** Añade una canción a una playlist del servicio externo. */
     suspend fun addToPlaylist(externalPlaylistId: String, song: ExternalSong): Boolean
 

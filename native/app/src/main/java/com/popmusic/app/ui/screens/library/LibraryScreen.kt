@@ -40,6 +40,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.History
@@ -140,6 +141,9 @@ fun LibraryScreen(
     var spotifyLink by remember { mutableStateOf("") }
     // Menú ⋯ por playlist (ítem 10) y confirmación de borrado en rojo (ítem 12).
     var confirmDelete by remember { mutableStateOf<Playlist?>(null) }
+    // Ítem 1: cambiar nombre de la playlist (con propagación a las plataformas).
+    var renameTarget by remember { mutableStateOf<Playlist?>(null) }
+    var renameText by remember { mutableStateOf("") }
     var fabVisible by remember { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf(LibraryFilter.HOME) }
 
@@ -392,6 +396,15 @@ fun LibraryScreen(
                                         },
                                     )
                                     SolidMenuRow(
+                                        icon = Icons.Rounded.Edit,
+                                        label = "Cambiar nombre",
+                                        onClick = {
+                                            renameTarget = playlist
+                                            renameText = playlist.name
+                                            dismiss()
+                                        },
+                                    )
+                                    SolidMenuRow(
                                         icon = Icons.Rounded.Delete,
                                         label = "Eliminar playlist",
                                         tint = Danger,
@@ -528,6 +541,15 @@ fun LibraryScreen(
                                                 playlist.id,
                                                 MusicService.SPOTIFY,
                                             )
+                                            dismiss()
+                                        },
+                                    )
+                                    SolidMenuRow(
+                                        icon = Icons.Rounded.Edit,
+                                        label = "Cambiar nombre",
+                                        onClick = {
+                                            renameTarget = playlist
+                                            renameText = playlist.name
                                             dismiss()
                                         },
                                     )
@@ -867,6 +889,40 @@ fun LibraryScreen(
                         confirmDelete = null
                     },
                     modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+
+    // Ítem 1: cambiar nombre de la playlist (con propagación a las plataformas).
+    renameTarget?.let { playlist ->
+        GlassDialog(onDismiss = { renameTarget = null }) {
+            GlassDialogHeader(
+                title = "Cambiar nombre",
+                subtitle = playlist.name,
+                onClose = { renameTarget = null },
+            )
+            Spacer(Modifier.height(16.dp))
+            GlassTextField(
+                value = renameText,
+                onValueChange = { renameText = it },
+                placeholder = "Nuevo nombre",
+            )
+            Spacer(Modifier.height(20.dp))
+            GlassDialogActions {
+                GlassTextButton(
+                    text = "Cancelar",
+                    onClick = { renameTarget = null },
+                    modifier = Modifier.weight(1f),
+                )
+                GlassPrimaryButton(
+                    text = "Guardar",
+                    onClick = {
+                        viewModel.renamePlaylist(playlist.id, renameText)
+                        renameTarget = null
+                    },
+                    modifier = Modifier.weight(1f),
+                    enabled = renameText.isNotBlank(),
                 )
             }
         }

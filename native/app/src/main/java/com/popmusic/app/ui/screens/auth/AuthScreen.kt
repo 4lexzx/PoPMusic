@@ -68,6 +68,7 @@ import com.popmusic.app.ui.components.PopLogo
 import com.popmusic.app.ui.theme.Danger
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
+import com.popmusic.app.ui.theme.Surface
 import com.popmusic.app.ui.theme.LiquidGlass
 import com.popmusic.app.ui.theme.pressScale
 
@@ -489,7 +490,7 @@ private fun ModePill(
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) Color(0xFF0D0D0F) else Faint,
+            color = if (selected) Surface else Faint,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         )
     }
@@ -531,9 +532,9 @@ private fun SocialButton(
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Medium,
             color = if (enabled) {
-                Color(0xFF1F1F1F)
+                Surface
             } else {
-                Color(0xFF1F1F1F).copy(alpha = 0.40f)
+                Surface.copy(alpha = 0.40f)
             },
         )
     }

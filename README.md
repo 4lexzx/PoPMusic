@@ -175,6 +175,7 @@ El APK de esta versión está firmado con la clave del proyecto. Para usar una p
 
 - Sin publicidad, sin rastreo de terceros y sin venta de datos.
 - La biblioteca, los favoritos y las playlists se guardan localmente en el dispositivo.
+- Al iniciar sesión, los me gusta y la biblioteca se guardan en tu cuenta y se sincronizan entre dispositivos; también se recuerdan las cuentas vinculadas.
 - Solo se sincroniza lo que el usuario decide al vincular una cuenta.
 
 Política completa: [privacidad.html](https://4lexzx.github.io/PoPMusic/privacidad.html) · Términos: [terminos.html](https://4lexzx.github.io/PoPMusic/terminos.html)

@@ -65,6 +65,8 @@ import com.popmusic.app.ui.screens.onboarding.SelectedArtistChip
 import com.popmusic.app.ui.screens.onboarding.TasteChip
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
+import com.popmusic.app.ui.theme.BgElev
+import com.popmusic.app.ui.theme.Surface2
 import com.popmusic.app.ui.theme.LiquidGlass
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -160,7 +162,7 @@ fun TastesScreen(
         modifier = modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(listOf(Color(0xFF0C0C16), Color(0xFF06060C))),
+                Brush.verticalGradient(listOf(Surface2, BgElev)),
             )
             .statusBarsPadding()
             .navigationBarsPadding()

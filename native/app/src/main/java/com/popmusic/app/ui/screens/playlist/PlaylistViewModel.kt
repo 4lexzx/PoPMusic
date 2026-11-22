@@ -41,6 +41,11 @@ class PlaylistViewModel(application: Application) : AndroidViewModel(application
         repository.moveSong(playlistId.value, songId, up)
     }
 
+    /** Ordena toda la playlist por título, artista o duración (ítem 1). */
+    fun sort(by: com.popmusic.app.data.library.LibraryRepository.PlaylistSort) {
+        repository.sortPlaylist(playlistId.value, by)
+    }
+
     /** Copia la canción a otra playlist (no la quita de esta). */
     fun copyToPlaylist(targetId: String, song: Song) {
         repository.addToPlaylist(targetId, song)

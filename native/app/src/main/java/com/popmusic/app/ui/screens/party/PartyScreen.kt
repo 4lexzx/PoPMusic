@@ -80,6 +80,7 @@ import com.popmusic.app.ui.components.GlassTextField
 import com.popmusic.app.ui.components.MusicLoader
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
+import com.popmusic.app.ui.theme.Surface
 import com.popmusic.app.ui.theme.LiquidGlass
 import com.popmusic.app.ui.theme.Muted
 import com.popmusic.app.ui.theme.pressScale
@@ -236,7 +237,7 @@ private fun JoinContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(CircleShape)
-                    .background(Color(0xFF0C0C10)),
+                    .background(Surface),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(

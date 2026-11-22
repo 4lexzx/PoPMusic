@@ -90,6 +90,16 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
 
     fun deletePlaylist(playlistId: String) = repository.deletePlaylist(playlistId)
 
+    /**
+     * Cambia el nombre de una playlist (ítem 1): se guarda en local y se
+     * propaga a las plataformas vinculadas (YouTube/Spotify).
+     */
+    fun renamePlaylist(playlistId: String, name: String) {
+        if (name.isBlank()) return
+        repository.renamePlaylist(playlistId, name)
+        sync.renamePlaylist(playlistId, name.trim())
+    }
+
     fun importPlaylist(link: String) {
         if (link.isBlank() || importJob?.isActive == true) return
 

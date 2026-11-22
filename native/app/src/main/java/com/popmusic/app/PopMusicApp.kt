@@ -746,6 +746,10 @@ fun PopMusicApp() {
                                     playerViewModel.play(songs, startIndex)
                                     openPlayer()
                                 },
+                                onAddToPlaylist = { song ->
+                                    addToPlaylistSong = song
+                                    showAddToPlaylist = true
+                                },
                             )
                         }
                         composable(Routes.ACCOUNT) {

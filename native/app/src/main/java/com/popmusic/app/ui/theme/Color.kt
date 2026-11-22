@@ -33,7 +33,7 @@ object Ambient {
         val currentColor = color
         val currentStrength = strength
         if (currentStrength <= 0f) return base
-        val fraction = (currentStrength * 0.35f).coerceIn(0f, 0.45f)
+        val fraction = (currentStrength * 0.6f).coerceIn(0f, 0.6f)
         return lerp(base, currentColor, fraction)
     }
 }

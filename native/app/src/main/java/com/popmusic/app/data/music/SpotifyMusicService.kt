@@ -109,6 +109,18 @@ class SpotifyMusicService(
         json.optString("id").takeIf { it.isNotBlank() }
     }
 
+    /** Cambia el nombre de la playlist (`PUT /playlists/{id}` con `{"name": …}`). */
+    override suspend fun renamePlaylist(externalPlaylistId: String, name: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val token = oauth.freshToken(MusicService.SPOTIFY) ?: return@withContext false
+            val body = JSONObject().put("name", name).toString()
+            put(
+                "https://api.spotify.com/v1/playlists/" + Uri.encode(externalPlaylistId),
+                token,
+                body,
+            ) != null
+        }
+
     override suspend fun addToPlaylist(externalPlaylistId: String, song: ExternalSong): Boolean =
         withContext(Dispatchers.IO) {
             val token = oauth.freshToken(MusicService.SPOTIFY) ?: return@withContext false
@@ -203,6 +215,25 @@ class SpotifyMusicService(
         }
     }.getOrElse {
         Log.e(TAG, "Fallo de red en Spotify", it)
+        null
+    }
+
+    private fun put(url: String, token: String, body: String): JSONObject? = runCatching {
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $token")
+            .put(body.toRequestBody(jsonType))
+            .build()
+        client.newCall(request).execute().use { response ->
+            val text = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Spotify ${response.code} en PUT $url: ${text.take(300)}")
+                return null
+            }
+            if (text.isBlank()) JSONObject() else JSONObject(text)
+        }
+    }.getOrElse {
+        Log.e(TAG, "Fallo de red en Spotify (PUT)", it)
         null
     }
 

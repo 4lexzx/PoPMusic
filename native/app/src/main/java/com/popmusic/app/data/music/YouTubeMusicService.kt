@@ -152,6 +152,21 @@ class YouTubeMusicService(
         json.optString("id").takeIf { it.isNotBlank() }
     }
 
+    /** Cambia el nombre de la playlist (Data API: `PUT playlists?part=snippet`). */
+    override suspend fun renamePlaylist(externalPlaylistId: String, name: String): Boolean =
+        withContext(Dispatchers.IO) {
+            val token = oauth.freshToken(MusicService.YOUTUBE) ?: return@withContext false
+            val body = JSONObject()
+                .put("id", externalPlaylistId)
+                .put("snippet", JSONObject().put("title", name))
+                .toString()
+            put(
+                "https://www.googleapis.com/youtube/v3/playlists?part=snippet",
+                token,
+                body,
+            ) != null
+        }
+
     override suspend fun addToPlaylist(externalPlaylistId: String, song: ExternalSong): Boolean =
         withContext(Dispatchers.IO) {
             val token = oauth.freshToken(MusicService.YOUTUBE) ?: return@withContext false
@@ -275,6 +290,25 @@ class YouTubeMusicService(
         }
     }.getOrElse {
         Log.e(TAG, "Fallo de red en YouTube", it)
+        null
+    }
+
+    private fun put(url: String, token: String, body: String): JSONObject? = runCatching {
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $token")
+            .put(body.toRequestBody(jsonType))
+            .build()
+        client.newCall(request).execute().use { response ->
+            val text = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                Log.w(TAG, "YouTube ${response.code} en PUT $url: ${text.take(300)}")
+                return null
+            }
+            if (text.isBlank()) JSONObject() else JSONObject(text)
+        }
+    }.getOrElse {
+        Log.e(TAG, "Fallo de red en YouTube (PUT)", it)
         null
     }
 

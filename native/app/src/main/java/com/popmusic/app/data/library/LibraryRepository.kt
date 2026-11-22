@@ -168,6 +168,9 @@ class LibraryRepository(context: Context) {
         }
     }
 
+    /** Criterio de ordenación de una playlist. */
+    enum class PlaylistSort { TITLE, ARTIST, DURATION }
+
     /** Mueve una canción una posición arriba/abajo dentro de la playlist. */
     fun moveSong(playlistId: String, songId: String, up: Boolean) = mutate { current ->
         current.copy(
@@ -186,6 +189,29 @@ class LibraryRepository(context: Context) {
                 }
             },
         )
+    }
+
+    /**
+     * Ordena las canciones de una playlist (ítem 1) y lo deja guardado.
+     * Sirve también para las colecciones favoritos/descargas.
+     */
+    fun sortPlaylist(playlistId: String, by: PlaylistSort) = mutate { current ->
+        current.copy(
+            playlists = current.playlists.map { playlist ->
+                if (playlist.id != playlistId) playlist
+                else playlist.copy(songs = sortSongs(playlist.songs, by))
+            },
+            favorites = if (playlistId == FAVORITES_ID) sortSongs(current.favorites, by) else current.favorites,
+            downloads = if (playlistId == DOWNLOADS_ID) sortSongs(current.downloads, by) else current.downloads,
+        )
+    }
+
+    private fun sortSongs(songs: List<Song>, by: PlaylistSort): List<Song> = when (by) {
+        PlaylistSort.TITLE -> songs.sortedBy { it.title.trim().lowercase() }
+        PlaylistSort.ARTIST -> songs.sortedWith(
+            compareBy({ it.artist.trim().lowercase() }, { it.title.trim().lowercase() }),
+        )
+        PlaylistSort.DURATION -> songs.sortedByDescending { it.durationSeconds }
     }
 
     fun removeFromPlaylist(playlistId: String, songId: String) {

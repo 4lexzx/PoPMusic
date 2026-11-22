@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.ButtonDefaults
@@ -278,6 +279,8 @@ fun GroupedSongList(
     onPlay: (index: Int) -> Unit,
     modifier: Modifier = Modifier,
     onMore: ((Song) -> Unit)? = null,
+    /** Botón "+" para añadir la canción a una playlist (ítem 2). */
+    onAdd: ((Song) -> Unit)? = null,
     /** Ids de favoritos: se marca el corazón junto al nombre (ítem 4). */
     favoriteIds: Set<String> = emptySet(),
 ) {
@@ -330,6 +333,15 @@ fun GroupedSongList(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (onAdd != null) {
+                        PopIconButton(
+                            icon = Icons.Rounded.Add,
+                            contentDescription = "Añadir a playlist",
+                            onClick = { onAdd(song) },
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            iconSize = 22.dp,
                         )
                     }
                     if (onMore != null) {

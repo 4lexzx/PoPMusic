@@ -271,6 +271,44 @@ class MusicSyncManager(
     }
 
     /**
+     * Cambia el nombre de una playlist y lo propaga a las plataformas donde
+     * está vinculada (ítem 1): YouTube y Spotify. Las que fallen se dejan
+     * como están (el nombre local sí se guarda siempre).
+     */
+    fun renamePlaylist(playlistId: String, newName: String) {
+        val playlist = library.state.value.playlists.firstOrNull { it.id == playlistId }
+            ?: return
+        scope.launch {
+            syncMutex.withLock {
+                var updated = 0
+                playlist.external.forEach { (serviceName, externalId) ->
+                    val service = runCatching { MusicService.valueOf(serviceName) }.getOrNull()
+                        ?: return@forEach
+                    val repository = services[service] ?: return@forEach
+                    if (!repository.isConnected()) return@forEach
+                    val ok = runCatching {
+                        repository.renamePlaylist(externalId, newName)
+                    }.getOrDefault(false)
+                    if (ok) {
+                        updated++
+                    } else {
+                        Log.w(
+                            TAG,
+                            "No se pudo renombrar «${playlist.name}» en " +
+                                service.displayName(),
+                        )
+                    }
+                }
+                _events.value = when {
+                    updated > 0 -> "Nombre actualizado en $updated plataforma(s)"
+                    playlist.external.isNotEmpty() -> "Nombre guardado solo en el teléfono"
+                    else -> null
+                }
+            }
+        }
+    }
+
+    /**
      * Sube una playlist concreta a un servicio (export manual desde la
      * biblioteca, ítem "exportar a YouTube/Spotify"). Crea la playlist en el
      * servicio si aún no está vinculada y añade lo que falte.

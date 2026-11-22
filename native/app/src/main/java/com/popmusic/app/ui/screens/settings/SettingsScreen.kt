@@ -118,6 +118,8 @@ import com.popmusic.app.ui.theme.Line
 import com.popmusic.app.ui.theme.LiquidGlass
 import com.popmusic.app.ui.theme.Surface2
 import com.popmusic.app.ui.theme.Surface3
+import com.popmusic.app.ui.theme.Surface
+import com.popmusic.app.ui.theme.BgElev
 import com.popmusic.app.ui.theme.pressScale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -568,22 +570,27 @@ private fun SettingsDetail(
 
             SettingsView.APPEARANCE -> AppearanceDetail(settings, playback, preferences)
             SettingsView.CUSTOMIZATION -> {
+                // Borrador: el usuario ve el cambio en la vista previa y confirma
+                // con "Aplicar" (ítem 4). Las imágenes (galería) se aplican al
+                // elegirlas porque el selector devuelve la URI.
+                var draft by remember(settings) { mutableStateOf(settings) }
                 SectionLabel("Fondos dinámicos")
                 BackgroundChoices(
-                    settings = settings,
+                    settings = draft,
                     onSelectPreset = { index ->
-                        preferences.update {
-                            it.copy(mode = BackgroundMode.PRESET, presetId = index)
-                        }
+                        draft = draft.copy(mode = BackgroundMode.PRESET, presetId = index)
                     },
-                    onSelectNone = { preferences.update { it.copy(mode = BackgroundMode.NONE) } },
+                    onSelectNone = { draft = draft.copy(mode = BackgroundMode.NONE) },
                     onPickImage = onPickImage,
                 )
                 Spacer(Modifier.height(18.dp))
-                // Vista previa viva de la pantalla de Inicio: cambias el
-                // fondo → cambia aquí mismo, en tiempo real.
                 SectionLabel("Vista previa")
-                AppScreenPreview(settings = settings, playback = playback)
+                AppScreenPreview(settings = draft, playback = playback, glassOpacity = draft.glassOpacity)
+                Spacer(Modifier.height(12.dp))
+                PrimaryAction(
+                    text = if (draft != settings) "Aplicar" else "Aplicado",
+                    onClick = { if (draft != settings) preferences.update { draft } },
+                )
                 Spacer(Modifier.height(20.dp))
             }
 
@@ -1027,7 +1034,7 @@ private fun AppearanceDetail(
     // liquid glass) ACTUALES — todo lo que muevas se ve aquí.
     Spacer(Modifier.height(18.dp))
     SectionLabel("Vista previa")
-    AppScreenPreview(settings = settings, playback = playback)
+    AppScreenPreview(settings = settings, playback = playback, glassOpacity = settings.glassOpacity)
 }
 
 @Composable
@@ -1091,8 +1098,6 @@ private fun AboutDetail(onCheckUpdates: () -> Unit) {
             ArtworkPlaceholder()
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                // Ítem 4: el logo en vez de "PoP Music"; PopLogo dibuja con
-                // filtrado bicúbico (a 16 dp se veía pixelado).
                 PopLogo(
                     contentDescription = "PoP Music",
                     modifier = Modifier.height(19.dp),
@@ -1109,16 +1114,42 @@ private fun AboutDetail(onCheckUpdates: () -> Unit) {
         PrimaryAction(text = "Buscar actualizaciones", onClick = onCheckUpdates)
     }
     Spacer(Modifier.height(10.dp))
-    SettingsCard(title = "Detalles") {
-        InfoRow("Fuente de audio", "Global")
+    SettingsCard(title = "Creador") {
+        InfoRow("Creador", "4lexzx")
+        HorizontalDivider(color = Line)
+        InfoRow("GitHub", "github.com/4lexzx")
+        HorizontalDivider(color = Line)
+        InfoRow("Nacionalidad", "Peruana")
+        HorizontalDivider(color = Line)
+        InfoRow("Contacto / soporte", "solisumboalexander@hotmail.com")
+        HorizontalDivider(color = Line)
+        InfoRow("Repositorio", "github.com/4lexzx/PoPMusic")
+    }
+    Spacer(Modifier.height(10.dp))
+    SettingsCard(title = "Detalles técnicos") {
+        InfoRow("Fuente de audio", "YouTube (NewPipe)")
         HorizontalDivider(color = Line)
         InfoRow("Letras", "LRCLIB")
         HorizontalDivider(color = Line)
         InfoRow("Reconocimiento", "AudD")
+        HorizontalDivider(color = Line)
+        InfoRow("Sincronización", "Supabase (Google/Spotify)")
         Spacer(Modifier.height(12.dp))
         Text(
             text = "Reproductor de música con letras sincronizadas, podcasts y " +
-                "recomendaciones. Hecho con cariño para escuchar sin anuncios.",
+                "recomendaciones. Sin anuncios, sin rastreo, sin venta de datos.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Faint,
+        )
+    }
+    Spacer(Modifier.height(10.dp))
+    SettingsCard(title = "Documentación") {
+        Text(
+            text = "Ajustes: los cambios de fondo, cristal y reproducción se " +
+                "previsualizan en vivo antes de aplicarlos. Las playlists se " +
+                "sincronizan con YouTube o Spotify si vinculas tu cuenta. Los " +
+                "me gusta y la biblioteca se guardan en tu cuenta al iniciar " +
+                "sesión, así los conservas al cambiar de dispositivo.",
             style = MaterialTheme.typography.bodyMedium,
             color = Faint,
         )
@@ -1427,7 +1458,7 @@ private fun PrimaryAction(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF09090C),
+            color = BgElev,
         )
     }
 }
@@ -1848,6 +1879,7 @@ private fun SleepChip(
 private fun AppScreenPreview(
     settings: BackgroundSettings,
     playback: PlaybackSettings,
+    glassOpacity: Float = 0.65f,
 ) {
     val shape = RoundedCornerShape(22.dp)
     Box(
@@ -2134,7 +2166,7 @@ private fun PlaybackPreview(playback: PlaybackSettings) {
             .padding(horizontal = 20.dp)
             .heightIn(min = 168.dp)
             .clip(shape)
-            .background(Brush.verticalGradient(listOf(Color(0xFF1D1D24), Color(0xFF121216))))
+            .background(Brush.verticalGradient(listOf(Surface3, Surface2)))
             .border(1.dp, Color.White.copy(alpha = 0.10f), shape),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -2240,7 +2272,7 @@ private fun BackgroundChoices(
                 selected = settings.mode == BackgroundMode.NONE,
                 onClick = onSelectNone,
                 label = "Sin fondo",
-                brush = Brush.linearGradient(listOf(Black, Color(0xFF141416))),
+                brush = Brush.linearGradient(listOf(Black, Surface)),
                 trailing = {
                     Text(
                         text = "A",
@@ -2263,7 +2295,7 @@ private fun BackgroundChoices(
                 selected = settings.mode == BackgroundMode.IMAGE,
                 onClick = onPickImage,
                 label = "Galería",
-                brush = Brush.linearGradient(listOf(Color(0xFF2A2A33), Color(0xFF141419))),
+                brush = Brush.linearGradient(listOf(Surface3, Surface)),
                 trailing = {
                     Icon(
                         imageVector = Icons.Rounded.Image,

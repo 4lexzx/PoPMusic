@@ -79,6 +79,7 @@ import com.popmusic.app.ui.theme.BrandBlue
 import com.popmusic.app.ui.theme.BrandPink
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
+import com.popmusic.app.ui.theme.BgElev
 import com.popmusic.app.ui.theme.LiquidGlass
 import com.popmusic.app.ui.theme.Muted
 import com.popmusic.app.ui.theme.pressScale
@@ -795,7 +796,7 @@ private fun PrimaryAction(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF09090C),
+            color = BgElev,
             textAlign = TextAlign.Center,
         )
     }

@@ -46,6 +46,7 @@ import com.popmusic.app.ui.components.SectionHeader
 fun HistoryScreen(
     onBack: () -> Unit,
     onPlay: (List<Song>, Int) -> Unit,
+    onAddToPlaylist: (Song) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -128,6 +129,7 @@ fun HistoryScreen(
                             songs = songs,
                             favoriteIds = favoriteIds,
                             onPlay = { index -> onPlay(songs, index) },
+                            onAdd = onAddToPlaylist,
                         )
                     }
                 }

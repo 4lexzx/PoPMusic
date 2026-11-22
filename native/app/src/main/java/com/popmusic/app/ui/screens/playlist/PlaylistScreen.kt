@@ -33,7 +33,10 @@ import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Shuffle
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.SortByAlpha
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -56,6 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.popmusic.app.PoPMusicApplication
+import com.popmusic.app.data.library.LibraryRepository
+import com.popmusic.app.data.library.LibraryRepository.PlaylistSort
 import com.popmusic.app.domain.Song
 import com.popmusic.app.ui.components.ArtworkCollage
 import com.popmusic.app.ui.components.EmptyState
@@ -68,6 +73,7 @@ import com.popmusic.app.ui.components.GlassPrimaryButton
 import com.popmusic.app.ui.components.GlassTextButton
 import com.popmusic.app.ui.components.PopIconButton
 import com.popmusic.app.ui.components.SectionHeader
+import com.popmusic.app.ui.components.SolidMenu
 import com.popmusic.app.ui.components.SolidMenuRow
 import com.popmusic.app.ui.components.TrackRow
 import com.popmusic.app.ui.theme.Accent
@@ -102,6 +108,8 @@ fun PlaylistScreen(
     // Menú ⋯ de cada canción: elegir acción (antes borraba directo).
     var confirmSong by remember { mutableStateOf<Song?>(null) }
     var copyTarget by remember { mutableStateOf<Song?>(null) }
+    // Menú "Ordenar" de la cabecera de canciones (ítem 1).
+    var sortOpen by remember { mutableStateOf(false) }
     val otherPlaylists by viewModel.playlists.collectAsState()
 
     val downloadedCount = downloads?.let { state ->
@@ -269,7 +277,42 @@ fun PlaylistScreen(
 
             item {
                 Spacer(Modifier.height(24.dp))
-                SectionHeader(title = "Canciones")
+                Box {
+                    SectionHeader(
+                        title = "Canciones",
+                        action = "Ordenar",
+                        onActionClick = { sortOpen = true },
+                    )
+                    SolidMenu(
+                        expanded = sortOpen,
+                        onDismiss = { sortOpen = false },
+                    ) { dismiss ->
+                        SolidMenuRow(
+                            icon = Icons.Rounded.SortByAlpha,
+                            label = "Título (A-Z)",
+                            onClick = {
+                                viewModel.sort(PlaylistSort.TITLE)
+                                dismiss()
+                            },
+                        )
+                        SolidMenuRow(
+                            icon = Icons.Rounded.Person,
+                            label = "Artista (A-Z)",
+                            onClick = {
+                                viewModel.sort(PlaylistSort.ARTIST)
+                                dismiss()
+                            },
+                        )
+                        SolidMenuRow(
+                            icon = Icons.Rounded.Schedule,
+                            label = "Duración (mayor primero)",
+                            onClick = {
+                                viewModel.sort(PlaylistSort.DURATION)
+                                dismiss()
+                            },
+                        )
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
             }
 
