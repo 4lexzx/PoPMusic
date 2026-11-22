@@ -18,7 +18,6 @@ import {
 } from '@/components/Icons'
 import { TimelineSlider } from '@/components/TimelineSlider'
 import { Slider, Spinner } from '@/components/ui'
-import { useArtworkColors } from '@/features/visuals/DynamicBackground'
 import { sameTrack, useLibraryStore } from '@/shared/store/libraryStore'
 import { selectCurrentTrack, usePlayerStore } from '@/shared/store/playerStore'
 import { useUiStore } from '@/shared/store/uiStore'
@@ -44,7 +43,6 @@ export function DesktopPlayerBar() {
   const cycleRepeat = usePlayerStore((state) => state.cycleRepeat)
 
   const setQueueOpen = useUiStore((state) => state.setQueueOpen)
-  const colors = useArtworkColors(track?.thumbnail)
   const favorites = useLibraryStore((state) => state.favorites)
   const toggleFavorite = useLibraryStore((state) => state.toggleFavorite)
 
@@ -62,11 +60,6 @@ export function DesktopPlayerBar() {
 
   return (
     <footer className="playerbar">
-      <div
-        className="playerbar__warm"
-        style={{ background: `linear-gradient(90deg, ${colors.primary}, transparent)` }}
-        aria-hidden="true"
-      />
       <div className="playerbar__track">
         <Link to="/now-playing" className="playerbar__art" aria-label="Abrir reproductor">
           <Artwork src={track.thumbnail} alt={track.title} className="h-full w-full" iconSize={20} />

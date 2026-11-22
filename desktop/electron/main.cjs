@@ -56,17 +56,17 @@ function startStaticServer() {
     // ejecuciones. Si está ocupado, se usa uno libre como último recurso.
     const onListening = () => {
       staticServer = server
-      localUrl = `http://127.0.0.1:${server.address().port}`
+      localUrl = `http://localhost:${server.address().port}`
       resolve(localUrl)
     }
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
-        server.listen(0, '127.0.0.1', onListening)
+        server.listen(0, 'localhost', onListening)
       } else {
         reject(error)
       }
     })
-    server.listen(41730, '127.0.0.1', onListening)
+    server.listen(41730, 'localhost', onListening)
   })
 }
 

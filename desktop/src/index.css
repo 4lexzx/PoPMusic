@@ -813,15 +813,6 @@ body {
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
 }
 
-.playerbar__warm {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 46%;
-  opacity: 0.2;
-  border-radius: 12px;
-  pointer-events: none;
-}
-
 .playerbar--empty {
   display: flex;
   justify-content: center;

@@ -9,7 +9,7 @@ let sessionPromise: Promise<InstanceType<typeof Innertube>> | null = null
 const popFetch: typeof fetch = async (input, init) => {
   const url =
     typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
-  if (window.popDesktop && !url.startsWith('http://127.0.0.1')) {
+  if (window.popDesktop && !url.startsWith('http://localhost')) {
     const headers: Record<string, string> = {}
     if (init?.headers) {
       new Headers(init.headers).forEach((value, key) => {

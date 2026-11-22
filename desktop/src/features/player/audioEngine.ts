@@ -1,5 +1,4 @@
 import { playerController, YT_STATE, type YouTubePlayerLike } from './youtubeController'
-import { resolveYoutubeStream } from './youtubeStream'
 
 /**
  * Motor de audio unificado. Usa dos motores según la pista:
@@ -63,12 +62,7 @@ export const audioEngine = {
    * elemento <audio>. Si falla, mantiene el iframe como respaldo.
    */
   async loadYoutube(videoId: string, autoplay = true): Promise<void> {
-    try {
-      const stream = await resolveYoutubeStream(videoId)
-      this.loadUrl(stream.url, autoplay)
-    } catch {
-      this.loadVideo(videoId, autoplay)
-    }
+    this.loadVideo(videoId, autoplay)
   },
 
   /** Carga un vídeo de YouTube (iframe) y detiene el audio HTML. */

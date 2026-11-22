@@ -16,7 +16,6 @@ import {
   WaveformIcon,
 } from '@/components/Icons'
 import { Button, Reveal, Spinner } from '@/components/ui'
-import { AudiusRail, HomeSuggestions, SuggestionRail } from '@/features/home/SuggestionRail'
 import { PlaylistCard } from '@/features/library/PlaylistCard'
 import { TrackCard } from '@/features/library/TrackCard'
 import { TrackMenu, TrackRow } from '@/features/library/TrackRow'
@@ -490,8 +489,6 @@ export function HomePage() {
       <Section title="Vuelve a escuchar" glyph={<ClockIcon size={13} />} action={false}>
         <AlbumRail items={replay} />
       </Section>
-      {history.length === 0 ? <AudiusRail title="Descubre en segundo plano" /> : null}
-
       {/* Modo demo: sigue avisando de la configuración pendiente. */}
       {IS_DEMO ? (
         <motion.div
@@ -560,39 +557,13 @@ export function HomePage() {
         </Section>
       ) : null}
 
-      <HomeSuggestions />
+      <Section title="Hecho para ti" glyph={<SparklesIcon size={13} />} action={false}>
+        <AlbumRail items={[...demoTracks.slice(2), ...demoTracks.slice(0, 2)]} />
+      </Section>
 
-      {history.length > 0 ? <AudiusRail title="Suena en segundo plano" /> : null}
-
-      {algorithmReady ? (
-        <SuggestionRail
-          algorithm
-          title="Hecho para ti"
-          icon={<SparklesIcon size={18} className="text-[#f5f2ec]" />}
-          offset={1}
-        />
-      ) : null}
-
-      <SuggestionRail
-        title="Éxitos del momento"
-        query="grandes éxitos pop del momento"
-        icon={<SparklesIcon size={18} className="text-[#f5f2ec]" />}
-        offset={2}
-      />
-
-      <SuggestionRail
-        title="Clásicos que nunca fallan"
-        query="clásicos del rock más escuchados"
-        icon={<WaveformIcon size={18} className="text-[#8c8780]" />}
-        offset={4}
-      />
-
-      <SuggestionRail
-        title="Para descubrir"
-        query="nueva música recomendada 2024"
-        icon={<SparklesIcon size={18} className="text-[#f5f2ec]" />}
-        offset={6}
-      />
+      <Section title="Clásicos que nunca fallan" glyph={<WaveformIcon size={13} />} action={false}>
+        <AlbumRail items={[...demoTracks.slice(4), ...demoTracks.slice(0, 4)]} />
+      </Section>
 
       <Section title="Tus playlists">
         {playlists.length > 0 ? (
