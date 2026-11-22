@@ -28,6 +28,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,10 +38,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.popmusic.app.PoPMusicApplication
 import com.popmusic.app.domain.Song
 import com.popmusic.app.ui.theme.pressScale
 
@@ -180,12 +183,20 @@ fun TrackRow(
     artist: String,
     artworkUrl: String? = null,
     liked: Boolean = false,
+    /** Id de vídeo: permite resolver su URL de audio antes de que se pulse. */
+    songId: String? = null,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onMoreClick: (() -> Unit)? = null,
     /** Menú compacto sólido anclado al ⋯; recibe el cierre del menú. */
     moreMenu: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
 ) {
+    val context = LocalContext.current
+    LaunchedEffect(songId) {
+        if (songId != null) {
+            (context.applicationContext as? PoPMusicApplication)?.audioUrlCache?.warm(listOf(songId))
+        }
+    }
     val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
@@ -277,6 +288,14 @@ fun GroupedSongList(
     /** Ids de favoritos: se marca el corazón junto al nombre (ítem 4). */
     favoriteIds: Set<String> = emptySet(),
 ) {
+    val context = LocalContext.current
+    // Calienta las URLs de TODA la lista al mostrarla: saltar a una canción
+    // lejana no espera a YouTube porque ya está en la caché.
+    val warmKey = songs.joinToString(",") { it.id }
+    LaunchedEffect(warmKey) {
+        (context.applicationContext as? PoPMusicApplication)
+            ?.audioUrlCache?.warm(songs.map { it.id })
+    }
     if (songs.isEmpty()) return
     Surface(
         modifier = modifier.fillMaxWidth(),

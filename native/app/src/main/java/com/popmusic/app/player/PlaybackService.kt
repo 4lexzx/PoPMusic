@@ -777,14 +777,22 @@ class PlaybackService : MediaSessionService() {
             // Retornar INMEDIATAMENTE cuando el item de inicio está listo (no bloqueamos en las demás).
             future.set(items)
 
-            // 2. Precargar las siguientes canciones en background (no bloquea el
-            // retorno). Solo "calienta" las cachés: la lista ya fue entregada al
-            // player, el reemplazo real lo hace el prefetch (replaceMediaItem).
-            val prefetchCount = if (instantPlay) prefetchAhead else 3
-            val last = min(startIndex + prefetchCount, items.lastIndex)
-            if (startIndex + 1 > last) return@launch
-            (startIndex + 1..last).forEach { index ->
-                scope.launch { resolveItem(items[index]) }
+            // 2. Calentar TODA la cola en segundo plano (no bloquea el retorno):
+            // las primeras van primero y el resto se reparte con un límite de
+            // concurrencia. Así, saltar a una canción lejana encuentra la URL
+            // ya resuelta en caché y arranca sin esperar a YouTube.
+            val last = min(startIndex + MAX_QUEUE_WARM, items.lastIndex)
+            if (startIndex + 1 <= last) {
+                val nearEnd = min(startIndex + prefetchAhead, last)
+                val order = buildList {
+                    addAll(startIndex + 1..nearEnd)
+                    if (nearEnd < last) addAll((nearEnd + 1..last).shuffled())
+                }
+                order.forEach { index ->
+                    scope.launch {
+                        prefetchPermits.withPermit { resolveItem(items[index]) }
+                    }
+                }
             }
         }
         return future
@@ -923,8 +931,8 @@ private suspend fun resolveItem(item: MediaItem): MediaItem? {
         }
     }
 
-    /** Cuantas canciones precargar por adelantado. Instant-play precarga más para evitar esperas. */
-    private val prefetchAhead: Int get() = if (instantPlay) 10 else PREFETCH_AHEAD
+    /** Cuantas canciones precargar por adelantado (instant-play, más). */
+    private val prefetchAhead: Int get() = if (instantPlay) 20 else 8
 
     /** Precarga TODAS las canciones no resueltas de la cola actual. Útil al activar aleatorio. */
     fun prefetchAllQueue() {
@@ -1121,6 +1129,8 @@ private fun handlePlaybackError(player: Player) {
         /** Tag compartido con AppCloseReceiver para ver el cierre 8 min en un solo filtro. */
         const val CLOSE_TAG = "AppClose"
         const val PREFETCH_AHEAD = 3
+        /** Tope de canciones de una cola que se calientan al cargarla. */
+        const val MAX_QUEUE_WARM = 80
         /** Acción custom del botón de repetir de la notificación. */
         const val COMMAND_CYCLE_REPEAT = "popmusic.CYCLE_REPEAT"
         const val MIN_BUFFER_MS = 15_000
@@ -1133,7 +1143,7 @@ private fun handlePlaybackError(player: Player) {
         /** Pref con el timestamp de la última actividad de reproducción. */
         const val KEY_LAST_ACTIVE = "last_active_at"
         const val REQUEST_OPEN_PLAYER = 4401
-        const val FADE_IN_MS = 650L
+        const val FADE_IN_MS = 220L
         const val CROSSFADE_TICK_MS = 100L
     }
 }

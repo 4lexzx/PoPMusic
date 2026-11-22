@@ -337,6 +337,7 @@ fun PlaylistScreen(
                         artist = song.artist,
                         artworkUrl = song.thumbnailUrl,
                         liked = downloads?.favorites?.any { it.id == song.id } == true,
+                        songId = song.id,
                         modifier = Modifier.animateItem(),
                         onClick = { onPlay(songs, index) },
                         moreMenu = { dismiss ->

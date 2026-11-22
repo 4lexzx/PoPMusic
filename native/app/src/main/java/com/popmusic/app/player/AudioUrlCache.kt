@@ -2,10 +2,13 @@ package com.popmusic.app.player
 
 import android.content.Context
 import android.util.Log
+import com.popmusic.app.data.youtube.YouTubeRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import org.json.JSONObject
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -22,6 +25,8 @@ class AudioUrlCache(context: Context) {
     private val file = File(context.filesDir, "audio_urls.json")
     private val entries = ConcurrentHashMap<String, Entry>()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val warming = ConcurrentHashMap.newKeySet<String>()
+    private val warmPermits = Semaphore(6)
 
     @Volatile
     private var lastPersist = 0L
@@ -44,6 +49,35 @@ class AudioUrlCache(context: Context) {
         if (videoId.isBlank() || url.isBlank()) return
         entries[videoId] = Entry(url, System.currentTimeMillis())
         maybePersist()
+    }
+
+    /**
+     * Resuelve en segundo plano las URLs que faltan para que pulsar cualquier
+     * canción (incluso una lejana en la lista) sea instantáneo: al reproducir,
+     * la URL ya está aquí y no hay que esperar a YouTube. Se deduplica y se
+     * limita a seis peticiones simultáneas para no saturar la red.
+     */
+    fun warm(ids: Collection<String>) {
+        val resolver = YouTubeRepository()
+        val missing = ids.filter { it.isNotBlank() && get(it) == null && warming.add(it) }
+        if (missing.isEmpty()) return
+        scope.launch {
+            missing.forEach { id ->
+                launch {
+                    warmPermits.withPermit {
+                        try {
+                            if (get(id) == null) {
+                                resolver.resolveAudioUrl(id)?.let { put(id, it) }
+                            }
+                        } catch (e: Exception) {
+                            Log.w(TAG, "No se pudo precalentar $id", e)
+                        } finally {
+                            warming.remove(id)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /** Descarta la URL de ese vídeo (caducada o limitada por el servidor). */

@@ -164,6 +164,7 @@ fun SearchScreen(
                             artist = song.artist,
                             artworkUrl = song.thumbnailUrl,
                             liked = song.id in favoriteIds,
+                            songId = song.id,
                             modifier = Modifier.animateItem(),
                             onClick = {
                                 onPlay(results, index)
