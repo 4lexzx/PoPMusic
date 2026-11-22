@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { HomeIcon, LibraryIcon, SearchIcon, SettingsIcon, WaveformIcon } from '@/components/Icons'
+import { HomeIcon, LibraryIcon, SearchIcon, SettingsIcon } from '@/components/Icons'
 
 const ITEMS = [
   { to: '/', label: 'Inicio', icon: HomeIcon, end: true },
@@ -13,7 +13,7 @@ export function Sidebar() {
   return (
     <aside className="rail">
       <div className="rail__brand" title="PoP Music">
-        <WaveformIcon size={24} />
+        <img src="/logo-glyph.png" alt="PoP Music" className="rail__logo" />
       </div>
 
       <nav className="rail__nav">

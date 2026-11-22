@@ -21,17 +21,26 @@ import { usePlayerStore } from '@/shared/store/playerStore'
 import type { Playlist } from '@/shared/types/track'
 import { formatDuration } from '@/shared/utils/time'
 
-type Tab = 'all' | 'lists' | 'favorites' | 'artists'
+type Tab = 'lists' | 'favorites' | 'artists'
 type ViewMode = 'grid' | 'list'
 
 const TABS: Array<{ id: Tab; label: string }> = [
-  { id: 'all', label: 'Todo' },
-  { id: 'lists', label: 'Playlists' },
+  { id: 'lists', label: 'Listas' },
+  { id: 'favorites', label: 'Álbumes' },
   { id: 'artists', label: 'Artistas' },
-  { id: 'favorites', label: 'Favoritos' },
 ]
 
 const EASE = [0.22, 1, 0.36, 1] as const
+
+/** Paleta cálida de la captura: negro cálido, superficies grafito, texto apagado. */
+const WARM = {
+  bg: '#0c0b0a',
+  surface: '#1a1917',
+  surfaceDeep: '#141312',
+  text: '#ffffff',
+  muted: '#8c8780',
+  line: 'rgba(255, 255, 255, 0.06)',
+} as const
 
 function sourceLabel(source: Playlist['source']): string {
   return source === 'spotify' ? 'Spotify' : source === 'youtube' ? 'YouTube' : 'Local'
@@ -45,7 +54,7 @@ function coverSources(playlist: Playlist): string[] {
 
 export function LibraryPage() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<Tab>('all')
+  const [tab, setTab] = useState<Tab>('lists')
   const [view, setView] = useState<ViewMode>('grid')
   const [query, setQuery] = useState('')
   const [addOpen, setAddOpen] = useState(false)
@@ -82,14 +91,7 @@ export function LibraryPage() {
         ? 'Buscar artistas'
         : 'Buscar listas'
 
-  const counts: Record<Tab, number> = {
-    all: playlists.length + favorites.length,
-    lists: playlists.length,
-    artists: artists.length,
-    favorites: favorites.length,
-  }
-
-  const showLibraryGrid = tab === 'all' || tab === 'lists'
+  const showLibraryGrid = tab === 'lists'
 
   const renderPlaylists = () => {
     if (filteredPlaylists.length === 0 && playlists.length === 0 && favorites.length === 0) {
@@ -108,7 +110,7 @@ export function LibraryPage() {
 
     if (view === 'grid') {
       return (
-        <div className="grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           <FavoritesTile
             count={favorites.length}
             index={0}
@@ -146,11 +148,20 @@ export function LibraryPage() {
   }
 
   return (
-    <div className="pb-10">
+    <div
+      className="relative"
+      style={{
+        // Sangra el padding de .desktop-page para que el fondo cálido cubra toda la página.
+        margin: '-22px -34px -40px',
+        padding: '22px 34px 40px',
+        minHeight: 'calc(100% + 62px)',
+        backgroundColor: WARM.bg,
+      }}
+    >
       <header className="pb-6 pt-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Biblioteca</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Biblioteca</h1>
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
           <div className="no-scrollbar flex flex-wrap items-center gap-2">
             {TABS.map((item) => {
               const active = item.id === tab
@@ -162,42 +173,47 @@ export function LibraryPage() {
                     setTab(item.id)
                     setQuery('')
                   }}
-                  className={`inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-all duration-200 ${
-                    active
-                      ? 'bg-white text-black shadow-[0_6px_18px_-8px_rgba(0,0,0,0.9)]'
-                      : 'glass-pill text-white/60 hover:text-white'
+                  className={`inline-flex h-9 items-center rounded-full px-4 text-sm font-medium transition-colors duration-200 ${
+                    active ? 'bg-white text-black' : 'text-[#8c8780] hover:text-white'
                   }`}
+                  style={{
+                    border: `1px solid ${active ? 'transparent' : WARM.line}`,
+                    backgroundColor: active ? undefined : WARM.surface,
+                  }}
                 >
                   {item.label}
-                  {counts[item.id] > 0 ? (
-                    <span className={`ml-1.5 text-xs tabular-nums ${active ? 'opacity-55' : 'opacity-50'}`}>
-                      {counts[item.id]}
-                    </span>
-                  ) : null}
                 </button>
               )
             })}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex h-9 w-56 items-center gap-2 rounded-xl glass-pill px-3.5 transition-colors focus-within:border-white/25">
-              <SearchIcon size={16} className="shrink-0 text-white/50" />
+            <div
+              className="flex h-9 w-64 items-center gap-2 rounded-full border px-3.5 transition-colors focus-within:border-white/20"
+              style={{ backgroundColor: WARM.surface, borderColor: WARM.line }}
+            >
+              <SearchIcon size={16} className="shrink-0" style={{ color: WARM.muted }} />
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={placeholder}
-                className="h-full min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40"
+                className="h-full min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-[#8c8780]"
               />
             </div>
 
             {showLibraryGrid ? (
-              <div className="flex items-center gap-0.5 rounded-xl glass-pill p-0.5">
+              <div
+                className="flex items-center gap-0.5 rounded-full border p-0.5"
+                style={{ backgroundColor: WARM.surface, borderColor: WARM.line }}
+              >
                 <button
                   type="button"
                   aria-label="Vista de cuadrícula"
                   onClick={() => setView('grid')}
-                  className={`grid h-8 w-8 place-items-center rounded-lg transition-colors duration-200 ${
-                    view === 'grid' ? 'bg-white text-black' : 'text-white/60 hover:text-white'
+                  className={`grid h-8 w-8 place-items-center rounded-full transition-colors duration-200 ${
+                    view === 'grid'
+                      ? 'bg-white text-black'
+                      : 'text-[#8c8780] hover:text-white'
                   }`}
                 >
                   <GridIcon size={17} />
@@ -206,23 +222,16 @@ export function LibraryPage() {
                   type="button"
                   aria-label="Vista de lista"
                   onClick={() => setView('list')}
-                  className={`grid h-8 w-8 place-items-center rounded-lg transition-colors duration-200 ${
-                    view === 'list' ? 'bg-white text-black' : 'text-white/60 hover:text-white'
+                  className={`grid h-8 w-8 place-items-center rounded-full transition-colors duration-200 ${
+                    view === 'list'
+                      ? 'bg-white text-black'
+                      : 'text-[#8c8780] hover:text-white'
                   }`}
                 >
                   <ListIcon size={17} />
                 </button>
               </div>
             ) : null}
-
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-white px-3.5 text-sm font-medium text-black shadow-lg shadow-black/30 transition-all duration-150 hover:bg-white/90 active:scale-[0.98]"
-            >
-              <PlusIcon size={16} strokeWidth={2.4} />
-              Nueva playlist
-            </button>
           </div>
         </div>
       </header>
@@ -241,7 +250,7 @@ export function LibraryPage() {
             filteredFavorites.length > 0 ? (
               <>
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-xs text-faint">
+                  <p className="text-xs" style={{ color: WARM.muted }}>
                     {filteredFavorites.length}{' '}
                     {filteredFavorites.length === 1 ? 'canción' : 'canciones'}
                   </p>
@@ -297,13 +306,15 @@ export function LibraryPage() {
                         iconSize={22}
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[0.95rem] font-medium">{artist.name}</span>
-                        <span className="mt-0.5 block truncate text-xs text-faint">
+                        <span className="block truncate text-[0.95rem] font-medium text-white">
+                          {artist.name}
+                        </span>
+                        <span className="mt-0.5 block truncate text-xs" style={{ color: WARM.muted }}>
                           {artist.tracks.length}{' '}
                           {artist.tracks.length === 1 ? 'canción' : 'canciones'}
                         </span>
                       </span>
-                      <PlayIcon size={18} className="shrink-0 text-faint" />
+                      <PlayIcon size={18} className="shrink-0" style={{ color: WARM.muted }} />
                     </motion.button>
                   </li>
                 ))}
@@ -320,6 +331,22 @@ export function LibraryPage() {
           ) : null}
         </motion.div>
       </AnimatePresence>
+
+      {/* Botón flotante circular blanco — abre crear/importar playlist. */}
+      <motion.button
+        type="button"
+        aria-label="Añadir a la biblioteca"
+        title="Añadir a la biblioteca"
+        onClick={() => setAddOpen(true)}
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        whileHover={{ scale: 1.06 }}
+        whileTap={{ scale: 0.95 }}
+        className="fixed z-40 grid h-14 w-14 place-items-center rounded-full bg-white text-black shadow-[0_12px_34px_-6px_rgba(0,0,0,0.85)]"
+        style={{ bottom: 104, right: 34 }}
+      >
+        <PlusIcon size={26} strokeWidth={2.4} />
+      </motion.button>
 
       <AddToLibraryDialog open={addOpen} onClose={() => setAddOpen(false)} />
     </div>
@@ -349,16 +376,19 @@ function FavoritesTile({
       whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.18, ease: EASE } }}
       className="group block w-full text-left"
     >
-      <div className="relative aspect-square w-full overflow-hidden rounded-[10px] bg-gradient-to-br from-[#8b5cf6] via-[#6d28d9] to-[#3b0764] shadow-lg shadow-purple-950/40">
+      <div
+        className="relative aspect-square w-full overflow-hidden rounded-[10px] border"
+        style={{ backgroundColor: WARM.surfaceDeep, borderColor: WARM.line }}
+      >
         <div className="absolute inset-0 grid place-items-center">
           <HeartFilledIcon
-            size={54}
-            className="text-white drop-shadow-[0_8px_18px_rgba(0,0,0,0.45)] transition-transform duration-300 group-hover:scale-110"
+            size={64}
+            className="text-white drop-shadow-[0_8px_18px_rgba(0,0,0,0.5)] transition-transform duration-300 group-hover:scale-110"
           />
         </div>
       </div>
-      <p className="mt-2.5 truncate text-sm font-medium">Canciones que te gustan</p>
-      <p className="truncate text-xs text-faint">
+      <p className="mt-2.5 truncate text-sm font-medium text-white">Canciones que te gustan</p>
+      <p className="truncate text-xs" style={{ color: WARM.muted }}>
         {count} {count === 1 ? 'canción' : 'canciones'}
       </p>
     </motion.button>
@@ -378,8 +408,8 @@ function PlaylistCollage({
 
   if (covers.length === 0) {
     return (
-      <div className="grid h-full w-full place-items-center bg-gradient-to-br from-[#3a2c6e] via-[#231d3d] to-[#12121c]">
-        <MusicIcon size={compact ? 18 : 44} className="text-white/70" />
+      <div className="grid h-full w-full place-items-center" style={{ backgroundColor: WARM.surfaceDeep }}>
+        <MusicIcon size={compact ? 18 : 44} style={{ color: WARM.muted }} />
       </div>
     )
   }
@@ -407,10 +437,7 @@ function PlaylistCollage({
         />
       ))}
       {Array.from({ length: 4 - covers.length }, (_, index) => (
-        <div
-          key={`empty-${index}`}
-          className="bg-gradient-to-br from-[#241d3d] to-[#12121c]"
-        />
+        <div key={`empty-${index}`} style={{ backgroundColor: WARM.surfaceDeep }} />
       ))}
     </div>
   )
@@ -437,7 +464,10 @@ function PlaylistTile({
       whileHover={{ y: -4, scale: 1.02, transition: { duration: 0.18, ease: EASE } }}
       className="group block w-full text-left"
     >
-      <div className="relative aspect-square w-full overflow-hidden rounded-[10px]">
+      <div
+        className="relative aspect-square w-full overflow-hidden rounded-[10px] border"
+        style={{ borderColor: WARM.line }}
+      >
         <PlaylistCollage playlist={playlist} />
         {playlist.tracks.length > 0 ? (
           <span
@@ -461,8 +491,8 @@ function PlaylistTile({
           </span>
         ) : null}
       </div>
-      <p className="mt-2.5 truncate text-sm font-medium">{playlist.name}</p>
-      <p className="truncate text-xs text-faint">
+      <p className="mt-2.5 truncate text-sm font-medium text-white">{playlist.name}</p>
+      <p className="truncate text-xs" style={{ color: WARM.muted }}>
         {playlist.tracks.length} {playlist.tracks.length === 1 ? 'canción' : 'canciones'}
       </p>
     </motion.button>
@@ -489,17 +519,23 @@ function FavoritesListRow({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.035, duration: 0.25, ease: EASE }}
-      className="glass flex h-16 w-full items-center gap-3 rounded-xl px-3 text-left"
+      className="flex h-16 w-full items-center gap-3 rounded-xl border px-3 text-left transition-colors hover:brightness-125"
+      style={{ backgroundColor: WARM.surface, borderColor: WARM.line }}
     >
-      <span className="w-5 shrink-0 text-center text-xs tabular-nums text-white/40">
+      <span className="w-5 shrink-0 text-center text-xs tabular-nums" style={{ color: WARM.muted }}>
         {index + 1}
       </span>
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-[#8b5cf6] to-[#3b0764]">
+      <span
+        className="grid h-10 w-10 shrink-0 place-items-center rounded-lg"
+        style={{ backgroundColor: WARM.surfaceDeep }}
+      >
         <HeartFilledIcon size={19} className="text-white" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-medium">Canciones que te gustan</span>
-        <span className="mt-0.5 block truncate text-xs text-faint">
+        <span className="block truncate text-sm font-medium text-white">
+          Canciones que te gustan
+        </span>
+        <span className="mt-0.5 block truncate text-xs" style={{ color: WARM.muted }}>
           {count} {count === 1 ? 'canción' : 'canciones'}
         </span>
       </span>
@@ -527,18 +563,19 @@ function PlaylistListRow({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.035, duration: 0.25, ease: EASE }}
-      className="glass flex h-16 items-center gap-3 rounded-xl px-3 transition-colors hover:bg-white/[0.07]"
+      className="flex h-16 items-center gap-3 rounded-xl border px-3 transition-colors hover:brightness-125"
+      style={{ backgroundColor: WARM.surface, borderColor: WARM.line }}
     >
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-        <span className="w-5 shrink-0 text-center text-xs tabular-nums text-white/40">
+        <span className="w-5 shrink-0 text-center text-xs tabular-nums" style={{ color: WARM.muted }}>
           {index + 1}
         </span>
         <span className="h-10 w-10 shrink-0 overflow-hidden rounded-lg">
           <PlaylistCollage playlist={playlist} coversOverride={covers} compact />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium">{playlist.name}</span>
-          <span className="mt-0.5 block truncate text-xs text-faint">
+          <span className="block truncate text-sm font-medium text-white">{playlist.name}</span>
+          <span className="mt-0.5 block truncate text-xs" style={{ color: WARM.muted }}>
             {playlist.tracks.length} {playlist.tracks.length === 1 ? 'canción' : 'canciones'} ·{' '}
             {sourceLabel(playlist.source)}
           </span>
@@ -546,7 +583,7 @@ function PlaylistListRow({
       </button>
 
       {totalDuration > 0 ? (
-        <span className="shrink-0 text-xs tabular-nums text-faint">
+        <span className="shrink-0 text-xs tabular-nums" style={{ color: WARM.muted }}>
           {formatDuration(totalDuration)}
         </span>
       ) : null}
@@ -566,7 +603,7 @@ function PlaylistListRow({
         type="button"
         aria-label={`Eliminar ${playlist.name}`}
         onClick={onRemove}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white/40 transition-colors hover:text-white"
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#8c8780] transition-colors hover:text-white"
       >
         <TrashIcon size={17} />
       </button>
@@ -581,7 +618,9 @@ function PlaylistListRow({
 function EmptyState({ text, action }: { text: string; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-3 py-12 text-center">
-      <p className="max-w-[16rem] text-sm text-faint">{text}</p>
+      <p className="max-w-[16rem] text-sm" style={{ color: WARM.muted }}>
+        {text}
+      </p>
       {action}
     </div>
   )

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Artwork } from '@/components/Artwork'
 import {
+  DiscIcon,
   HeartFilledIcon,
   HeartIcon,
   ListMusicIcon,
@@ -16,6 +17,7 @@ import {
   WaveformIcon,
 } from '@/components/Icons'
 import { Slider, Spinner } from '@/components/ui'
+import { useArtworkColors } from '@/features/visuals/DynamicBackground'
 import { sameTrack, useLibraryStore } from '@/shared/store/libraryStore'
 import { selectCurrentTrack, usePlayerStore } from '@/shared/store/playerStore'
 import { useUiStore } from '@/shared/store/uiStore'
@@ -42,6 +44,7 @@ export function DesktopPlayerBar() {
   const cycleRepeat = usePlayerStore((state) => state.cycleRepeat)
 
   const setQueueOpen = useUiStore((state) => state.setQueueOpen)
+  const colors = useArtworkColors(track?.thumbnail)
   const favorites = useLibraryStore((state) => state.favorites)
   const toggleFavorite = useLibraryStore((state) => state.toggleFavorite)
 
@@ -60,6 +63,11 @@ export function DesktopPlayerBar() {
 
   return (
     <footer className="playerbar">
+      <div
+        className="playerbar__warm"
+        style={{ background: `linear-gradient(90deg, ${colors.primary}, transparent)` }}
+        aria-hidden="true"
+      />
       <div className="playerbar__track">
         <Link to="/now-playing" className="playerbar__art" aria-label="Abrir reproductor">
           <Artwork src={track.thumbnail} alt={track.title} className="h-full w-full" iconSize={20} />
@@ -82,14 +90,6 @@ export function DesktopPlayerBar() {
 
       <div className="playerbar__center">
         <div className="playerbar__buttons">
-          <button
-            type="button"
-            onClick={toggleShuffle}
-            aria-label="Aleatorio"
-            className={`playerbar__icon ${shuffle ? 'playerbar__icon--active' : ''}`}
-          >
-            <ShuffleIcon size={18} />
-          </button>
           <button type="button" onClick={() => prev()} aria-label="Anterior" className="playerbar__icon">
             <PrevIcon size={21} />
           </button>
@@ -103,14 +103,6 @@ export function DesktopPlayerBar() {
           </button>
           <button type="button" onClick={() => next()} aria-label="Siguiente" className="playerbar__icon">
             <NextIcon size={21} />
-          </button>
-          <button
-            type="button"
-            onClick={cycleRepeat}
-            aria-label="Repetir"
-            className={`playerbar__icon ${repeat !== 'off' ? 'playerbar__icon--active' : ''}`}
-          >
-            {repeat === 'one' ? <RepeatOneIcon size={18} /> : <RepeatIcon size={18} />}
           </button>
         </div>
         <div className="playerbar__progress">
@@ -128,39 +120,62 @@ export function DesktopPlayerBar() {
       </div>
 
       <div className="playerbar__right">
-        <button
-          type="button"
-          onClick={() => window.popDesktop?.toggleOverlay()}
-          aria-label="Reproductor flotante"
-          className="playerbar__icon"
-          title="Reproductor flotante"
-        >
-          <WaveformIcon size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={() => setQueueOpen(true)}
-          aria-label="Cola de reproducción"
-          className="playerbar__icon"
-        >
-          <ListMusicIcon size={18} />
-        </button>
-        <button
-          type="button"
-          onClick={toggleMute}
-          aria-label={muted ? 'Activar sonido' : 'Silenciar'}
-          className="playerbar__icon"
-        >
-          {muted ? <VolumeMuteIcon size={18} /> : <VolumeIcon size={18} />}
-        </button>
-        <Slider
-          value={muted ? 0 : volume / 100}
-          ariaLabel="Volumen"
-          className="playerbar__volume"
-          trackClassName="h-1 bg-[color:var(--overlay-3)]"
-          fillClassName="bg-ink/60"
-          onChange={(value) => setVolume(value * 100)}
-        />
+        <div className="playerbar__cluster">
+          <button
+            type="button"
+            onClick={toggleShuffle}
+            aria-label="Aleatorio"
+            className={`playerbar__icon ${shuffle ? 'playerbar__icon--active' : ''}`}
+          >
+            <ShuffleIcon size={17} />
+          </button>
+          <button
+            type="button"
+            onClick={cycleRepeat}
+            aria-label="Repetir"
+            className={`playerbar__icon ${repeat !== 'off' ? 'playerbar__icon--active' : ''}`}
+          >
+            {repeat === 'one' ? <RepeatOneIcon size={17} /> : <RepeatIcon size={17} />}
+          </button>
+          <button
+            type="button"
+            onClick={() => window.popDesktop?.toggleOverlay()}
+            aria-label="Reproductor flotante"
+            className="playerbar__icon"
+            title="Reproductor flotante"
+          >
+            <WaveformIcon size={17} />
+          </button>
+          <div className="playerbar__vol">
+            <button
+              type="button"
+              onClick={toggleMute}
+              aria-label={muted ? 'Activar sonido' : 'Silenciar'}
+              className="playerbar__icon"
+            >
+              {muted ? <VolumeMuteIcon size={17} /> : <VolumeIcon size={17} />}
+            </button>
+            <Slider
+              value={muted ? 0 : volume / 100}
+              ariaLabel="Volumen"
+              className="playerbar__volume"
+              trackClassName="h-1 bg-[color:var(--overlay-3)]"
+              fillClassName="bg-ink/60"
+              onChange={(value) => setVolume(value * 100)}
+            />
+          </div>
+          <Link to="/now-playing" aria-label="Reproductor" className="playerbar__icon">
+            <DiscIcon size={17} />
+          </Link>
+          <button
+            type="button"
+            onClick={() => setQueueOpen(true)}
+            aria-label="Cola de reproducción"
+            className="playerbar__icon"
+          >
+            <ListMusicIcon size={17} />
+          </button>
+        </div>
       </div>
     </footer>
   )

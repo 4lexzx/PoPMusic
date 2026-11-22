@@ -1,11 +1,14 @@
-import { type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, type CSSProperties, type ReactNode } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Artwork } from '@/components/Artwork'
 import {
   ChevronRightIcon,
   ClockIcon,
   DiscIcon,
   HeartFilledIcon,
+  MoreIcon,
+  PauseIcon,
   PlayIcon,
   SettingsIcon,
   SparklesIcon,
@@ -16,14 +19,15 @@ import { Button, Reveal } from '@/components/ui'
 import { AudiusRail, HomeSuggestions, SuggestionRail } from '@/features/home/SuggestionRail'
 import { PlaylistCard } from '@/features/library/PlaylistCard'
 import { TrackCard } from '@/features/library/TrackCard'
-import { TrackRow } from '@/features/library/TrackRow'
+import { TrackMenu, TrackRow } from '@/features/library/TrackRow'
 import { IS_DEMO } from '@/shared/config'
 import { demoPlaylist, demoTracks } from '@/shared/data/demo'
-import { useLibraryStore } from '@/shared/store/libraryStore'
+import { sameTrack, useLibraryStore } from '@/shared/store/libraryStore'
 import { usePlayerStore } from '@/shared/store/playerStore'
 import { useSettingsStore } from '@/shared/store/settingsStore'
+import type { Track } from '@/shared/types/track'
 
-/** Movimiento calmado: fundido corto + micro-desplazamiento, easing Liner. */
+/** Movimiento calmado: fundido corto + micro-desplazamiento. */
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
 function rise(index: number) {
@@ -34,12 +38,38 @@ function rise(index: number) {
   }
 }
 
+/** Paleta cálida de la referencia: fondo casi negro, superficies y texto. */
+const warmVars = {
+  '--color-ink': '#f5f2ec',
+  '--color-muted': '#b6b0a6',
+  '--color-faint': '#8c8780',
+} as CSSProperties
+
+/** Compensa el padding de `.desktop-page` para conseguir 36 px reales y fondo a sangre. */
+const warmShell: CSSProperties = {
+  ...warmVars,
+  margin: '-22px -34px -40px',
+  padding: '22px 36px 40px',
+  background: '#0c0b0a',
+  minHeight: '100%',
+}
+
+function uniqueTracks(tracks: Track[]): Track[] {
+  const seen = new Set<string>()
+  return tracks.filter((track) => {
+    const key = `${track.source}:${track.id}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 /** Enlace «Ver más» compartido por las cabeceras de sección. */
 function SeeMore() {
   return (
     <Link
       to="/library"
-      className="inline-flex items-center gap-0.5 text-xs font-medium text-faint transition-colors duration-200 hover:text-ink"
+      className="inline-flex items-center gap-0.5 text-xs font-medium text-[#8c8780] transition-colors duration-200 hover:text-[#f5f2ec]"
     >
       Ver más <ChevronRightIcon size={13} />
     </Link>
@@ -54,26 +84,46 @@ function greeting(): string {
   return 'Buenas noches'
 }
 
+/** Círculo blanco de 22 px con el glifo en negro que encabeza cada sección. */
+function SectionGlyph({ children }: { children: ReactNode }) {
+  return (
+    <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full bg-[#f5f2ec] text-[#0c0b0a]">
+      {children}
+    </span>
+  )
+}
+
+/** Glifo de llama (sección «Escuchando ahora mismo»). */
+function FlameGlyph() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12.8 2c.4 2.5-.9 3.9-2.2 5.2-1.4 1.4-2.9 2.9-2.9 5.8a4.4 4.4 0 0 0 8.8 0c0-1.6-.7-2.9-1.6-3.9.1 1.2-.4 2-1.2 2.4.4-2.6-.4-6.5-.8-9.5Z" />
+    </svg>
+  )
+}
+
 function Section({
   title,
   icon,
+  glyph,
   action,
   children,
 }: {
   title: string
   icon?: ReactNode
+  glyph?: ReactNode
   action?: ReactNode
   children: ReactNode
 }) {
   return (
     <Reveal>
       <section className="mt-9">
-        <div className="mb-3 flex items-center justify-between px-6">
-          <h2 className="flex items-center gap-2.5 text-[1.05rem] font-semibold tracking-tight">
-            {icon ?? <DiscIcon size={18} className="text-faint" />}
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2.5 text-[20px] font-bold tracking-[-0.01em] text-[#f5f2ec]">
+            <SectionGlyph>{glyph ?? icon ?? <DiscIcon size={13} />}</SectionGlyph>
             {title}
           </h2>
-          {action ?? <SeeMore />}
+          {action === undefined ? <SeeMore /> : action}
         </div>
         {children}
       </section>
@@ -81,102 +131,130 @@ function Section({
   )
 }
 
-function QuickTile({
-  to,
-  title,
-  subtitle,
-  cover,
-  accent,
-}: {
-  to: string
+interface QuickTileProps {
+  to?: string
   title: string
   subtitle: string
   cover?: string
   accent?: ReactNode
-}) {
-  return (
-    <Link
-      to={to}
-      className="group flex items-center gap-3 overflow-hidden rounded-2xl surface-1 px-2.5 py-2.5 transition-colors duration-200 hover:bg-white/[0.09]"
-    >
+  onClick?: () => void
+  onMore?: () => void
+}
+
+/** Tarjeta ancha de acceso rápido: miniatura, texto y botón ⋮. */
+function QuickTile({ to, title, subtitle, cover, accent, onClick, onMore }: QuickTileProps) {
+  const content = (
+    <>
       {accent ?? (
-        <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-surface-3">
+        <span className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-[#262421]">
           {cover ? (
             <img
               src={cover}
               alt=""
               loading="lazy"
               referrerPolicy="no-referrer"
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.05]"
+              className="h-full w-full object-cover"
             />
           ) : null}
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[0.85rem] font-medium leading-tight">{title}</span>
-        <span className="mt-0.5 block truncate text-[0.7rem] text-faint">{subtitle}</span>
+        <span className="block truncate text-[14px] font-semibold leading-tight text-[#f5f2ec]">
+          {title}
+        </span>
+        <span className="mt-0.5 block truncate text-[12px] text-[#8c8780]">{subtitle}</span>
       </span>
-    </Link>
+    </>
+  )
+
+  return (
+    <div className="flex h-[58px] items-center gap-3 rounded-[12px] border border-white/[0.06] bg-[#1a1917] py-1 pl-2.5 pr-1.5 transition-colors duration-200 hover:bg-[#211f1c]">
+      {to ? (
+        <Link to={to} onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3">
+          {content}
+        </Link>
+      ) : (
+        <button
+          type="button"
+          onClick={onClick}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        >
+          {content}
+        </button>
+      )}
+      <button
+        type="button"
+        aria-label="Más opciones"
+        onClick={onMore}
+        className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-[#8c8780] transition-colors duration-200 hover:bg-white/[0.06] hover:text-[#f5f2ec]"
+      >
+        <MoreIcon size={17} />
+      </button>
+    </div>
   )
 }
 
-/** Portada generada estilo Liner: degradado radial + glows difusos + glifo blanco. */
-function MixCard({
-  title,
-  subtitle,
-  gradient,
-  glow,
-  glyph,
-  index,
-  disabled,
-  onPlay,
-}: {
-  title: string
-  subtitle: string
-  gradient: string
-  glow: string
-  glyph: ReactNode
-  index: number
-  disabled: boolean
-  onPlay: () => void
-}) {
+/** Tarjeta de álbum cuadrada (~175 px) usada en las filas horizontales. */
+function AlbumCard({ track, queue, index }: { track: Track; queue: Track[]; index: number }) {
+  const playTrack = usePlayerStore((state) => state.playTrack)
+  const toggle = usePlayerStore((state) => state.toggle)
+  const current = usePlayerStore((state) => state.queue[state.currentIndex] ?? null)
+  const isPlaying = usePlayerStore((state) => state.isPlaying)
+
+  const isCurrent = current ? sameTrack(current, track) : false
+  const active = isCurrent && isPlaying
+
   return (
-    <motion.button
-      type="button"
-      {...rise(index)}
-      whileHover={disabled ? undefined : { y: -4 }}
-      onClick={onPlay}
-      disabled={disabled}
-      aria-label={`Reproducir ${title}`}
-      className="group w-[150px] shrink-0 rounded-2xl text-left transition-colors duration-200 hover:bg-white/[0.03] disabled:opacity-45"
-    >
-      <span
-        className="relative block aspect-square w-full overflow-hidden rounded-2xl shadow-[0_18px_40px_-20px_rgba(0,0,0,0.9)]"
-        style={{ background: gradient }}
+    <motion.div {...rise(index)} whileHover={{ y: -2 }} className="w-[175px] shrink-0">
+      <button
+        type="button"
+        onClick={() => (isCurrent ? toggle() : void playTrack(track, queue))}
+        aria-label={active ? `Pausar ${track.title}` : `Reproducir ${track.title}`}
+        className="group block w-full text-left"
       >
-        <span
-          className="absolute -left-8 -top-10 h-32 w-32 rounded-full blur-2xl"
-          style={{ background: glow, opacity: 0.75 }}
-        />
-        <span
-          className="absolute -bottom-12 -right-8 h-36 w-36 rounded-full blur-3xl"
-          style={{ background: glow, opacity: 0.5 }}
-        />
-        <span className="absolute inset-0 grid place-items-center text-white drop-shadow-[0_6px_18px_rgba(0,0,0,0.4)]">
-          {glyph}
+        <span className="relative block">
+          <Artwork
+            src={track.thumbnail}
+            alt={track.title}
+            className="aspect-square w-full"
+            rounded="rounded-[10px]"
+            iconSize={34}
+          />
+          <span className="absolute inset-x-0 bottom-0 h-1/2 rounded-b-[10px] bg-gradient-to-t from-black/45 to-transparent" />
+          <span
+            className={`absolute bottom-2 right-2 grid h-9 w-9 place-items-center rounded-full bg-[#f5f2ec] text-[#0c0b0a] shadow-lg transition-opacity duration-200 group-hover:opacity-100 max-md:opacity-100 ${
+              isCurrent ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            {active ? <PauseIcon size={15} /> : <PlayIcon size={15} />}
+          </span>
         </span>
-        <span className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/25 to-transparent" />
-        <span className="absolute bottom-2.5 right-2.5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white opacity-0 backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100">
-          <PlayIcon size={15} />
+        <span className="mt-2 block truncate text-[14px] font-semibold text-[#f5f2ec]">
+          {track.title}
         </span>
-      </span>
-      <span className="mt-2.5 block truncate text-sm font-semibold">{title}</span>
-      <span className="mt-0.5 block truncate text-xs text-faint">{subtitle}</span>
-    </motion.button>
+        <span className="mt-0.5 block truncate text-[12px] text-[#8c8780]">{track.artist}</span>
+      </button>
+    </motion.div>
+  )
+}
+
+function AlbumRail({ items }: { items: Track[] }) {
+  return (
+    <div className="no-scrollbar flex gap-3.5 overflow-x-auto pb-2">
+      {items.map((track, index) => (
+        <AlbumCard
+          key={`${track.source}-${track.id}-${index}`}
+          track={track}
+          queue={items}
+          index={index}
+        />
+      ))}
+    </div>
   )
 }
 
 export function HomePage() {
+  const navigate = useNavigate()
   const playlists = useLibraryStore((state) => state.playlists)
   const history = useLibraryStore((state) => state.history)
   const favorites = useLibraryStore((state) => state.favorites)
@@ -185,110 +263,122 @@ export function HomePage() {
   const algoArtists = useSettingsStore((state) => state.artists)
   const algorithmReady = algoGenres.length > 0 || algoArtists.length > 0
 
+  const [menuTrack, setMenuTrack] = useState<{ track: Track; queue: Track[] } | null>(null)
+
   const isEmpty = playlists.length === 0 && history.length === 0 && favorites.length === 0
-  const quickTiles = [
-    ...(favorites.length > 0 ? [{ kind: 'favorites' as const }] : []),
-    ...playlists.slice(0, 6).map((playlist) => ({ kind: 'playlist' as const, playlist })),
-  ].slice(0, 6)
+
+  // Las 6 tarjetas de acceso rápido: favoritos + 5 pistas reales del store.
+  const quickTracks = uniqueTracks([...history, ...favorites, ...demoTracks]).slice(0, 5)
+  // Filas de álbumes: "escuchando ahora" y "vuelve a escuchar".
+  const nowListening = uniqueTracks([...favorites, ...history, ...demoTracks]).slice(0, 10)
+  const replay = uniqueTracks([...history, ...demoTracks]).slice(0, 10)
+
   const tasteTags = [...algoGenres.slice(0, 5), ...algoArtists.slice(0, 3)]
 
   return (
-    <div className="pb-6">
-      <header className="flex items-start justify-between gap-4 px-6 pb-2 pt-7">
+    <div className="pb-6" style={warmShell}>
+      <header className="flex items-start justify-between gap-4 pb-2 pt-1">
         <div className="min-w-0">
-          <Logo size={18} className="mb-5" />
-          <h1 className="text-3xl font-semibold tracking-tight">{greeting()}</h1>
-          <p className="mt-1.5 text-sm text-faint">Tu música, con letras sincronizadas</p>
+          <Logo size={16} className="mb-4" />
+          <h1 className="text-[28px] font-bold tracking-tight text-[#f5f2ec]">{greeting()}</h1>
+          <p className="mt-1 text-[13px] text-[#8c8780]">Tu música, con letras sincronizadas</p>
         </div>
         <Link
           to="/settings"
           aria-label="Ajustes"
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-muted transition-colors duration-200 hover:bg-white/[0.06] hover:text-ink"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-[#8c8780] transition-colors duration-200 hover:bg-white/[0.06] hover:text-[#f5f2ec]"
         >
           <SettingsIcon size={21} />
         </Link>
       </header>
 
-      {/* Chips pequeños de gustos: acceso rápido a «Mi algoritmo». */}
-      <div className="no-scrollbar mt-5 flex items-center gap-2 overflow-x-auto px-6">
-        {tasteTags.map((tag, index) => (
-          <motion.div key={`${tag}-${index}`} {...rise(index)} className="shrink-0">
-            <Link
-              to="/settings"
-              className="inline-flex items-center rounded-full bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-muted transition-colors duration-200 hover:bg-white/10 hover:text-ink"
-            >
-              {tag}
-            </Link>
+      {/* 1 · Acceso rápido — rejilla 3×2 de tarjetas anchas. */}
+      <Section title="Acceso rápido" glyph={<SparklesIcon size={13} />} action={false}>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <motion.div {...rise(0)} whileHover={{ y: -2 }}>
+            <QuickTile
+              title="Canciones que te gustan"
+              subtitle={`${favorites.length} ${favorites.length === 1 ? 'canción' : 'canciones'}`}
+              accent={
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-[#262421] text-[#f5f2ec]">
+                  <HeartFilledIcon size={18} />
+                </span>
+              }
+              onClick={() =>
+                favorites.length > 0 ? void playQueue(favorites, 0) : navigate('/library')
+              }
+              onMore={() => navigate('/library')}
+            />
           </motion.div>
-        ))}
-        <motion.div {...rise(tasteTags.length)} className="shrink-0">
-          <Link
-            to="/settings"
-            className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.09] px-3 py-1.5 text-xs font-medium text-ink transition-colors duration-200 hover:bg-white/15"
-          >
-            <SparklesIcon size={13} /> {tasteTags.length > 0 ? 'Editar gustos' : 'Ajustar gustos'}
-          </Link>
-        </motion.div>
-      </div>
 
+          {quickTracks.map((track, index) => (
+            <motion.div key={`${track.source}-${track.id}`} {...rise(index + 1)} whileHover={{ y: -2 }}>
+              <QuickTile
+                title={track.title}
+                subtitle={track.artist}
+                cover={track.thumbnail}
+                onClick={() => void playQueue(quickTracks, index)}
+                onMore={() => setMenuTrack({ track, queue: quickTracks })}
+              />
+            </motion.div>
+          ))}
+        </div>
+      </Section>
+
+      {/* 2 · Escuchando ahora mismo — fila de álbumes cuadrados. */}
+      <Section title="Escuchando ahora mismo" glyph={<FlameGlyph />} action={false}>
+        <AlbumRail items={nowListening} />
+      </Section>
+
+      {/* 3 · Vuelve a escuchar — historial (o Audius si está vacío). */}
+      <Section title="Vuelve a escuchar" glyph={<ClockIcon size={13} />} action={false}>
+        <AlbumRail items={replay} />
+      </Section>
+      {history.length === 0 ? <AudiusRail title="Descubre en segundo plano" /> : null}
+
+      {/* Modo demo: sigue avisando de la configuración pendiente. */}
       {IS_DEMO ? (
         <motion.div
           {...rise(0)}
-          className="mx-6 mt-5 flex items-start gap-3 rounded-2xl surface-1 px-4 py-3"
+          className="mt-8 flex items-start gap-3 rounded-[12px] border border-white/[0.06] bg-[#1a1917] px-4 py-3"
         >
-          <SparklesIcon size={16} className="mt-0.5 shrink-0 text-faint" />
-          <p className="text-xs leading-relaxed text-muted">
-            <span className="font-semibold text-ink">Modo demo.</span> Define{' '}
-            <code className="text-ink/80">VITE_YT_API_KEY</code> para buscar e importar música real.
-            La reproducción con YouTube ya funciona.
+          <SparklesIcon size={16} className="mt-0.5 shrink-0 text-[#8c8780]" />
+          <p className="text-xs leading-relaxed text-[#b6b0a6]">
+            <span className="font-semibold text-[#f5f2ec]">Modo demo.</span> Define{' '}
+            <code className="text-[#f5f2ec]/80">VITE_YT_API_KEY</code> para buscar e importar música
+            real. La reproducción con YouTube ya funciona.
           </p>
         </motion.div>
       ) : null}
 
-      {/* Hero de la playlist de muestra: portada grande + texto/IA, fondo de la portada. */}
+      {/* Hero de la playlist de muestra (solo con biblioteca vacía), sin degradados. */}
       {isEmpty ? (
         <motion.section
           {...rise(1)}
-          whileHover={{ y: -4 }}
-          className="relative mx-6 mt-6 overflow-hidden rounded-[28px] glass-panel"
+          whileHover={{ y: -2 }}
+          className="relative mt-8 overflow-hidden rounded-[20px] border border-white/[0.06] bg-[#1a1917]"
         >
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 scale-125 opacity-45 blur-[60px]"
-            style={{
-              backgroundImage: `url("${demoPlaylist.thumbnail}")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'blur(60px) saturate(160%)',
-            }}
-          />
-          <div
-            aria-hidden="true"
-            className="absolute inset-0"
-            style={{
-              background:
-                'linear-gradient(100deg, rgba(8,8,16,0.5) 0%, rgba(8,8,16,0.74) 52%, rgba(8,8,16,0.92) 100%)',
-            }}
-          />
-          <div className="relative flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:p-7">
+          <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center">
             <img
               src={demoPlaylist.thumbnail}
               alt={demoPlaylist.name}
               referrerPolicy="no-referrer"
-              className="h-44 w-44 shrink-0 rounded-2xl object-cover shadow-[0_28px_60px_-20px_rgba(0,0,0,0.95)] sm:h-52 sm:w-52"
+              className="h-32 w-32 shrink-0 rounded-xl object-cover shadow-[0_18px_40px_-18px_rgba(0,0,0,0.9)]"
             />
             <div className="min-w-0">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-ink/90 backdrop-blur-md">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[11px] font-medium text-[#f5f2ec]">
                 <SparklesIcon size={13} /> Selección inteligente
               </span>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight">{demoPlaylist.name}</h2>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted">
+              <h2 className="mt-3 text-xl font-semibold tracking-tight text-[#f5f2ec]">
+                {demoPlaylist.name}
+              </h2>
+              <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-[#b6b0a6]">
                 {IS_DEMO
                   ? demoPlaylist.description
                   : 'Una muestra para empezar. Busca en YouTube para añadir tu propia música.'}
               </p>
               <Button
-                className="mt-5"
+                className="mt-4"
                 icon={<PlayIcon size={18} />}
                 onClick={() => void playQueue(demoPlaylist.tracks, 0)}
               >
@@ -299,76 +389,10 @@ export function HomePage() {
         </motion.section>
       ) : null}
 
-      {/* Tus mezclas: portadas generadas con degradados y glifos. */}
-      <Section title="Tus mezclas" icon={<DiscIcon size={18} className="text-faint" />}>
-        <div className="no-scrollbar flex gap-3.5 overflow-x-auto px-6 pb-1">
-          <MixCard
-            title="Favoritos"
-            subtitle={`${favorites.length} ${favorites.length === 1 ? 'canción' : 'canciones'}`}
-            gradient="radial-gradient(125% 125% at 20% 12%, #a77cff 0%, #6d3ae0 42%, #2c115f 100%)"
-            glow="#d9c4ff"
-            glyph={<HeartFilledIcon size={46} />}
-            index={0}
-            disabled={favorites.length === 0}
-            onPlay={() => void playQueue(favorites, 0)}
-          />
-          <MixCard
-            title="Recientes"
-            subtitle={`${history.length} ${history.length === 1 ? 'escuchada' : 'escuchadas'}`}
-            gradient="radial-gradient(125% 125% at 20% 12%, #6cc0ff 0%, #2f6fe0 42%, #0b275e 100%)"
-            glow="#b9dfff"
-            glyph={<ClockIcon size={46} />}
-            index={1}
-            disabled={history.length === 0}
-            onPlay={() => void playQueue(history, 0)}
-          />
-          <MixCard
-            title="Tendencias"
-            subtitle={`${demoTracks.length} selecciones`}
-            gradient="radial-gradient(125% 125% at 20% 12%, #ff85b8 0%, #d83a7c 42%, #66103a 100%)"
-            glow="#ffc9e0"
-            glyph={<WaveformIcon size={46} />}
-            index={2}
-            disabled={false}
-            onPlay={() => void playQueue(demoTracks, 0)}
-          />
-        </div>
-      </Section>
-
-      {quickTiles.length > 0 ? (
-        <div className="mt-7 grid grid-cols-2 gap-2.5 px-6">
-          {quickTiles.map((tile, index) => (
-            <motion.div key={tile.kind === 'favorites' ? 'favorites' : tile.playlist.id} {...rise(index)} whileHover={{ y: -4 }}>
-              {tile.kind === 'favorites' ? (
-                <QuickTile
-                  to="/library"
-                  title="Tus favoritos"
-                  subtitle={`${favorites.length} canciones`}
-                  accent={
-                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-accent to-accent/50 text-[color:var(--color-accent-ink)]">
-                      <HeartFilledIcon size={22} />
-                    </span>
-                  }
-                />
-              ) : (
-                <QuickTile
-                  to={`/playlist/${encodeURIComponent(tile.playlist.id)}`}
-                  title={tile.playlist.name}
-                  subtitle={`${tile.playlist.tracks.length} canciones`}
-                  cover={tile.playlist.thumbnail || tile.playlist.tracks[0]?.thumbnail}
-                />
-              )}
-            </motion.div>
-          ))}
-        </div>
-      ) : null}
-
+      {/* Resto de descubrimientos y biblioteca, accesibles al desplazarse. */}
       {isEmpty ? (
-        <Section
-          title="Canciones de muestra"
-          icon={<SparklesIcon size={18} className="text-faint" />}
-        >
-          <ul className="space-y-1 px-4">
+        <Section title="Canciones de muestra" glyph={<SparklesIcon size={13} />}>
+          <ul className="space-y-1">
             {demoTracks.slice(0, 6).map((track, index) => (
               <li key={track.id}>
                 <motion.div {...rise(index)}>
@@ -382,13 +406,13 @@ export function HomePage() {
 
       <HomeSuggestions />
 
-      <AudiusRail />
+      {history.length > 0 ? <AudiusRail title="Suena en segundo plano" /> : null}
 
       {algorithmReady ? (
         <SuggestionRail
           algorithm
           title="Hecho para ti"
-          icon={<SparklesIcon size={18} className="text-faint" />}
+          icon={<SparklesIcon size={18} className="text-[#f5f2ec]" />}
           offset={1}
         />
       ) : null}
@@ -396,78 +420,74 @@ export function HomePage() {
       <SuggestionRail
         title="Éxitos del momento"
         query="grandes éxitos pop del momento"
-        icon={<SparklesIcon size={18} className="text-faint" />}
+        icon={<SparklesIcon size={18} className="text-[#f5f2ec]" />}
         offset={2}
       />
 
       <SuggestionRail
         title="Clásicos que nunca fallan"
         query="clásicos del rock más escuchados"
-        icon={<WaveformIcon size={18} className="text-faint" />}
+        icon={<WaveformIcon size={18} className="text-[#8c8780]" />}
         offset={4}
       />
 
       <SuggestionRail
         title="Para descubrir"
         query="nueva música recomendada 2024"
-        icon={<SparklesIcon size={18} className="text-faint" />}
+        icon={<SparklesIcon size={18} className="text-[#f5f2ec]" />}
         offset={6}
       />
 
-      {history.length > 0 ? (
-        <Section
-          title="Escuchando ahora"
-          icon={<ClockIcon size={18} className="text-faint" />}
-          action={<SeeMore />}
-        >
-          <div className="no-scrollbar flex gap-3.5 overflow-x-auto px-6 pb-1">
-            {history.slice(0, 8).map((track, index) => (
-              <motion.div
-                key={`${track.source}-${track.id}-${index}`}
-                {...rise(index)}
-                whileHover={{ y: -4 }}
-                className="shrink-0 rounded-2xl transition-colors duration-200 hover:bg-white/[0.03]"
-              >
-                <TrackCard track={track} queue={history} index={index} />
-              </motion.div>
-            ))}
-          </div>
-        </Section>
-      ) : null}
-
-      <Section title="Tus playlists" action={<SeeMore />}>
+      <Section title="Tus playlists">
         {playlists.length > 0 ? (
-          <div className="no-scrollbar flex gap-4 overflow-x-auto px-6 pb-1">
+          <div className="no-scrollbar flex gap-4 overflow-x-auto pb-1">
             {playlists.map((playlist, index) => (
               <motion.div
                 key={playlist.id}
                 {...rise(index)}
-                whileHover={{ y: -4 }}
-                className="w-36 shrink-0 rounded-2xl transition-colors duration-200 hover:bg-white/[0.03]"
+                whileHover={{ y: -2 }}
+                className="w-36 shrink-0"
               >
                 <PlaylistCard playlist={playlist} />
               </motion.div>
             ))}
           </div>
         ) : (
-          <p className="px-6 text-sm text-faint">
+          <p className="text-[13px] text-[#8c8780]">
             Aún no has importado playlists. Añádelas desde la Biblioteca.
           </p>
         )}
       </Section>
 
-      {history.length > 0 ? (
-        <Section title="Vuelve a escuchar" action={<SeeMore />}>
-          <ul className="space-y-1 px-4">
-            {history.slice(0, 6).map((track, index) => (
-              <li key={`${track.source}-${track.id}-${index}`}>
-                <motion.div {...rise(index)}>
-                  <TrackRow track={track} queue={history} index={index} />
-                </motion.div>
-              </li>
-            ))}
-          </ul>
-        </Section>
+      {/* Gustos: movidos al final, en pequeño, como pide la referencia. */}
+      <div className="mt-10 flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-5">
+        <span className="mr-1 text-[11px] font-medium uppercase tracking-wide text-[#8c8780]">
+          Tus gustos
+        </span>
+        {tasteTags.map((tag, index) => (
+          <Link
+            key={`${tag}-${index}`}
+            to="/settings"
+            className="rounded-full border border-white/[0.06] bg-[#1a1917] px-2.5 py-1 text-[11px] font-medium text-[#b6b0a6] transition-colors duration-200 hover:text-[#f5f2ec]"
+          >
+            {tag}
+          </Link>
+        ))}
+        <Link
+          to="/settings"
+          className="inline-flex items-center gap-1 rounded-full border border-white/[0.06] bg-[#1a1917] px-2.5 py-1 text-[11px] font-medium text-[#f5f2ec] transition-colors duration-200 hover:bg-[#211f1c]"
+        >
+          <SparklesIcon size={12} /> {tasteTags.length > 0 ? 'Editar gustos' : 'Ajustar gustos'}
+        </Link>
+      </div>
+
+      {/* Menú ⋮ de las pistas de acceso rápido. */}
+      {menuTrack ? (
+        <TrackMenu
+          track={menuTrack.track}
+          queue={menuTrack.queue}
+          onClose={() => setMenuTrack(null)}
+        />
       ) : null}
     </div>
   )
