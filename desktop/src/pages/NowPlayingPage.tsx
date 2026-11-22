@@ -20,6 +20,7 @@ import {
   WaveformIcon,
 } from '@/components/Icons'
 import { IconButton, Spinner } from '@/components/ui'
+import { TimelineSlider } from '@/components/TimelineSlider'
 import { DesktopLyrics } from '@/features/lyrics/DesktopLyrics'
 import { useLyrics } from '@/features/lyrics/useLyrics'
 import { ReactiveBackdrop } from '@/features/visuals/ReactiveBackdrop'
@@ -28,8 +29,6 @@ import { TrackMenu } from '@/features/library/TrackRow'
 import { sameTrack, useLibraryStore } from '@/shared/store/libraryStore'
 import { selectCurrentTrack, usePlayerStore } from '@/shared/store/playerStore'
 import { useUiStore } from '@/shared/store/uiStore'
-import { formatDuration } from '@/shared/utils/time'
-import { Slider } from '@/components/ui'
 import { VolumeControl } from '@/features/player/PlayerControls'
 
 /** Reproductor a pantalla completa con letras sincronizadas y fondo reactivo. */
@@ -127,18 +126,13 @@ export function NowPlayingPage() {
           </div>
 
           <div className="now-playing__progress">
-            <Slider
-              value={total > 0 ? Math.min(1, position / total) : 0}
-              ariaLabel="Progreso"
-              trackClassName="h-[3px] bg-[color:var(--overlay-3)]"
-              fillClassName="progress-fill"
-              thumbClassName="progress-thumb"
-              onChange={(value) => seek(value * total)}
+            <TimelineSlider
+              position={position}
+              duration={total}
+              onSeek={seek}
+              size="md"
+              showTime
             />
-            <div className="now-playing__times">
-              <span>{formatDuration(position)}</span>
-              <span>{formatDuration(total)}</span>
-            </div>
           </div>
 
           <div className="now-playing__controls">

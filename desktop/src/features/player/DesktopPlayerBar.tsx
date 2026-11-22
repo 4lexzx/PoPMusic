@@ -16,12 +16,12 @@ import {
   VolumeMuteIcon,
   WaveformIcon,
 } from '@/components/Icons'
+import { TimelineSlider } from '@/components/TimelineSlider'
 import { Slider, Spinner } from '@/components/ui'
 import { useArtworkColors } from '@/features/visuals/DynamicBackground'
 import { sameTrack, useLibraryStore } from '@/shared/store/libraryStore'
 import { selectCurrentTrack, usePlayerStore } from '@/shared/store/playerStore'
 import { useUiStore } from '@/shared/store/uiStore'
-import { formatDuration } from '@/shared/utils/time'
 
 /** Barra de reproductor fija, inspirada en los reproductores de escritorio. */
 export function DesktopPlayerBar() {
@@ -59,7 +59,6 @@ export function DesktopPlayerBar() {
 
   const isFavorite = favorites.some((item) => sameTrack(item, track))
   const total = duration || track.duration || 0
-  const progress = total > 0 ? Math.min(1, position / total) : 0
 
   return (
     <footer className="playerbar">
@@ -106,16 +105,13 @@ export function DesktopPlayerBar() {
           </button>
         </div>
         <div className="playerbar__progress">
-          <span className="playerbar__time">{formatDuration(position)}</span>
-          <Slider
-            value={progress}
-            ariaLabel="Progreso"
-            trackClassName="h-[3px] bg-[color:var(--overlay-3)]"
-            fillClassName="progress-fill"
-            thumbClassName="progress-thumb"
-            onChange={(value) => seek(value * total)}
+          <TimelineSlider
+            position={position}
+            duration={total}
+            onSeek={seek}
+            size="xs"
+            className="w-full"
           />
-          <span className="playerbar__time">{formatDuration(total)}</span>
         </div>
       </div>
 
