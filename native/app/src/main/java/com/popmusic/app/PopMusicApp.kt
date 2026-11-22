@@ -299,17 +299,20 @@ fun PopMusicApp() {
         }
     }
 
-    // Se descarta el fotograma a los 700 ms de salir del reproductor
-    // (las transiciones duran ~300 ms) para que ninguna otra pantalla
-    // quede con una imagen vieja detrás. Dentro del reproductor/letras/
-    // información se conserva (esas pantallas tienen fondo propio).
+    // El fotograma de la pantalla anterior solo debe verse mientras el
+    // reproductor está encima (cierre instantáneo). En Letras/Información
+    // se descarta de inmediato: sus fondos de glass son semitransparentes
+    // y el fotograma de Inicio se filtraría por detrás (bug de pantallas
+    // transparentes). Al volver a una pantalla normal se conserva 700 ms
+    // para cubrir la transición de cierre (~300 ms).
     LaunchedEffect(currentRoute) {
-        val inPlayer = currentRoute == Routes.NOW_PLAYING ||
-            currentRoute == Routes.LYRICS ||
-            currentRoute == Routes.SONG_INFO
-        if (!inPlayer) {
-            delay(700)
-            playerBehind = null
+        when (currentRoute) {
+            Routes.LYRICS, Routes.SONG_INFO -> playerBehind = null
+            Routes.NOW_PLAYING -> Unit
+            else -> {
+                delay(700)
+                playerBehind = null
+            }
         }
     }
 

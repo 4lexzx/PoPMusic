@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import com.popmusic.app.ui.theme.BgElev
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
@@ -43,7 +44,12 @@ internal fun PlayerPaletteWash(
     artworkUrl: String?,
     modifier: Modifier = Modifier,
 ) {
-    if (artworkUrl.isNullOrBlank()) return
+    if (artworkUrl.isNullOrBlank()) {
+        // Sin carátula: base OPACA para no dejar ver la pantalla de atrás
+        // a través del glass semitransparente.
+        Box(modifier = modifier.fillMaxSize().background(BgElev))
+        return
+    }
 
     val context = LocalContext.current
     var colors by remember(artworkUrl) { mutableStateOf(gradientCache.get(artworkUrl)) }
@@ -59,27 +65,30 @@ internal fun PlayerPaletteWash(
         colors = extracted
     }
 
-    AnimatedContent(
-        targetState = colors,
-        transitionSpec = { fadeIn(tween(800)) togetherWith fadeOut(tween(800)) },
-        label = "paletteWash",
-        modifier = modifier,
-    ) { stops ->
-        if (stops != null && stops.size >= 3) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colorStops = arrayOf(
-                                0f to stops[0],
-                                0.5f to stops[1],
-                                1f to stops[2],
+    // Base opaca: mientras se extraen los colores (o si la extracción falla)
+    // el reproductor no deja ver la pantalla de atrás a través del glass.
+    Box(modifier = modifier.fillMaxSize().background(BgElev)) {
+        AnimatedContent(
+            targetState = colors,
+            transitionSpec = { fadeIn(tween(800)) togetherWith fadeOut(tween(800)) },
+            label = "paletteWash",
+        ) { stops ->
+            if (stops != null && stops.size >= 3) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0f to stops[0],
+                                    0.5f to stops[1],
+                                    1f to stops[2],
+                                ),
                             ),
-                        ),
-                    )
-                    .background(Color.Black.copy(alpha = 0.2f)),
-            )
+                        )
+                        .background(Color.Black.copy(alpha = 0.2f)),
+                )
+            }
         }
     }
 }
