@@ -32,14 +32,25 @@ class SpotifyMusicService(
 
     private val jsonType = "application/json; charset=utf-8".toMediaType()
 
+    /** Último error HTTP traducido, para explicar al usuario por qué falló. */
+    @Volatile
+    private var lastError: String? = null
+
+    fun consumeError(): String? = lastError.also { lastError = null }
+
     override fun isConnected(): Boolean = accounts.isConnected(MusicService.SPOTIFY)
 
     override suspend fun importPlaylists(): List<ExternalPlaylist> = withContext(Dispatchers.IO) {
-        val token = oauth.freshToken(MusicService.SPOTIFY) ?: return@withContext emptyList()
+        val token = oauth.freshToken(MusicService.SPOTIFY)
+            ?: throw IllegalStateException("Conecta tu cuenta de Spotify antes de importar")
         val result = mutableListOf<ExternalPlaylist>()
         var url: String? = "https://api.spotify.com/v1/me/playlists?limit=50"
         while (url != null) {
-            val json = get(url, token) ?: break
+            val json = get(url, token)
+            if (json == null) {
+                consumeError()?.let { throw IllegalStateException(it) }
+                break
+            }
             val items = json.optJSONArray("items") ?: JSONArray()
             for (index in 0 until items.length()) {
                 val item = items.optJSONObject(index) ?: continue
@@ -48,7 +59,9 @@ class SpotifyMusicService(
                     service = MusicService.SPOTIFY,
                     externalId = id,
                     name = item.optString("name").ifBlank { "Playlist de Spotify" },
-                    trackCount = item.optJSONObject("tracks")?.optInt("total") ?: 0,
+                    // Spotify renombró `tracks` a `items` en febrero de 2026.
+                    trackCount = item.optJSONObject("items")?.optInt("total")
+                        ?: item.optJSONObject("tracks")?.optInt("total") ?: 0,
                     thumbnailUrl = item.optJSONArray("images")?.optJSONObject(0)?.optString("url"),
                 )
             }
@@ -59,15 +72,22 @@ class SpotifyMusicService(
 
     override suspend fun importPlaylistSongs(externalPlaylistId: String): List<ExternalSong> =
         withContext(Dispatchers.IO) {
-            val token = oauth.freshToken(MusicService.SPOTIFY) ?: return@withContext emptyList()
+            val token = oauth.freshToken(MusicService.SPOTIFY)
+                ?: throw IllegalStateException("Conecta tu cuenta de Spotify antes de importar")
             val result = mutableListOf<ExternalSong>()
+            // `/items` sustituye a `/tracks` (febrero 2026) y admite máximo 50 por página.
             var url: String? = "https://api.spotify.com/v1/playlists/" +
-                Uri.encode(externalPlaylistId) + "/tracks?limit=100"
+                Uri.encode(externalPlaylistId) + "/items?limit=50"
             while (url != null) {
-                val json = get(url, token) ?: break
+                val json = get(url, token)
+                if (json == null) {
+                    consumeError()?.let { throw IllegalStateException(it) }
+                    break
+                }
                 val items = json.optJSONArray("items") ?: JSONArray()
                 for (index in 0 until items.length()) {
-                    val track = items.optJSONObject(index)?.optJSONObject("track") ?: continue
+                    val entry = items.optJSONObject(index) ?: continue
+                    val track = entry.optJSONObject("item") ?: entry.optJSONObject("track") ?: continue
                     val id = track.optString("id").takeIf { it.isNotBlank() } ?: continue
                     val artists = track.optJSONArray("artists")
                     val artist = buildList {
@@ -96,13 +116,13 @@ class SpotifyMusicService(
 
     override suspend fun createPlaylist(name: String): String? = withContext(Dispatchers.IO) {
         val token = oauth.freshToken(MusicService.SPOTIFY) ?: return@withContext null
-        val userId = accounts.accountFor(MusicService.SPOTIFY)?.userId ?: return@withContext null
         val body = JSONObject()
             .put("name", name)
             .put("public", false)
             .toString()
+        // `POST /users/{id}/playlists` fue eliminado en febrero de 2026.
         val json = post(
-            "https://api.spotify.com/v1/users/${Uri.encode(userId)}/playlists",
+            "https://api.spotify.com/v1/me/playlists",
             token,
             body,
         ) ?: return@withContext null
@@ -132,14 +152,14 @@ class SpotifyMusicService(
                 .toString()
             post(
                 "https://api.spotify.com/v1/playlists/" +
-                    Uri.encode(externalPlaylistId) + "/tracks",
+                    Uri.encode(externalPlaylistId) + "/items",
                 token,
                 body,
             ) != null
         }
 
     /**
-     * Borra la pista de la playlist (`DELETE /playlists/{id}/tracks` con la
+     * Borra la pista de la playlist (`DELETE /playlists/{id}/items` con la
      * uri). Si el id remoto no es el de Spotify se resuelve con la misma
      * búsqueda que usa `addToPlaylist`, para que el par añadir/quitar casen.
      */
@@ -152,11 +172,11 @@ class SpotifyMusicService(
             ?: searchTrackId(song.title, song.artist, token)
             ?: return@withContext false
         val body = JSONObject()
-            .put("tracks", JSONArray().put(JSONObject().put("uri", "spotify:track:$trackId")))
+            .put("items", JSONArray().put(JSONObject().put("uri", "spotify:track:$trackId")))
             .toString()
         delete(
             "https://api.spotify.com/v1/playlists/" +
-                Uri.encode(externalPlaylistId) + "/tracks",
+                Uri.encode(externalPlaylistId) + "/items",
             token,
             body,
         ) != null
@@ -189,12 +209,14 @@ class SpotifyMusicService(
         client.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
+                lastError = errorText(response.code, text)
                 Log.w(TAG, "Spotify ${response.code} en $url: ${text.take(300)}")
                 return null
             }
             JSONObject(text)
         }
     }.getOrElse {
+        lastError = "No se pudo contactar con Spotify: ${it.message ?: "error de red"}"
         Log.e(TAG, "Fallo de red en Spotify", it)
         null
     }
@@ -208,12 +230,14 @@ class SpotifyMusicService(
         client.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
+                lastError = errorText(response.code, text)
                 Log.w(TAG, "Spotify ${response.code} en $url: ${text.take(300)}")
                 return null
             }
             if (text.isBlank()) JSONObject() else JSONObject(text)
         }
     }.getOrElse {
+        lastError = "No se pudo contactar con Spotify: ${it.message ?: "error de red"}"
         Log.e(TAG, "Fallo de red en Spotify", it)
         null
     }
@@ -227,12 +251,14 @@ class SpotifyMusicService(
         client.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
+                lastError = errorText(response.code, text)
                 Log.w(TAG, "Spotify ${response.code} en PUT $url: ${text.take(300)}")
                 return null
             }
             if (text.isBlank()) JSONObject() else JSONObject(text)
         }
     }.getOrElse {
+        lastError = "No se pudo contactar con Spotify: ${it.message ?: "error de red"}"
         Log.e(TAG, "Fallo de red en Spotify (PUT)", it)
         null
     }
@@ -246,14 +272,25 @@ class SpotifyMusicService(
         client.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
             if (!response.isSuccessful) {
+                lastError = errorText(response.code, text)
                 Log.w(TAG, "Spotify ${response.code} en DELETE $url: ${text.take(300)}")
                 return null
             }
             if (text.isBlank()) JSONObject() else JSONObject(text)
         }
     }.getOrElse {
+        lastError = "No se pudo contactar con Spotify: ${it.message ?: "error de red"}"
         Log.e(TAG, "Fallo de red en Spotify (DELETE)", it)
         null
+    }
+
+    /** Traduce los errores típicos de Spotify a un aviso accionable. */
+    private fun errorText(code: Int, body: String): String = when (code) {
+        401 -> "La sesión de Spotify venció. Vuelve a conectar la cuenta."
+        403 -> "Spotify no autoriza esa cuenta: el dueño de la app debe añadirla en " +
+            "Users Management (máx. 5 cuentas) y tener Premium."
+        429 -> "Spotify limitó las peticiones. Espera unos minutos e inténtalo de nuevo."
+        else -> "Spotify devolvió $code: ${body.take(120)}"
     }
 
     companion object {

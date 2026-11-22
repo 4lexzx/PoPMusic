@@ -537,6 +537,6 @@ class MusicOAuthManager(
         const val SPOTIFY_SCOPES =
             "playlist-read-private playlist-read-collaborative " +
                 "playlist-modify-public playlist-modify-private " +
-                "user-read-email user-read-private"
+                "user-read-private"
     }
 }

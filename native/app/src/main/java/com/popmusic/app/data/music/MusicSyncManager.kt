@@ -168,6 +168,7 @@ class MusicSyncManager(
             update(service) { it.copy(working = true, message = null) }
             var created = 0
             var updated = 0
+            var failure: String? = null
             runCatching {
                 val externalPlaylists = repository.importPlaylists()
                 externalPlaylists.forEach { external ->
@@ -200,10 +201,18 @@ class MusicSyncManager(
                     }
                 }
             }.onFailure {
+                failure = it.message ?: "Error al importar"
                 Log.e(TAG, "Error importando ${service.displayName()}", it)
-                update(service) { it.copy(message = it.message ?: "Error al importar") }
+                update(service) { state -> state.copy(message = failure) }
             }
             importing = false
+            if (failure != null) {
+                update(service) { state ->
+                    state.copy(working = false, message = failure, lastSyncAt = System.currentTimeMillis())
+                }
+                _events.value = failure
+                return@launch
+            }
             update(service) {
                 it.copy(
                     working = false,

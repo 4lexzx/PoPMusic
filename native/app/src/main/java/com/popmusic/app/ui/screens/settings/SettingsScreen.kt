@@ -687,6 +687,8 @@ private fun AccountsDetail(musicSync: MusicSyncManager) {
                                 if (state.working) "Sincronizando…" else "Sincronizada"
                             !state.configured ->
                                 "Falta el Client ID en local.properties"
+                            service == MusicService.SPOTIFY ->
+                                "El dueño añade hasta 5 cuentas en Spotify y necesita Premium"
                             else -> "Toca Conectar para iniciar sesión"
                         },
                         style = MaterialTheme.typography.bodySmall,
