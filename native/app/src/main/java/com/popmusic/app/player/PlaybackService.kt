@@ -248,6 +248,9 @@ class PlaybackService : MediaSessionService() {
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY) {
+                    Log.d("SkipPerf", "ready ${player.currentMediaItem?.mediaId} @${android.os.SystemClock.elapsedRealtime()}")
+                    // Si se saltó a una pista aún sin resolver, cargarla ya.
+                    resolveCurrentIfNeeded(player)
                     prefetchUpcoming(player, prefetchAhead)
                     // Con aleatorio activo la siguiente pista es impredecible: mantener
                     // resuelta toda la cola evita saltos y esperas.
@@ -284,14 +287,18 @@ class PlaybackService : MediaSessionService() {
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                Log.d("SkipPerf", "transition ${mediaItem?.mediaId} @${android.os.SystemClock.elapsedRealtime()}")
                 markActive()
                 mediaItem?.mediaId?.let { errorRetries.remove(it) }
                 lastTransitionAt = android.os.SystemClock.elapsedRealtime()
                 applyFadeIn(player)
                 scheduleSnapshotSave()
-                // Al cambiar de pista, la prioridad absoluta es tener lista la
-                // SIGUIENTE (es la que sonará en unos minutos): sin ella la
-                // transición en modo aleatorio se come varios segundos de buffer.
+                // La pista que ACABA de entrar manda: si el usuario saltó a una
+                // canción todavía sin resolver, se resuelve aquí mismo para que
+                // empiece a sonar sin esperar a la red dentro del gesto.
+                resolveCurrentIfNeeded(player)
+                // Después, la SIGUIENTE (la que sonará en unos minutos), para
+                // que el próximo salto natural o manual sea también instantáneo.
                 prefetchNextImmediate(player)
             }
 
@@ -871,6 +878,33 @@ private suspend fun resolveItem(item: MediaItem): MediaItem? {
     }
 
     /**
+     * Resuelve la pista que acaba de entrar si su URI sigue siendo el watch de
+     * YouTube. Antes el salto del usuario esperaba a esta resolución dentro del
+     * propio gesto (2-4 s con la canción anterior sonando); ahora el salto es
+     * inmediato y esta resolución corre en segundo plano al cambiar de pista.
+     */
+    private fun resolveCurrentIfNeeded(player: Player) {
+        val index = player.currentMediaItemIndex
+        if (index < 0) return
+        val item = runCatching { player.getMediaItemAt(index) }.getOrNull() ?: return
+        if (!item.isUnresolved() || resolving.contains(item.mediaId)) return
+        scope.launch {
+            val resolved = resolveItem(item) ?: return@launch
+            main.post {
+                runCatching {
+                    if (index >= player.mediaItemCount) return@post
+                    val current = player.getMediaItemAt(index)
+                    if (current.mediaId != item.mediaId || !current.isUnresolved()) return@post
+                    val position = player.currentPosition
+                    player.replaceMediaItem(index, resolved)
+                    if (position > 0L) player.seekTo(position)
+                    Log.d(TAG, "Pista entrante resuelta al instante: ${item.mediaId}")
+                }
+            }
+        }
+    }
+
+    /**
      * Resuelve con máxima prioridad la siguiente pista en orden de
      * reproducción (respeta el aleatorio: `nextMediaItemIndex` ya apunta a la
      * pista que sonará a continuación). Es lo que evita el silencio de varios
@@ -1129,8 +1163,12 @@ private fun handlePlaybackError(player: Player) {
         /** Tag compartido con AppCloseReceiver para ver el cierre 8 min en un solo filtro. */
         const val CLOSE_TAG = "AppClose"
         const val PREFETCH_AHEAD = 3
-        /** Tope de canciones de una cola que se calientan al cargarla. */
-        const val MAX_QUEUE_WARM = 80
+        /**
+         * Tope de canciones que se calientan al cargar una cola. Antes eran 80
+         * con 6 permisos: saturaban la red y la "siguiente" tardaba en resolverse.
+         * Con pocas basta (el resto se resuelve al acercarse su turno).
+         */
+        const val MAX_QUEUE_WARM = 10
         /** Acción custom del botón de repetir de la notificación. */
         const val COMMAND_CYCLE_REPEAT = "popmusic.CYCLE_REPEAT"
         const val MIN_BUFFER_MS = 15_000

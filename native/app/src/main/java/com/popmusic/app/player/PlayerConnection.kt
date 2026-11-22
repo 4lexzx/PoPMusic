@@ -189,56 +189,15 @@ class PlayerConnection(private val context: Context) {
     }
 
     fun next() {
-        skipResolved(stepForward = true)
+        // Salto INMEDIATO. Resolver aquí la URL de destino bloqueaba el gesto
+        // 2-4 s con la canción anterior sonando. PlaybackService resuelve la
+        // pista entrante en onMediaItemTransition, fuera del hilo del gesto.
+        Log.d("SkipPerf", "next @${SystemClock.elapsedRealtime()}")
+        controller?.seekToNextMediaItem()
     }
 
     fun previous() {
-        skipResolved(stepForward = false)
-    }
-
-    /**
-     * Salta a la pista siguiente/anterior. Si la destino sigue con la URL de
-     * YouTube SIN resolver (cola recién cargada o aleatorio activo), la resuelve
-     * con máxima prioridad ANTES del salto: arranca al instante en lugar de
-     * cargar la página de YouTube, fallar y "ir música por música hasta
-     * encontrar una" que sí tenía audio resuelto.
-     */
-    private fun skipResolved(stepForward: Boolean) {
-        val mediaController = controller ?: return
-        val targetIndex = runCatching {
-            if (stepForward) mediaController.nextMediaItemIndex
-            else mediaController.previousMediaItemIndex
-        }.getOrDefault(-1)
-        val target = if (targetIndex in 0 until mediaController.mediaItemCount) {
-            runCatching { mediaController.getMediaItemAt(targetIndex) }.getOrNull()
-        } else {
-            null
-        }
-        val uri = target?.localConfiguration?.uri?.toString().orEmpty()
-        if (target == null || !uri.contains("youtube.com/watch")) {
-            // Ya resuelta: salto directo e instantáneo.
-            if (stepForward) mediaController.seekToNextMediaItem()
-            else mediaController.seekToPreviousMediaItem()
-            return
-        }
-        scope.launch {
-            val resolved = resolveUrl(target.mediaId)
-            runCatching {
-                if (resolved != null &&
-                    targetIndex < mediaController.mediaItemCount &&
-                    mediaController.getMediaItemAt(targetIndex).mediaId == target.mediaId
-                ) {
-                    val current = mediaController.getMediaItemAt(targetIndex)
-                    mediaController.replaceMediaItem(
-                        targetIndex,
-                        current.buildUpon().setUri(resolved).build(),
-                    )
-                }
-                // Aunque falle la resolución salta igual: nunca nos quedamos quietos.
-                if (stepForward) mediaController.seekToNextMediaItem()
-                else mediaController.seekToPreviousMediaItem()
-            }.onFailure { Log.w(TAG, "No se pudo saltar de pista", it) }
-        }
+        controller?.seekToPreviousMediaItem()
     }
 
     fun seekTo(positionMs: Long) {
@@ -294,32 +253,9 @@ class PlayerConnection(private val context: Context) {
     fun skipTo(index: Int) {
         val mediaController = controller ?: return
         if (index !in 0 until mediaController.mediaItemCount) return
-        val target = runCatching { mediaController.getMediaItemAt(index) }.getOrNull() ?: return
-        val uri = target.localConfiguration?.uri?.toString().orEmpty()
-        if (uri.isBlank() || uri.contains("youtube.com/watch")) {
-            scope.launch {
-                // URL sin resolver: resuelve primero y salta con prioridad.
-                val resolved = if (uri.isBlank()) null else resolveUrl(target.mediaId)
-                runCatching {
-                    if (resolved != null &&
-                        index < mediaController.mediaItemCount &&
-                        mediaController.getMediaItemAt(index).mediaId == target.mediaId
-                    ) {
-                        val current = mediaController.getMediaItemAt(index)
-                        mediaController.replaceMediaItem(
-                            index,
-                            current.buildUpon().setUri(resolved).build(),
-                        )
-                    }
-                    mediaController.seekTo(index, 0L)
-                    if (mediaController.playWhenReady || mediaController.isPlaying) {
-                        mediaController.play()
-                    }
-                }.onFailure { Log.w(TAG, "No se pudo saltar al indice $index", it) }
-            }
-        } else {
-            mediaController.seekTo(index, 0L)
-        }
+        // Igual que next/previous: el servicio resuelve la entrante al cambiar
+        // de pista, así que el salto de la sala también es instantáneo.
+        mediaController.seekTo(index, 0L)
     }
 
     fun currentPositionMs(): Long =
