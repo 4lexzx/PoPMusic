@@ -207,9 +207,9 @@ export const useSettingsStore = create<SettingsState>()(
 )
 
 const DARK = {
-  surface: '13,13,15',
+  surface: '11,11,11',
   bg: '0,0,0',
-  elev: '10,10,11',
+  elev: '8,8,8',
 }
 
 const LIGHT = {

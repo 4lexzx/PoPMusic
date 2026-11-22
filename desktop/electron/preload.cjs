@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('popDesktop', {
   sendTrack: (track) => ipcRenderer.send('track:update', track),
   sendCommand: (command) => ipcRenderer.send('player:command', command),
   requestDeepLink: () => ipcRenderer.send('deep-link:request'),
+  youtubeFetch: (options) => ipcRenderer.invoke('youtube:fetch', options),
   onMaximized: (callback) => {
     ipcRenderer.on('window:maximized', (_event, value) => callback(value))
     return () => ipcRenderer.removeAllListeners('window:maximized')

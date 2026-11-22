@@ -66,7 +66,7 @@ export async function searchTracks(query: string, maxResults = 25): Promise<Trac
       videoId: id,
       title: guessed.title,
       artist: guessed.artist,
-      thumbnail: thumbnailsToUrl(snippet?.thumbnails) || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+      thumbnail: thumbnailsToUrl(snippet?.thumbnails) || `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
       duration: parseIsoDuration(item?.contentDetails?.duration),
       source: 'youtube' as const,
     }
@@ -169,7 +169,7 @@ export async function importYouTubePlaylist(
         title: guessed.title,
         artist: guessed.artist,
         thumbnail:
-          thumbnailsToUrl(snippet.thumbnails) || `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+          thumbnailsToUrl(snippet.thumbnails) || `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
         duration: parseIsoDuration(item?.contentDetails?.duration),
         source: 'youtube',
       })

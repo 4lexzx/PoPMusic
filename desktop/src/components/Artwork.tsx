@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { MusicIcon } from './Icons'
 
 interface ArtworkProps {
@@ -9,7 +9,7 @@ interface ArtworkProps {
   rounded?: string
 }
 
-/** Portada con degradado de reserva si la imagen falla o no existe. */
+/** Portada limpia: usa maxres y baja a hq solo si la imagen falla. */
 export function Artwork({
   src,
   alt = '',
@@ -17,8 +17,23 @@ export function Artwork({
   iconSize = 24,
   rounded = 'rounded-xl',
 }: ArtworkProps) {
+  const [source, setSource] = useState(src ?? '')
   const [failed, setFailed] = useState(false)
-  const showImage = src && !failed
+
+  useEffect(() => {
+    setSource(src ?? '')
+    setFailed(false)
+  }, [src])
+
+  const handleError = () => {
+    if (source.includes('mqdefault')) {
+      setSource(source.replace('mqdefault', 'hqdefault'))
+      return
+    }
+    setFailed(true)
+  }
+
+  const showImage = source && !failed
 
   return (
     <div
@@ -27,12 +42,12 @@ export function Artwork({
     >
       {showImage ? (
         <img
-          src={src}
+          src={source}
           alt={alt}
           loading="eager"
           decoding="async"
           referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
+          onError={handleError}
           className="h-full w-full object-cover"
         />
       ) : (

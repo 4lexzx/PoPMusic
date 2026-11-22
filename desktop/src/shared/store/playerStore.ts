@@ -103,8 +103,8 @@ async function loadAndPlay(track: Track): Promise<void> {
     // Sin emparejamiento: se reproduce con YouTube.
   }
 
-  // 5) YouTube IFrame (no continúa en segundo plano en móvil).
-  audioEngine.loadVideo(videoId, true)
+  // 5) Audio directo de YouTube (estilo Liner) con iframe como respaldo.
+  void audioEngine.loadYoutube(videoId, true)
   useLibraryStore.getState().addToHistory({ ...track, videoId })
 }
 

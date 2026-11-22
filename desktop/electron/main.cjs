@@ -264,6 +264,31 @@ ipcMain.on('track:update', (_event, track) => {
   }
 })
 
+/**
+ * Proxy de peticiones a YouTube/Google: el renderer no puede hacerlas por CORS,
+ * pero el proceso principal sí. Igual que hace Liner con su worker oculto.
+ */
+ipcMain.handle('youtube:fetch', async (_event, options) => {
+  const url = new URL(String(options?.url ?? ''))
+  const hosts = ['www.youtube.com', 'www.google.com', 'www.gstatic.com', 'youtube.com']
+  if (url.protocol !== 'https:' || !hosts.includes(url.hostname)) {
+    throw new Error('Dominio no permitido')
+  }
+  // youtubei.js envía el body sin method explícito: con body, es POST.
+  const method = options.method || (options.body ? 'POST' : 'GET')
+  const response = await fetch(url, {
+    method,
+    headers: options.headers ?? {},
+    body: method === 'GET' || method === 'HEAD' ? undefined : options.body,
+    signal: AbortSignal.timeout(25_000),
+  })
+  return {
+    status: response.status,
+    text: await response.text(),
+    cookie: response.headers.get('set-cookie') ?? '',
+  }
+})
+
 ipcMain.on('player:command', (_event, command) => sendToRenderer('player:command', command))
 ipcMain.on('deep-link:request', () => {
   if (lastDeepLink) sendToRenderer('deep-link', lastDeepLink)

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { CloseIcon, MinusIcon, PlusIcon } from '@/components/Icons'
 
-/** Barra de título propia: la ventana de Electron no tiene marco del sistema. */
+/** Barra de título sin marca: el logo solo vive en el rail lateral. */
 export function TitleBar() {
   const [maximized, setMaximized] = useState(false)
 
@@ -11,9 +11,7 @@ export function TitleBar() {
 
   return (
     <header className="titlebar">
-      <div className="titlebar__brand">
-        <img src="/logo-word.png" alt="PoP Music" className="titlebar__logo" />
-      </div>
+      <div className="titlebar__spacer" />
       <div className="titlebar__controls">
         <button
           type="button"

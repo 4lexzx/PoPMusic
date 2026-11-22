@@ -1,6 +1,7 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { Search, X } from 'lucide-react'
 import { Artwork } from '@/components/Artwork'
 import {
   ChevronRightIcon,
@@ -14,18 +15,20 @@ import {
   SparklesIcon,
   WaveformIcon,
 } from '@/components/Icons'
-import { Logo } from '@/components/Logo'
-import { Button, Reveal } from '@/components/ui'
+import { Button, Reveal, Spinner } from '@/components/ui'
 import { AudiusRail, HomeSuggestions, SuggestionRail } from '@/features/home/SuggestionRail'
 import { PlaylistCard } from '@/features/library/PlaylistCard'
 import { TrackCard } from '@/features/library/TrackCard'
 import { TrackMenu, TrackRow } from '@/features/library/TrackRow'
+import { searchAudius } from '@/shared/api/audius'
+import { searchTracks } from '@/shared/api/youtube'
 import { IS_DEMO } from '@/shared/config'
 import { demoPlaylist, demoTracks } from '@/shared/data/demo'
 import { sameTrack, useLibraryStore } from '@/shared/store/libraryStore'
 import { usePlayerStore } from '@/shared/store/playerStore'
 import { useSettingsStore } from '@/shared/store/settingsStore'
 import type { Track } from '@/shared/types/track'
+import { formatDuration } from '@/shared/utils/time'
 
 /** Movimiento calmado: fundido corto + micro-desplazamiento. */
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
@@ -35,6 +38,15 @@ function rise(index: number) {
     initial: { opacity: 0, y: 6 },
     animate: { opacity: 1, y: 0 },
     transition: { duration: 0.28, delay: index * 0.04, ease: EASE },
+  }
+}
+
+/** Entrada escalonada de las filas de resultados de búsqueda dentro de Inicio. */
+function resultRowMotion(index: number) {
+  return {
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.28, delay: Math.min(index * 0.04, 0.28), ease: EASE },
   }
 }
 
@@ -265,6 +277,65 @@ export function HomePage() {
 
   const [menuTrack, setMenuTrack] = useState<{ track: Track; queue: Track[] } | null>(null)
 
+  // Búsqueda local de Inicio (no navega a /search).
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<Track[]>([])
+  const [searching, setSearching] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const debounceRef = useRef<number | null>(null)
+  const requestIdRef = useRef(0)
+
+  const trimmedQuery = query.trim()
+  const hasQuery = trimmedQuery.length > 0
+
+  // Debounce ~250 ms; cada cambio invalida la búsqueda anterior por requestId.
+  useEffect(() => {
+    if (debounceRef.current !== null) {
+      window.clearTimeout(debounceRef.current)
+      debounceRef.current = null
+    }
+
+    const value = query.trim()
+    if (!value) {
+      requestIdRef.current += 1
+      setResults([])
+      setSearching(false)
+      setSearched(false)
+      return
+    }
+
+    const requestId = ++requestIdRef.current
+    setSearching(true)
+    setSearched(false)
+
+    debounceRef.current = window.setTimeout(() => {
+      void Promise.all([
+        searchTracks(value).catch(() => [] as Track[]),
+        searchAudius(value, 12),
+      ])
+        .then(([tracks, audius]) => {
+          if (requestId !== requestIdRef.current) return
+          setResults(uniqueTracks([...tracks, ...audius]))
+        })
+        .catch(() => {
+          if (requestId !== requestIdRef.current) return
+          setResults([])
+        })
+        .finally(() => {
+          if (requestId !== requestIdRef.current) return
+          setSearching(false)
+          setSearched(true)
+        })
+    }, 250)
+
+    return () => {
+      if (debounceRef.current !== null) {
+        window.clearTimeout(debounceRef.current)
+        debounceRef.current = null
+      }
+    }
+  }, [query])
+
   const isEmpty = playlists.length === 0 && history.length === 0 && favorites.length === 0
 
   // Las 6 tarjetas de acceso rápido: favoritos + 5 pistas reales del store.
@@ -279,7 +350,6 @@ export function HomePage() {
     <div className="pb-6" style={warmShell}>
       <header className="flex items-start justify-between gap-4 pb-2 pt-1">
         <div className="min-w-0">
-          <Logo size={16} className="mb-4" />
           <h1 className="text-[28px] font-bold tracking-tight text-[#f5f2ec]">{greeting()}</h1>
           <p className="mt-1 text-[13px] text-[#8c8780]">Tu música, con letras sincronizadas</p>
         </div>
@@ -292,6 +362,92 @@ export function HomePage() {
         </Link>
       </header>
 
+      {/* Búsqueda dentro de Inicio — no navega a /search. */}
+      <div className="mt-4">
+        <div className="glass-panel flex h-12 items-center gap-3 rounded-[12px] px-4 transition-colors focus-within:border-[color:var(--hair-strong)]">
+          <Search size={20} strokeWidth={2} className="shrink-0 text-[#8c8780]" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Busca canciones, artistas o álbumes"
+            enterKeyHint="search"
+            aria-label="Buscar música"
+            className="h-12 min-w-0 flex-1 bg-transparent text-sm text-[#f5f2ec] outline-none placeholder:text-[#8c8780]"
+          />
+          {hasQuery ? (
+            <motion.button
+              type="button"
+              aria-label="Borrar búsqueda"
+              onClick={() => setQuery('')}
+              whileTap={{ scale: 0.88 }}
+              className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-[#8c8780] transition-colors hover:text-[#f5f2ec]"
+            >
+              <X size={18} />
+            </motion.button>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Resultados de la búsqueda, DENTRO de Inicio. */}
+      {hasQuery ? (
+        <motion.div
+          className="glass-panel mt-5 overflow-hidden rounded-[20px]"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: EASE }}
+        >
+          {searching ? (
+            <div className="flex items-center gap-3 px-5 py-6 text-[#b6b0a6]">
+              <Spinner size={18} />
+              <p className="text-sm">Buscando «{trimmedQuery}»…</p>
+            </div>
+          ) : results.length > 0 ? (
+            <div className="p-2">
+              {results.map((track, index) => (
+                <motion.div
+                  key={`${track.source}-${track.id}-${index}`}
+                  {...resultRowMotion(index)}
+                  className="flex h-[60px] items-center gap-3 rounded-xl px-2 transition-colors hover:bg-white/[0.05]"
+                >
+                  <Artwork
+                    src={track.thumbnail}
+                    alt={track.title}
+                    className="h-10 w-10 shrink-0"
+                    rounded="rounded-lg"
+                    iconSize={18}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[14px] font-medium text-[#f5f2ec]">{track.title}</p>
+                    <p className="mt-0.5 truncate text-[12px] text-[#8c8780]">{track.artist}</p>
+                  </div>
+                  {track.duration > 0 ? (
+                    <span className="shrink-0 text-[12px] tabular-nums text-[#8c8780]">
+                      {formatDuration(track.duration)}
+                    </span>
+                  ) : null}
+                  <button
+                    type="button"
+                    aria-label={`Reproducir ${track.title}`}
+                    onClick={() => void playQueue(results, index)}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#f5f2ec] text-[#0c0b0a] transition-transform hover:scale-105"
+                  >
+                    <PlayIcon size={16} />
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          ) : searched ? (
+            <div className="flex flex-col items-center gap-2 px-8 py-12 text-center text-[#b6b0a6]">
+              <p className="text-sm">Sin resultados para «{trimmedQuery}»</p>
+              <p className="text-xs text-[#8c8780]">Prueba con otro título, artista o álbum.</p>
+            </div>
+          ) : null}
+        </motion.div>
+      ) : null}
+
+      {/* Secciones normales de Inicio: solo cuando no hay búsqueda activa. */}
+      {!hasQuery ? (
+        <>
       {/* 1 · Acceso rápido — rejilla 3×2 de tarjetas anchas. */}
       <Section title="Acceso rápido" glyph={<SparklesIcon size={13} />} action={false}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -480,6 +636,8 @@ export function HomePage() {
           <SparklesIcon size={12} /> {tasteTags.length > 0 ? 'Editar gustos' : 'Ajustar gustos'}
         </Link>
       </div>
+        </>
+      ) : null}
 
       {/* Menú ⋮ de las pistas de acceso rápido. */}
       {menuTrack ? (

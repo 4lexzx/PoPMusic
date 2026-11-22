@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ChevronLeftIcon, GoogleIcon } from '@/components/Icons'
-import { Logo } from '@/components/Logo'
 import { Button, Segmented } from '@/components/ui'
 import { useAuth } from '@/features/auth/AuthProvider'
 
@@ -88,7 +87,6 @@ export function AuthPage() {
       </header>
 
       <div className="mt-6 flex flex-col items-center text-center">
-        <Logo size={28} />
         <h1 className="mt-5 text-2xl font-semibold tracking-tight">
           {mode === 'login' ? 'Inicia sesión' : 'Crea tu cuenta'}
         </h1>

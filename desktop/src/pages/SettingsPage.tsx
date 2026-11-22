@@ -1,111 +1,99 @@
 import { useRef, useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import {
-  BookIcon,
-  CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  CloseIcon,
-  GridIcon,
-  HelpIcon,
-  ImageIcon,
-  InfoIcon,
-  MoonIcon,
-  PlayIcon,
-  PlusIcon,
-  ServerIcon,
-  SparklesIcon,
-  SunIcon,
-  TrashIcon,
-  UserIcon,
-  VolumeIcon,
-} from '@/components/Icons'
-import { Logo } from '@/components/Logo'
-import { Button, Segmented, Slider, Toggle } from '@/components/ui'
-import { useAuth } from '@/features/auth/AuthProvider'
+  Check,
+  ChevronRight,
+  ExternalLink,
+  Image as ImageIcon,
+  Info,
+  Layers,
+  Music2,
+  Palette,
+  PictureInPicture2,
+  Play,
+  RotateCcw,
+  Shuffle,
+  SlidersHorizontal,
+  Timer,
+  Volume2,
+} from 'lucide-react'
+import { Slider } from '@/components/ui'
 import {
   ACCENTS,
-  GENRES,
   WALLPAPERS,
   useSettingsStore,
   type ThemeMode,
 } from '@/shared/store/settingsStore'
-import { useLibraryStore } from '@/shared/store/libraryStore'
 import { useUiStore } from '@/shared/store/uiStore'
 import { fileToDownscaledDataUrl } from '@/shared/utils/image'
 
-type View =
-  | 'root'
-  | 'playback'
-  | 'algorithm'
-  | 'appearance'
-  | 'customization'
-  | 'audio'
-  | 'storage'
-  | 'about'
-  | 'docs'
-  | 'support'
+const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
-const VIEW_TITLES: Record<Exclude<View, 'root'>, string> = {
-  playback: 'Reproducción',
-  algorithm: 'Mi algoritmo',
-  appearance: 'Apariencia',
-  customization: 'Personalización',
-  audio: 'Audio',
-  storage: 'Caché y almacenamiento',
-  about: 'Acerca de',
-  docs: 'Documentación',
-  support: 'Soporte',
-}
+type Tab = 'appearance' | 'playback' | 'overlay' | 'about'
+type FondoMode = 'none' | 'gradient' | 'image'
 
-const SETTINGS_SEARCH: Array<{ view: Exclude<View, 'root'>; label: string }> = [
-  { view: 'playback', label: 'Reproducción automática' },
-  { view: 'algorithm', label: 'Mi algoritmo, gustos y artistas' },
-  { view: 'appearance', label: 'Tema claro u oscuro' },
-  { view: 'appearance', label: 'Color de énfasis' },
-  { view: 'customization', label: 'Fondo de pantalla' },
-  { view: 'audio', label: 'Efecto cristal' },
-  { view: 'storage', label: 'Borrar datos' },
-  { view: 'about', label: 'Versión' },
+const TABS: Array<{ id: Tab; label: string; icon: ReactNode }> = [
+  { id: 'appearance', label: 'Apariencia', icon: <Palette size={18} /> },
+  { id: 'playback', label: 'Reproducción', icon: <Play size={18} /> },
+  { id: 'overlay', label: 'Reproductor flotante', icon: <PictureInPicture2 size={18} /> },
+  { id: 'about', label: 'Acerca de', icon: <Info size={18} /> },
 ]
 
-function Card({ children }: { children: ReactNode }) {
-  return <div className="rounded-2xl hairline surface-1 p-3.5">{children}</div>
-}
+/* ---------------------------- Bloques de UI ---------------------------- */
 
-function SwitchRow({
-  title,
-  description,
-  checked,
-  onChange,
-}: {
-  title: string
-  description?: string
-  checked: boolean
-  onChange: (v: boolean) => void
-}) {
+function Section({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <Card>
-      <div className="flex items-center justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-sm font-medium">{title}</p>
-          {description ? <p className="mt-0.5 text-xs text-faint">{description}</p> : null}
-        </div>
-        <Toggle checked={checked} onChange={onChange} label={title} />
+    <section className="mb-8">
+      <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#8c8780]">
+        {label}
+      </h2>
+      <div className="divide-y divide-white/5 overflow-hidden rounded-[20px] bg-[#121212]">
+        {children}
       </div>
-    </Card>
+    </section>
   )
 }
 
-function RangeRow({
-  label,
+function Row({
+  icon,
+  title,
+  description,
+  control,
+}: {
+  icon?: ReactNode
+  title: string
+  description?: string
+  control: ReactNode
+}) {
+  return (
+    <div className="flex min-h-[52px] items-center gap-3 px-4 py-2">
+      {icon ? (
+        <span className="grid w-[18px] shrink-0 place-items-center text-[#8c8780]">{icon}</span>
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] font-medium leading-tight text-[#f5f3f0]">{title}</p>
+        {description ? (
+          <p className="mt-0.5 text-[12px] leading-tight text-[#8c8780]">{description}</p>
+        ) : null}
+      </div>
+      <div className="shrink-0">{control}</div>
+    </div>
+  )
+}
+
+function SliderRow({
+  icon,
+  title,
+  description,
   value,
   min,
   max,
   format,
   onChange,
 }: {
-  label: string
+  icon?: ReactNode
+  title: string
+  description?: string
   value: number
   min: number
   max: number
@@ -114,668 +102,568 @@ function RangeRow({
 }) {
   const ratio = max === min ? 0 : (value - min) / (max - min)
   return (
-    <div className="py-1.5">
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted">{label}</span>
-        <span className="tabular-nums text-faint">{format(value)}</span>
+    <div className="px-4 py-3">
+      <div className="flex items-center gap-3">
+        {icon ? (
+          <span className="grid w-[18px] shrink-0 place-items-center text-[#8c8780]">{icon}</span>
+        ) : null}
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] font-medium leading-tight text-[#f5f3f0]">{title}</p>
+          {description ? (
+            <p className="mt-0.5 text-[12px] leading-tight text-[#8c8780]">{description}</p>
+          ) : null}
+        </div>
+        <span className="shrink-0 text-[12px] tabular-nums text-[#8c8780]">{format(value)}</span>
       </div>
       <Slider
         value={ratio}
-        ariaLabel={label}
+        ariaLabel={title}
         onChange={(next) => onChange(min + next * (max - min))}
-        trackClassName="h-1.5 bg-[color:var(--overlay-3)]"
-        fillClassName="bg-accent"
+        trackClassName="h-1.5 bg-white/10"
+        fillClassName="bg-[#f5f3f0]"
+        thumbClassName="bg-white"
       />
     </div>
   )
 }
 
-function Row({
-  icon,
+function Switch({
+  checked,
+  onChange,
   label,
-  hint,
-  onClick,
 }: {
-  icon: ReactNode
+  checked: boolean
+  onChange: (value: boolean) => void
   label: string
-  hint?: string
-  onClick: () => void
 }) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-3.5 rounded-xl px-3 py-3 text-left tap"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`relative h-[26px] w-[44px] shrink-0 rounded-full transition-colors duration-200 ${
+        checked ? 'bg-[#f5f3f0]' : 'bg-white/10'
+      }`}
+      style={{ transitionTimingFunction: 'cubic-bezier(0.22,1,0.36,1)' }}
     >
-      <span className="grid h-8 w-8 shrink-0 place-items-center text-muted">{icon}</span>
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">{label}</span>
-      {hint ? <span className="shrink-0 text-xs text-faint">{hint}</span> : null}
-      <ChevronRightIcon size={16} className="shrink-0 text-faint" />
+      <span
+        className={`absolute top-[3px] h-5 w-5 rounded-full shadow transition-transform duration-200 ${
+          checked ? 'translate-x-[21px] bg-[#0c0b0a]' : 'translate-x-[3px] bg-[#8c8780]'
+        }`}
+        style={{ transitionTimingFunction: 'cubic-bezier(0.22,1,0.36,1)' }}
+      />
     </button>
   )
 }
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T
+  onChange: (value: T) => void
+  options: Array<{ id: T; label: string }>
+}) {
   return (
-    <section className="mt-5">
-      <h2 className="mb-1.5 px-3 text-xs font-semibold uppercase tracking-wider text-faint">
-        {title}
-      </h2>
-      <div className="overflow-hidden rounded-2xl hairline">{children}</div>
-    </section>
+    <div className="flex rounded-full bg-[#0c0b0a] p-1">
+      {options.map((option) => {
+        const active = option.id === value
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-medium transition-all ${
+              active
+                ? 'bg-[#2a2a2a] text-[#f5f3f0] shadow-sm'
+                : 'text-[#8c8780] hover:text-[#f5f3f0]'
+            }`}
+            style={{ transitionTimingFunction: 'cubic-bezier(0.22,1,0.36,1)' }}
+          >
+            {option.label}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
+function Kbd({ children }: { children: ReactNode }) {
+  return (
+    <kbd className="rounded-md border border-white/10 bg-[#0c0b0a] px-1.5 py-0.5 text-[11px] text-[#f5f3f0]">
+      {children}
+    </kbd>
+  )
+}
+
+function PageTitle({ title, subtitle }: { title: string; subtitle: string }) {
+  return (
+    <header className="mb-7">
+      <h1 className="text-[24px] font-semibold tracking-tight text-[#f5f3f0]">{title}</h1>
+      <p className="mt-1 text-[13px] text-[#8c8780]">{subtitle}</p>
+    </header>
+  )
+}
+
+/* ------------------------------ Página ------------------------------ */
+
 export function SettingsPage() {
-  const navigate = useNavigate()
-  const [view, setView] = useState<View>('root')
-  const [filter, setFilter] = useState('')
+  const [tab, setTab] = useState<Tab>('appearance')
 
   const {
     accent,
     theme,
-    dynamicBackground,
+    wallpaper,
+    wallpaperImage,
     glassOpacity,
     glassBlur,
     glassDim,
-    wallpaper,
-    wallpaperImage,
-    wallpaperOpacity,
-    wallpaperBlur,
-    wallpaperDim,
     autoplayNext,
     restoreLastTrack,
     crossfade,
-    genres,
-    artists,
-    discovery,
     setAccent,
     setTheme,
-    setDynamicBackground,
-    setGlass,
     setWallpaper,
     setWallpaperImage,
-    setWallpaperTuning,
+    setGlass,
     setPlayback,
-    resetAppearance,
-    toggleGenre,
-    addArtist,
-    removeArtist,
-    setDiscovery,
-    resetAlgorithm,
   } = useSettingsStore()
 
-  const [artistInput, setArtistInput] = useState('')
-
-  const clearSearchHistory = useUiStore((state) => state.clearSearchHistory)
   const notify = useUiStore((state) => state.notify)
-  const clearHistory = useLibraryStore((state) => state.clearHistory)
-  const { user, signOut } = useAuth()
   const fileRef = useRef<HTMLInputElement>(null)
+
+  /* Ajustes sin store real: estados locales (no se persisten). */
+  const [volume, setVolume] = useState(0.8)
+  const [shuffle, setShuffle] = useState(false)
+  const [quality, setQuality] = useState('auto')
+  const [skipSilence, setSkipSilence] = useState(1)
+  const [crossfadeSeconds, setCrossfadeSeconds] = useState(crossfade ? 3 : 0)
+  const [overlayVisible, setOverlayVisible] = useState(false)
+
+  const [fondoMode, setFondoMode] = useState<FondoMode>(
+    wallpaperImage ? 'image' : wallpaper ? 'gradient' : 'none',
+  )
+
+  const changeFondo = (mode: FondoMode) => {
+    if (mode === 'none') {
+      setWallpaper(null)
+      setWallpaperImage(null)
+    } else if (mode === 'gradient') {
+      setWallpaperImage(null)
+      if (!wallpaper) setWallpaper(WALLPAPERS[0].css)
+    }
+    setFondoMode(mode)
+  }
 
   const handleUpload = async (file: File | undefined) => {
     if (!file) return
     try {
       const dataUrl = await fileToDownscaledDataUrl(file)
       setWallpaperImage(dataUrl)
-      if (wallpaper) setWallpaper(null)
+      setWallpaper(null)
+      setFondoMode('image')
       notify('Fondo actualizado')
     } catch {
       notify('No se pudo cargar la imagen.', 'error')
     }
   }
 
-  const back = () => setView('root')
-
-  if (view === 'root') {
-    const term = filter.trim().toLowerCase()
-    const matches = term ? SETTINGS_SEARCH.filter((item) => item.label.toLowerCase().includes(term)) : []
-
-    return (
-      <div>
-        <header className="sticky top-0 z-20 px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-xl">
-          <h1 className="px-1 text-[1.6rem] font-semibold tracking-tight">Ajustes</h1>
-          <div className="mt-3 flex h-11 items-center gap-2 rounded-2xl hairline surface-2 px-3.5">
-            <InfoIcon size={17} className="text-faint" />
-            <input
-              value={filter}
-              onChange={(event) => setFilter(event.target.value)}
-              placeholder="Buscar ajustes…"
-              className="h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-faint"
-            />
-          </div>
-        </header>
-
-        <div className="px-5 pb-6">
-          {term ? (
-            matches.length > 0 ? (
-              <div className="overflow-hidden rounded-2xl hairline">
-                {matches.map((item, index) => (
-                  <button
-                    key={`${item.view}-${item.label}`}
-                    type="button"
-                    onClick={() => {
-                      setFilter('')
-                      setView(item.view)
-                    }}
-                    className={`flex w-full items-center gap-3 px-3.5 py-3 text-left text-sm tap ${
-                      index > 0 ? 'border-t border-[color:var(--hair)]' : ''
-                    }`}
-                  >
-                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    <ChevronRightIcon size={16} className="shrink-0 text-faint" />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="px-1 py-6 text-center text-sm text-faint">Sin resultados.</p>
-            )
-          ) : (
-            <>
-              <Group title="Cuenta">
-                {user ? (
-                  <div className="flex items-center gap-3.5 px-3 py-3">
-                    <span className="grid h-8 w-8 shrink-0 place-items-center text-muted">
-                      <UserIcon size={19} />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{user.email}</p>
-                      <p className="text-xs text-faint">Sesión iniciada</p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="subtle"
-                      onClick={() => {
-                        void signOut().then(() => notify('Sesión cerrada'))
-                      }}
-                    >
-                      Salir
-                    </Button>
-                  </div>
-                ) : (
-                  <Row
-                    icon={<UserIcon size={19} />}
-                    label="Iniciar sesión o crear cuenta"
-                    hint="Sincronizar"
-                    onClick={() => navigate('/auth')}
-                  />
-                )}
-              </Group>
-
-              <Group title="Preferencias">
-                <Row icon={<PlayIcon size={19} />} label="Reproducción" onClick={() => setView('playback')} />
-                <Row
-                  icon={<SparklesIcon size={19} />}
-                  label="Mi algoritmo"
-                  onClick={() => setView('algorithm')}
-                />
-                <Row
-                  icon={<ImageIcon size={19} />}
-                  label="Personalización"
-                  onClick={() => setView('customization')}
-                />
-                <Row icon={<VolumeIcon size={19} />} label="Audio" onClick={() => setView('audio')} />
-                <Row
-                  icon={<GridIcon size={19} />}
-                  label="Apariencia"
-                  onClick={() => setView('appearance')}
-                />
-              </Group>
-
-              <Group title="Aplicación">
-                <Row
-                  icon={<ServerIcon size={19} />}
-                  label="Caché y almacenamiento"
-                  onClick={() => setView('storage')}
-                />
-                <Row icon={<InfoIcon size={19} />} label="Acerca de" onClick={() => setView('about')} />
-              </Group>
-
-              <Group title="Ayuda">
-                <Row icon={<BookIcon size={19} />} label="Documentación" onClick={() => setView('docs')} />
-                <Row icon={<HelpIcon size={19} />} label="Soporte" onClick={() => setView('support')} />
-              </Group>
-            </>
-          )}
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="animate-page-in">
-      <header className="sticky top-0 z-20 flex items-center gap-2 px-3 pb-2 pt-[calc(0.75rem+env(safe-area-inset-top))] backdrop-blur-xl">
-        <button
-          type="button"
-          aria-label="Volver"
-          onClick={back}
-          className="grid h-10 w-10 place-items-center rounded-full text-ink tap"
-        >
-          <ChevronLeftIcon size={24} />
-        </button>
-        <h1 className="text-[1.15rem] font-semibold tracking-tight">{VIEW_TITLES[view]}</h1>
-      </header>
+    <div className="flex h-full min-h-0 gap-8 bg-[#0c0b0a] px-8 py-7">
+      {/* Barra lateral de pestañas */}
+      <aside className="w-[180px] shrink-0">
+        <h1 className="mb-6 px-3 text-[22px] font-semibold tracking-tight text-[#f5f3f0]">
+          Ajustes
+        </h1>
+        <nav className="flex flex-col gap-1">
+          {TABS.map((item) => {
+            const active = tab === item.id
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTab(item.id)}
+                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-medium transition-colors ${
+                  active
+                    ? 'bg-[#121212] text-[#f5f3f0]'
+                    : 'text-[#8c8780] hover:text-[#f5f3f0]'
+                }`}
+                style={{ transitionTimingFunction: 'cubic-bezier(0.22,1,0.36,1)' }}
+              >
+                <span className={active ? 'text-[#f5f3f0]' : 'text-[#8c8780]'}>{item.icon}</span>
+                <span className="min-w-0 flex-1">{item.label}</span>
+                {active ? <span className="h-1.5 w-1.5 rounded-full bg-[#f5f3f0]" /> : null}
+              </button>
+            )
+          })}
+        </nav>
+      </aside>
 
-      <div className="space-y-3 px-5 pb-6">
-        {view === 'playback' ? (
-          <>
-            <SwitchRow
-              title="Reproducción automática"
-              description="Continúa con la siguiente canción."
-              checked={autoplayNext}
-              onChange={(v) => setPlayback({ autoplayNext: v })}
-            />
-            <SwitchRow
-              title="Recordar última canción"
-              description="Restaura la cola al volver a abrir la app."
-              checked={restoreLastTrack}
-              onChange={(v) => setPlayback({ restoreLastTrack: v })}
-            />
-            <SwitchRow
-              title="Transición suave"
-              description="Fundido breve entre canciones."
-              checked={crossfade}
-              onChange={(v) => setPlayback({ crossfade: v })}
-            />
-          </>
-        ) : null}
-
-        {view === 'algorithm' ? (
-          <>
-            <Card>
-              <p className="text-sm font-medium">Géneros que te gustan</p>
-              <p className="mt-0.5 text-xs text-faint">
-                Elige uno o varios para afinar tus recomendaciones.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {GENRES.map((genre) => {
-                  const active = genres.includes(genre)
-                  return (
-                    <button
-                      key={genre}
-                      type="button"
-                      onClick={() => toggleGenre(genre)}
-                      className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-                        active
-                          ? 'bg-accent text-[color:var(--color-accent-ink)]'
-                          : 'surface-2 text-muted tap'
-                      }`}
-                    >
-                      {genre}
-                    </button>
-                  )
-                })}
-              </div>
-            </Card>
-
-            <Card>
-              <p className="text-sm font-medium">Artistas favoritos</p>
-              <p className="mt-0.5 text-xs text-faint">
-                Añade artistas para priorizarlos en las sugerencias.
-              </p>
-              <div className="mt-3 flex items-center gap-2">
-                <input
-                  value={artistInput}
-                  onChange={(event) => setArtistInput(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      addArtist(artistInput)
-                      setArtistInput('')
-                    }
-                  }}
-                  placeholder="Nombre del artista…"
-                  className="hairline surface-1 h-11 min-w-0 flex-1 rounded-xl px-3.5 text-sm outline-none focus:border-accent/50"
-                />
-                <Button
-                  size="sm"
-                  icon={<PlusIcon size={16} />}
-                  disabled={!artistInput.trim()}
-                  onClick={() => {
-                    addArtist(artistInput)
-                    setArtistInput('')
-                  }}
-                >
-                  Añadir
-                </Button>
-              </div>
-              {artists.length > 0 ? (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {artists.map((artist) => (
-                    <span
-                      key={artist}
-                      className="flex items-center gap-1.5 rounded-full surface-2 py-1 pl-3 pr-1.5 text-sm"
-                    >
-                      {artist}
-                      <button
-                        type="button"
-                        aria-label={`Quitar ${artist}`}
-                        onClick={() => removeArtist(artist)}
-                        className="grid h-5 w-5 place-items-center rounded-full text-faint"
-                      >
-                        <CloseIcon size={14} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-3 text-xs text-faint">Aún no has añadido artistas.</p>
-              )}
-            </Card>
-
-            <Card>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted">Nivel de descubrimiento</span>
-                <span className="tabular-nums text-faint">{Math.round(discovery * 100)}%</span>
-              </div>
-              <Slider
-                value={discovery}
-                ariaLabel="Nivel de descubrimiento"
-                onChange={setDiscovery}
-                trackClassName="h-1.5 bg-[color:var(--overlay-3)]"
-                fillClassName="bg-accent"
-              />
-              <div className="flex justify-between text-[11px] text-faint">
-                <span>Lo que ya conozco</span>
-                <span>Novedades</span>
-              </div>
-            </Card>
-
-            <Button
-              variant="subtle"
-              fullWidth
-              icon={<TrashIcon size={17} />}
-              onClick={() => {
-                resetAlgorithm()
-                notify('Algoritmo restablecido')
-              }}
+      {/* Contenido */}
+      <main className="min-h-0 flex-1 overflow-y-auto pb-16 pr-1">
+        <div className="mx-auto max-w-[760px]">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 6, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -6, filter: 'blur(4px)' }}
+              transition={{ duration: 0.2, ease: EASE }}
             >
-              Restablecer algoritmo
-            </Button>
-          </>
-        ) : null}
+              {tab === 'appearance' ? (
+                <>
+                  <PageTitle title="Apariencia" subtitle="Personaliza cómo se ve PoP Music." />
 
-        {view === 'appearance' ? (
-          <>
-            <Card>
-              <p className="mb-2 text-sm font-medium">Tema</p>
-              <Segmented
-                value={theme}
-                onChange={(id) => setTheme(id as ThemeMode)}
-                tabs={[
-                  { id: 'system', label: 'Sistema' },
-                  { id: 'light', label: 'Claro' },
-                  { id: 'dark', label: 'Oscuro' },
-                ]}
-              />
-              <div className="mt-2 flex items-center gap-1.5 text-xs text-faint">
-                {theme === 'light' ? <SunIcon size={14} /> : <MoonIcon size={14} />}
-                <span>
-                  {theme === 'system'
-                    ? 'Sigue el tema del sistema.'
-                    : theme === 'light'
-                      ? 'Interfaz clara.'
-                      : 'Interfaz oscura (recomendado).'}
-                </span>
-              </div>
-            </Card>
+                  <Section label="Tema">
+                    <Row
+                      icon={<Palette size={18} />}
+                      title="Modo"
+                      description="Elige la apariencia general."
+                      control={
+                        <Segmented<ThemeMode>
+                          value={theme}
+                          onChange={setTheme}
+                          options={[
+                            { id: 'dark', label: 'Oscuro' },
+                            { id: 'light', label: 'Claro' },
+                            { id: 'system', label: 'Sistema' },
+                          ]}
+                        />
+                      }
+                    />
+                  </Section>
 
-            <Card>
-              <p className="mb-3 text-sm font-medium">Color de énfasis</p>
-              <div className="flex flex-wrap gap-3">
-                {ACCENTS.map((option) => {
-                  const active = option.id === accent
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      aria-label={option.label}
-                      onClick={() => setAccent(option.id)}
-                      className="relative grid h-10 w-10 place-items-center rounded-full transition-transform active:scale-95"
-                      style={{
-                        background: option.color,
-                        boxShadow: active
-                          ? `0 0 0 2px var(--color-bg), 0 0 0 4px ${option.color}`
-                          : undefined,
+                  <Section label="Color de acento">
+                    <div className="px-4 py-3.5">
+                      <p className="mb-3 text-[14px] font-medium text-[#f5f3f0]">Color</p>
+                      <div className="flex flex-wrap gap-3">
+                        {ACCENTS.map((option) => {
+                          const active = option.id === accent
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              aria-label={option.label}
+                              title={option.label}
+                              onClick={() => setAccent(option.id)}
+                              className={`grid h-8 w-8 place-items-center rounded-full transition-transform ${
+                                active ? 'scale-105' : 'hover:scale-105'
+                              }`}
+                              style={{
+                                background: option.color,
+                                boxShadow: active
+                                  ? `0 0 0 2px #0c0b0a, 0 0 0 4px ${option.color}`
+                                  : undefined,
+                              }}
+                            >
+                              {active ? (
+                                <Check size={15} strokeWidth={3} style={{ color: option.ink }} />
+                              ) : null}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </Section>
+
+                  <Section label="Fondo">
+                    <Row
+                      icon={<ImageIcon size={18} />}
+                      title="Estilo de fondo"
+                      description="Ninguno, degradado o imagen."
+                      control={
+                        <Segmented<FondoMode>
+                          value={fondoMode}
+                          onChange={changeFondo}
+                          options={[
+                            { id: 'none', label: 'Ninguno' },
+                            { id: 'gradient', label: 'Degradado' },
+                            { id: 'image', label: 'Imagen' },
+                          ]}
+                        />
+                      }
+                    />
+                    {fondoMode === 'gradient' ? (
+                      <div className="px-4 pb-4">
+                        <div className="grid grid-cols-5 gap-2">
+                          {WALLPAPERS.map((preset) => {
+                            const active = wallpaper === preset.css && !wallpaperImage
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                title={preset.label}
+                                aria-label={preset.label}
+                                onClick={() => {
+                                  setWallpaperImage(null)
+                                  setWallpaper(preset.css)
+                                }}
+                                className={`h-14 rounded-xl transition-all ${
+                                  active
+                                    ? 'ring-2 ring-[#f5f3f0]'
+                                    : 'opacity-80 hover:opacity-100'
+                                }`}
+                                style={{ background: preset.css }}
+                              />
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+                    {fondoMode === 'image' ? (
+                      <div className="px-4 pb-4">
+                        <input
+                          ref={fileRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(event) => {
+                            void handleUpload(event.target.files?.[0])
+                            event.target.value = ''
+                          }}
+                        />
+                        {wallpaperImage ? (
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-14 w-24 rounded-xl bg-cover bg-center"
+                              style={{ backgroundImage: `url(${wallpaperImage})` }}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => fileRef.current?.click()}
+                                className="rounded-lg bg-white/10 px-3 py-1.5 text-[12px] font-medium text-[#f5f3f0] transition-colors hover:bg-white/15"
+                              >
+                                Cambiar
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setWallpaperImage(null)
+                                  setFondoMode('none')
+                                }}
+                                className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-[#8c8780] transition-colors hover:text-[#f5f3f0]"
+                              >
+                                Quitar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => fileRef.current?.click()}
+                            className="flex items-center gap-2 rounded-xl border border-dashed border-white/15 px-4 py-3 text-[13px] text-[#8c8780] transition-colors hover:border-white/30 hover:text-[#f5f3f0]"
+                          >
+                            <ImageIcon size={16} /> Elegir una imagen
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
+                  </Section>
+
+                  <Section label="Cristal">
+                    <SliderRow
+                      icon={<Layers size={18} />}
+                      title="Opacidad"
+                      value={glassOpacity}
+                      min={0.2}
+                      max={1}
+                      format={(value) => `${Math.round(value * 100)}%`}
+                      onChange={(value) => setGlass({ glassOpacity: Math.round(value * 100) / 100 })}
+                    />
+                    <SliderRow
+                      title="Desenfoque"
+                      value={glassBlur}
+                      min={0}
+                      max={40}
+                      format={(value) => `${Math.round(value)} px`}
+                      onChange={(value) => setGlass({ glassBlur: Math.round(value) })}
+                    />
+                    <SliderRow
+                      title="Oscurecimiento"
+                      value={glassDim}
+                      min={0}
+                      max={0.6}
+                      format={(value) => `${Math.round(value * 100)}%`}
+                      onChange={(value) => setGlass({ glassDim: Math.round(value * 100) / 100 })}
+                    />
+                  </Section>
+                </>
+              ) : null}
+
+              {tab === 'playback' ? (
+                <>
+                  <PageTitle title="Reproducción" subtitle="Controla cómo suena y avanza la música." />
+
+                  <Section label="Reproducción">
+                    <Row
+                      icon={<Play size={18} />}
+                      title="Reproducción automática"
+                      description="Continúa con la siguiente canción."
+                      control={
+                        <Switch
+                          checked={autoplayNext}
+                          onChange={(value) => setPlayback({ autoplayNext: value })}
+                          label="Reproducción automática"
+                        />
+                      }
+                    />
+                    <Row
+                      icon={<Shuffle size={18} />}
+                      title="Aleatorio"
+                      description="Reproduce las canciones en orden aleatorio."
+                      control={
+                        <Switch
+                          checked={shuffle}
+                          onChange={setShuffle}
+                          label="Aleatorio"
+                        />
+                      }
+                    />
+                    <Row
+                      icon={<RotateCcw size={18} />}
+                      title="Recordar última canción"
+                      description="Restaura la cola al volver a abrir."
+                      control={
+                        <Switch
+                          checked={restoreLastTrack}
+                          onChange={(value) => setPlayback({ restoreLastTrack: value })}
+                          label="Recordar última canción"
+                        />
+                      }
+                    />
+                  </Section>
+
+                  <Section label="Audio">
+                    <SliderRow
+                      icon={<Volume2 size={18} />}
+                      title="Volumen"
+                      value={volume}
+                      min={0}
+                      max={1}
+                      format={(value) => `${Math.round(value * 100)}%`}
+                      onChange={setVolume}
+                    />
+                    <SliderRow
+                      icon={<Timer size={18} />}
+                      title="Saltar silencios"
+                      description="Recorta los silencios entre canciones."
+                      value={skipSilence}
+                      min={0}
+                      max={5}
+                      format={(value) => (value === 0 ? 'Desactivado' : `${value.toFixed(1)} s`)}
+                      onChange={setSkipSilence}
+                    />
+                    <SliderRow
+                      icon={<SlidersHorizontal size={18} />}
+                      title="Crossfade"
+                      description="Fundido entre una canción y la siguiente."
+                      value={crossfadeSeconds}
+                      min={0}
+                      max={10}
+                      format={(value) => (value === 0 ? 'Desactivado' : `${Math.round(value)} s`)}
+                      onChange={(value) => {
+                        setCrossfadeSeconds(value)
+                        setPlayback({ crossfade: value > 0 })
                       }}
-                    >
-                      {active ? <CheckIcon size={16} style={{ color: option.ink }} /> : null}
-                    </button>
-                  )
-                })}
-              </div>
-            </Card>
+                    />
+                  </Section>
 
-            <SwitchRow
-              title="Fondo dinámico"
-              description="Tiñe las pantallas con los colores de la portada."
-              checked={dynamicBackground}
-              onChange={setDynamicBackground}
-            />
-          </>
-        ) : null}
+                  <Section label="Calidad">
+                    <Row
+                      icon={<Music2 size={18} />}
+                      title="Calidad de audio"
+                      description="Mayor calidad utiliza más datos."
+                      control={
+                        <Segmented
+                          value={quality}
+                          onChange={setQuality}
+                          options={[
+                            { id: 'auto', label: 'Auto' },
+                            { id: 'low', label: 'Baja' },
+                            { id: 'high', label: 'Alta' },
+                          ]}
+                        />
+                      }
+                    />
+                  </Section>
+                </>
+              ) : null}
 
-        {view === 'audio' ? (
-          <Card>
-            <RangeRow
-              label="Opacidad del cristal"
-              value={glassOpacity}
-              min={0.2}
-              max={1}
-              format={(v) => `${Math.round(v * 100)}%`}
-              onChange={(v) => setGlass({ glassOpacity: Math.round(v * 100) / 100 })}
-            />
-            <RangeRow
-              label="Desenfoque"
-              value={glassBlur}
-              min={0}
-              max={40}
-              format={(v) => `${Math.round(v)}px`}
-              onChange={(v) => setGlass({ glassBlur: Math.round(v) })}
-            />
-            <RangeRow
-              label="Oscurecimiento"
-              value={glassDim}
-              min={0}
-              max={0.6}
-              format={(v) => `${Math.round(v * 100)}%`}
-              onChange={(v) => setGlass({ glassDim: Math.round(v * 100) / 100 })}
-            />
-          </Card>
-        ) : null}
-
-        {view === 'customization' ? (
-          <>
-            <Card>
-              <p className="mb-2 text-sm font-medium">Tu imagen</p>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => {
-                  void handleUpload(event.target.files?.[0])
-                  event.target.value = ''
-                }}
-              />
-              {wallpaperImage ? (
-                <div className="space-y-3">
-                  <div
-                    className="h-40 w-full rounded-xl bg-cover bg-center"
-                    style={{ backgroundImage: `url(${wallpaperImage})` }}
+              {tab === 'overlay' ? (
+                <>
+                  <PageTitle
+                    title="Reproductor flotante"
+                    subtitle="Mantén el reproductor visible mientras usas otras aplicaciones."
                   />
-                  <div className="flex gap-2">
-                    <Button size="sm" variant="subtle" onClick={() => fileRef.current?.click()}>
-                      Cambiar imagen
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      icon={<TrashIcon size={16} />}
-                      onClick={() => setWallpaperImage(null)}
-                    >
-                      Quitar
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  size="sm"
-                  variant="subtle"
-                  icon={<ImageIcon size={17} />}
-                  onClick={() => fileRef.current?.click()}
-                >
-                  Subir una imagen
-                </Button>
-              )}
-            </Card>
 
-            <Card>
-              <p className="mb-2 text-sm font-medium">Degradados</p>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setWallpaper(null)}
-                  className={`relative flex aspect-[3/4] items-center justify-center rounded-xl text-[0.7rem] transition-all ${
-                    wallpaper === null && !wallpaperImage
-                      ? 'ring-2 ring-accent text-ink'
-                      : 'hairline surface-2 text-faint'
-                  }`}
-                >
-                  Ninguno
-                </button>
-                {WALLPAPERS.map((preset) => {
-                  const active = wallpaper === preset.css && !wallpaperImage
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => {
-                        setWallpaperImage(null)
-                        setWallpaper(preset.css)
-                      }}
-                      className={`relative flex aspect-[3/4] items-end justify-center rounded-xl p-1.5 text-[0.7rem] font-medium text-white transition-all ${
-                        active ? 'ring-2 ring-accent' : ''
-                      }`}
-                      style={{ background: preset.css }}
-                    >
-                      <span className="rounded-full bg-black/40 px-2 py-0.5 backdrop-blur">
-                        {preset.label}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </Card>
+                  <Section label="Ventana flotante">
+                    <Row
+                      icon={<PictureInPicture2 size={18} />}
+                      title="Mostrar ventana flotante"
+                      description="Una pequeña ventana sobre el resto de aplicaciones."
+                      control={
+                        <Switch
+                          checked={overlayVisible}
+                          onChange={(value) => {
+                            setOverlayVisible(value)
+                            window.popDesktop?.toggleOverlay()
+                          }}
+                          label="Mostrar ventana flotante"
+                        />
+                      }
+                    />
+                    <div className="px-4 py-3.5">
+                      <p className="text-[13px] leading-relaxed text-[#8c8780]">
+                        Usa <Kbd>Ctrl</Kbd> + <Kbd>Alt</Kbd> + <Kbd>P</Kbd> para mostrar u ocultar la
+                        ventana, y <Kbd>←</Kbd> / <Kbd>→</Kbd> para cambiar de canción.
+                      </p>
+                    </div>
+                  </Section>
+                </>
+              ) : null}
 
-            <Card>
-              <RangeRow
-                label="Transparencia"
-                value={wallpaperOpacity}
-                min={0.15}
-                max={1}
-                format={(v) => `${Math.round(v * 100)}%`}
-                onChange={(v) => setWallpaperTuning({ wallpaperOpacity: Math.round(v * 100) / 100 })}
-              />
-              <RangeRow
-                label="Desenfoque"
-                value={wallpaperBlur}
-                min={0}
-                max={40}
-                format={(v) => `${Math.round(v)}px`}
-                onChange={(v) => setWallpaperTuning({ wallpaperBlur: Math.round(v) })}
-              />
-              <RangeRow
-                label="Oscurecimiento"
-                value={wallpaperDim}
-                min={0}
-                max={0.85}
-                format={(v) => `${Math.round(v * 100)}%`}
-                onChange={(v) => setWallpaperTuning({ wallpaperDim: Math.round(v * 100) / 100 })}
-              />
-            </Card>
-          </>
-        ) : null}
+              {tab === 'about' ? (
+                <>
+                  <PageTitle title="Acerca de" subtitle="Información sobre PoP Music." />
 
-        {view === 'storage' ? (
-          <>
-            <button
-              type="button"
-              onClick={() => {
-                clearSearchHistory()
-                notify('Búsquedas borradas')
-              }}
-              className="flex w-full items-center gap-3 rounded-2xl hairline surface-1 px-3.5 py-3 text-left text-sm font-medium tap"
-            >
-              <TrashIcon size={18} className="text-muted" />
-              Borrar búsquedas recientes
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                clearHistory()
-                notify('Historial borrado')
-              }}
-              className="flex w-full items-center gap-3 rounded-2xl hairline surface-1 px-3.5 py-3 text-left text-sm font-medium tap"
-            >
-              <TrashIcon size={18} className="text-muted" />
-              Borrar historial de reproducción
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                useLibraryStore.setState({ playlists: [], favorites: [], history: [] })
-                notify('Biblioteca vaciada')
-              }}
-              className="flex w-full items-center gap-3 rounded-2xl hairline surface-1 px-3.5 py-3 text-left text-sm font-medium text-accent tap"
-            >
-              <TrashIcon size={18} />
-              Vaciar toda la biblioteca
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                resetAppearance()
-                notify('Apariencia restablecida')
-              }}
-              className="flex w-full items-center gap-3 rounded-2xl hairline surface-1 px-3.5 py-3 text-left text-sm font-medium text-accent tap"
-            >
-              <GridIcon size={18} />
-              Restablecer apariencia
-            </button>
-          </>
-        ) : null}
+                  <Section label="Aplicación">
+                    <div className="px-4 py-4">
+                      <p className="text-[16px] font-semibold text-[#f5f3f0]">PoP Music</p>
+                      <p className="mt-1 text-[12px] text-[#8c8780]">Versión 1.0.0</p>
+                      <p className="mt-3 text-[13px] leading-relaxed text-[#8c8780]">
+                        Reproductor de música con letras sincronizadas. Sin anuncios.
+                      </p>
+                    </div>
+                  </Section>
 
-        {view === 'about' ? (
-          <>
-            <div className="flex items-center gap-3 rounded-2xl hairline surface-1 p-4">
-              <Logo size={20} withWordmark={false} />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">PoP Music</p>
-                <p className="text-xs text-faint">Versión 1.0.0</p>
-              </div>
-            </div>
-            <p className="px-1 text-xs leading-relaxed text-faint">
-              Reproductor de música mobile-first con letras sincronizadas. Integra YouTube, LRCLIB,
-              Spotify y reconocimiento de audio.
-            </p>
-          </>
-        ) : null}
-
-        {view === 'docs' ? (
-          <p className="px-1 text-sm leading-relaxed text-muted">
-            PoP Music reproduce música desde YouTube, muestra letras sincronizadas con LRCLIB y
-            permite importar playlists de Spotify. Usa el buscador para encontrar canciones, o el
-            micrófono para reconocer la música que suena a tu alrededor.
-          </p>
-        ) : null}
-
-        {view === 'support' ? (
-          <p className="px-1 text-sm leading-relaxed text-muted">
-            ¿Necesitas ayuda? Escríbenos y te responderemos lo antes posible.
-          </p>
-        ) : null}
-      </div>
+                  <Section label="Enlaces">
+                    {['Sitio web', 'Privacidad', 'Términos'].map((label) => (
+                      <a
+                        key={label}
+                        href="#"
+                        onClick={(event) => event.preventDefault()}
+                        className="flex min-h-[52px] items-center gap-3 px-4 py-2 transition-colors hover:bg-white/[0.03]"
+                      >
+                        <span className="grid w-[18px] shrink-0 place-items-center text-[#8c8780]">
+                          <ExternalLink size={18} />
+                        </span>
+                        <span className="min-w-0 flex-1 text-[14px] font-medium text-[#f5f3f0]">
+                          {label}
+                        </span>
+                        <ChevronRight size={16} className="shrink-0 text-[#8c8780]" />
+                      </a>
+                    ))}
+                  </Section>
+                </>
+              ) : null}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </main>
     </div>
   )
 }

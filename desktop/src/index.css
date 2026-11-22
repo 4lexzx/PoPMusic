@@ -7,12 +7,12 @@
    ========================================================================== */
 @theme {
   --color-bg: #000000;
-  --color-bg-elev: #0a0a0b;
-  --color-surface: #0d0d0f;
-  --color-surface-2: #17171a;
-  --color-surface-3: #232327;
-  --color-line: #1d1d21;
-  --color-line-strong: #2a2a30;
+  --color-bg-elev: #080808;
+  --color-surface: #0b0b0b;
+  --color-surface-2: #121212;
+  --color-surface-3: #1a1a1a;
+  --color-line: #1c1c1c;
+  --color-line-strong: #262626;
   --color-ink: #ffffff;
   --color-muted: #b4b4bb;
   --color-faint: #74747c;
@@ -24,7 +24,7 @@
   /* Acento de marca (personalizable en Ajustes) — por defecto: grafito neutro */
   --color-accent: #d7d7de;
   --color-accent-soft: #ececf2;
-  --color-accent-ink: #0a0a0d;
+  --color-accent-ink: #080808;
   --color-danger: #ff4d4d;
 
   --font-sans:
@@ -50,8 +50,8 @@
    ========================================================================== */
 :root {
   --bg-rgb: 0, 0, 0;
-  --surface-rgb: 13, 13, 15;
-  --elev-rgb: 10, 10, 11;
+  --surface-rgb: 11, 11, 11;
+  --elev-rgb: 8, 8, 8;
 
   --glass-alpha: 0.82;
   --glass-blur: 24px;
@@ -660,7 +660,7 @@ body {
   padding-left: 18px;
   -webkit-app-region: drag;
   user-select: none;
-  background: rgba(8, 8, 13, 0.86);
+  background: #0b0b0b;
   border-bottom: 1px solid var(--desk-line);
   z-index: 30;
 }
@@ -720,9 +720,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   padding: 12px 0 16px;
-  background: rgba(10, 10, 16, 0.55);
+  background: #0b0b0b;
   border-right: 1px solid var(--desk-line);
   backdrop-filter: blur(24px);
 }
@@ -732,7 +732,7 @@ body {
   place-items: center;
   width: 44px;
   height: 44px;
-  margin-bottom: 18px;
+  margin-bottom: 0;
 }
 
 .rail__logo {
@@ -750,7 +750,12 @@ body {
   width: 100%;
 }
 
+.rail__nav {
+  margin-top: 18px;
+}
+
 .rail__bottom {
+  margin-top: auto;
   padding-top: 10px;
   border-top: 1px solid var(--desk-line);
   width: 40px;
@@ -824,7 +829,7 @@ body {
   padding: 0 18px;
   height: 74px;
   border-radius: 12px;
-  background: rgba(24, 23, 21, 0.92);
+  background: rgba(11, 11, 11, 0.92);
   border: 1px solid rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(28px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
@@ -1041,7 +1046,7 @@ body {
 .reactive-backdrop__veil {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(8, 8, 13, 0.4), rgba(8, 8, 13, 0.92));
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0.9));
 }
 
 .reactive-backdrop__grain {

@@ -15,6 +15,12 @@ export interface DesktopApi {
   sendTrack: (track: DesktopTrackInfo) => void
   sendCommand: (command: 'play-pause' | 'next' | 'prev') => void
   requestDeepLink: () => void
+  youtubeFetch: (options: {
+    url: string
+    method?: string
+    headers?: Record<string, string>
+    body?: string
+  }) => Promise<{ status: number; text: string; cookie?: string }>
   onMaximized: (callback: (value: boolean) => void) => () => void
   onCommand: (callback: (command: string) => void) => () => void
   onTrack: (callback: (track: DesktopTrackInfo) => void) => () => void

@@ -50,10 +50,13 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0",
+    "bgutils-js": "^4.0.3",
     "framer-motion": "^12.23.12",
+    "lucide-react": "^1.77.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-router-dom": "^6.30.0",
+    "youtubei.js": "^18.3.0",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
