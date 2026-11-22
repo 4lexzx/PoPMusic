@@ -22,6 +22,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var queueIds: Set<String> = emptySet()
     private var radioJob: Job? = null
     private var prefetchedKey: String? = null
+    /** Artista de la canción elegida, por si el estado aún no lo trae. */
+    private var lastArtist: String? = null
 
     val state: StateFlow<PlayerUiState> = connection.state
     val positionMs: StateFlow<Long> = connection.positionMs
@@ -30,10 +32,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         connection.onNearQueueEnd = {
             if (autoExtend && radioJob?.isActive != true) {
                 radioJob = viewModelScope.launch {
+                    // Semilla = lo que está sonando ahora (no la primera canción
+                    // de la cola), para que la radio siga al mismo artista.
+                    val current = connection.state.value
+                    val seed = current.artist.ifBlank { lastArtist.orEmpty() }
                     val batch = runCatching {
                         recommendations.radio(
                             library = app.libraryRepository.state.value,
                             excludeIds = queueIds,
+                            seedArtist = seed,
                         )
                     }.onFailure {
                         Log.w(TAG, "No se pudo ampliar la cola", it)
@@ -65,6 +72,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun play(songs: List<Song>, startIndex: Int = 0, autoExtend: Boolean = false) {
         this.autoExtend = autoExtend
+        lastArtist = songs.getOrNull(startIndex)?.artist
         queueIds = songs.mapTo(HashSet()) { it.id }
         radioJob?.cancel()
         connection.play(songs, startIndex)

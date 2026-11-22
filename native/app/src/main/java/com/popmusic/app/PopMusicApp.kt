@@ -498,7 +498,9 @@ fun PopMusicApp() {
                         composable(Routes.SEARCH) {
                             SearchScreen(
                                 onPlay = { songs, startIndex ->
-                                    playerViewModel.play(songs, startIndex)
+                                    // La cola sigue con el artista de la canción
+                                    // elegida al llegar al final.
+                                    playerViewModel.play(songs, startIndex, autoExtend = true)
                                 },
                                 onOpenPlayer = { openPlayer() },
                                 onBack = { navController.popBackStack() },

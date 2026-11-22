@@ -182,10 +182,16 @@ class RecommendationsRepository(
             .take(limit)
     }
 
+    /**
+     * Amplía la cola. Si se pasa la canción que está sonando, la radio se
+     * queda con canciones DE ESE ARTISTA: antes se rellenaba con búsquedas
+     * genéricas y saltaban temas que no tenían nada que ver.
+     */
     suspend fun radio(
         library: LibraryState,
         excludeIds: Set<String>,
         limit: Int = RADIO_BATCH,
+        seedArtist: String? = null,
     ): List<Song> {
         val saved = library.favorites + library.playlists.flatMap { it.songs }
         val topArtists = saved
@@ -198,22 +204,75 @@ class RecommendationsRepository(
             .map { it.key }
             .take(4)
 
+        val artist = seedArtist
+            ?.trim()
+            ?.removeSuffix(" - Topic")
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+        val artistKey = artist?.let(::artistKey).orEmpty()
+
         val queries = buildList {
-            addAll(topArtists.shuffled().take(3).map { "$it songs" })
-            addAll((FALLBACK_QUERIES + EXTRA_QUERIES).shuffled().take(5))
+            if (artist != null) {
+                add("$artist songs")
+                add("$artist exitos")
+                add("$artist canciones")
+            }
+            addAll(topArtists.shuffled().take(2).map { "$it songs" })
+            addAll(
+                (FALLBACK_QUERIES + EXTRA_QUERIES)
+                    .shuffled()
+                    .take(if (artist == null) 5 else 2),
+            )
         }.distinct()
 
         val savedIds = saved.mapTo(HashSet()) { it.id }
         val pool = (searchAll(queries) + searchAll(EXTRA_QUERIES.shuffled().take(2)))
             .distinctBy { it.id }
 
-        return pool
+        val candidates = pool
             .filterNot { it.id in excludeIds || it.id in savedIds }
             .groupBy(::baseTitle)
             .map { (_, group) -> group.maxByOrNull(::officialScore) ?: group.first() }
+
+        if (artistKey.isBlank()) {
+            return candidates.shuffled().sortedByDescending(::officialScore).take(limit)
+        }
+
+        // Con semilla solo entran canciones del artista. Si YouTube no devuelve
+        // suficientes, se añaden menos a la cola; mejor eso que meter canciones
+        // de otros géneros solo para llegar a 20.
+        val related = candidates
+            .filter { matchesArtist(it, artistKey) }
             .shuffled()
             .sortedByDescending(::officialScore)
-            .take(limit)
+        if (related.isNotEmpty()) return related.take(limit)
+
+        // Último recurso: no encontramos nada del artista (red caída, nombre
+        // raro). Ahí sí se mantiene el comportamiento anterior.
+        return candidates.shuffled().sortedByDescending(::officialScore).take(limit)
+    }
+
+    /** Compara artistas ignorando acentos, "Topic", "VEVO" y puntuación. */
+    private fun artistKey(name: String): String = java.text.Normalizer
+        .normalize(name.lowercase(), java.text.Normalizer.Form.NFD)
+        .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
+        .replace(Regex("\\b(official|topic|vevo|audio|music)\\b"), " ")
+        .replace(Regex("[^a-z0-9]+"), " ")
+        .replace(Regex("\\s+"), " ")
+        .trim()
+
+    private fun matchesArtist(song: Song, key: String): Boolean {
+        if (key.isBlank()) return false
+        val songKey = artistKey(song.artist)
+        if (songKey == key) return true
+        if (key.length >= 3 && songKey.length >= 3 &&
+            (songKey.contains(key) || key.contains(songKey))
+        ) {
+            return true
+        }
+        // Colaboraciones donde el artista aparece en el título.
+        return key.length >= 3 &&
+            song.title.lowercase().replace(Regex("[^a-z0-9]+"), " ").contains(key)
     }
 
     private suspend fun searchAll(queries: List<String>): List<Song> =
