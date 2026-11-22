@@ -38,6 +38,12 @@
                 <data
                     android:scheme="popmusic"
                     android:host="auth-callback" />
+                <!-- Retorno del OAuth de música: el navegador abre esta URL
+                     y Android trae MainActivity al frente (startActivity desde
+                     segundo plano está bloqueado en Android 10+). -->
+                <data
+                    android:scheme="popmusic"
+                    android:host="music-callback" />
             </intent-filter>
         </activity>
 

@@ -52,8 +52,16 @@ class MusicOAuthManager(
         MusicService.SPOTIFY -> BuildConfig.SPOTIFY_CLIENT_ID.isNotBlank()
     }
 
-    /** Redirige al navegador para autorizar el servicio. Devuelve false si falta configurar. */
-    fun startAuthorization(service: MusicService, onResult: (Boolean, String?) -> Unit): Boolean {
+    /**
+     * Redirige al navegador para autorizar el servicio. Devuelve false si falta
+     * configurar. [onCallbackReceived] avisa en cuanto el navegador devuelve el
+     * código, antes del intercambio por token, para avisar de inmediato al usuario.
+     */
+    fun startAuthorization(
+        service: MusicService,
+        onResult: (Boolean, String?) -> Unit,
+        onCallbackReceived: () -> Unit = {},
+    ): Boolean {
         if (!isConfigured(service)) return false
 
         val verifier = randomToken(64)
@@ -78,7 +86,10 @@ class MusicOAuthManager(
         val server = LoopbackCallbackServer(
             port = port,
             onError = { message -> onResult(false, message) },
-            onCallback = { uri -> completeAuthorization(service, uri, onResult) },
+            onCallback = { uri ->
+                onCallbackReceived()
+                completeAuthorization(service, uri, onResult)
+            },
         )
         // Bind SINCRÓNICO con reintentos: si el puerto sigue tomado NO se
         // abre el navegador (antes se abría igual y el flujo moría al
@@ -522,19 +533,23 @@ class MusicOAuthManager(
                 return false
             }
 
-            val body = if (error != null) {
-                """
-                <html><head><meta charset="utf-8"><title>PoP Music</title></head>
+            // El navegador abre el deep link POR ÉL MISMO: es una app en primer
+            // plano la que inicia la actividad, así Android no aplica la
+            // restricción de "startActivity desde segundo plano" que hacía
+            // que la app no volviera al frente (y el token tardara ~90 s en
+            // reintentar con el DNS bloqueado). `bringAppToFront()` queda como
+            // respaldo por si el navegador no respeta el esquema.
+            val title = if (error != null) "Autorización cancelada" else "Cuenta conectada"
+            val body = """
+                <html><head><meta charset="utf-8">
+                <meta http-equiv="refresh" content="0;url=$MUSIC_RETURN_URL">
+                <title>PoP Music</title></head>
                 <body style="font-family:sans-serif;background:#0c0c16;color:#fff;text-align:center;padding-top:20vh">
-                <h2>Autorización cancelada</h2><p>Ya puedes volver a PoP Music.</p></body></html>
-                """.trimIndent().toByteArray()
-            } else {
-                """
-                <html><head><meta charset="utf-8"><title>PoP Music</title></head>
-                <body style="font-family:sans-serif;background:#0c0c16;color:#fff;text-align:center;padding-top:20vh">
-                <h2>Cuenta conectada</h2><p>Ya puedes volver a PoP Music.</p></body></html>
-                """.trimIndent().toByteArray()
-            }
+                <h2>$title</h2><p>Volviendo a PoP Music…</p>
+                <p><a href="$MUSIC_RETURN_URL" style="color:#8ab4ff">Toca aquí si no vuelve</a></p>
+                <script>location.replace('$MUSIC_RETURN_URL');</script>
+                </body></html>
+            """.trimIndent().toByteArray()
             respond(
                 connection,
                 "HTTP/1.1 200 OK\r\n" +
@@ -562,6 +577,8 @@ class MusicOAuthManager(
         const val TAG = "MusicOAuth"
         const val KEY_VERIFIER = "verifier_"
         const val KEY_STATE = "state_"
+        /** Declarado en el Manifest; el navegador lo abre y trae la app al frente. */
+        const val MUSIC_RETURN_URL = "popmusic://music-callback"
 
         /**
          * Intentos de red adicionales y sus esperas (ms): ~90 s en total,

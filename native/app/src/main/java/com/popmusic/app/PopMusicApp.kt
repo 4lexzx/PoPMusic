@@ -167,7 +167,11 @@ fun PopMusicApp() {
     // Ítem 3: cuentas de música vinculadas para el selector de sync al
     // crear una playlist desde el diálogo "Añadir a playlist".
     val musicSyncState by libraryViewModel.syncState.collectAsState()
-    val connectedMusicServices = musicSyncState.filterValues { it.connected }.keys.toList()
+    // Spotify ya no se vincula por cuenta: se importa por enlace y se exporta
+    // con TuneMyMusic. Se ignora una sesión antigua que pudiera quedar guardada.
+    val connectedMusicServices = musicSyncState.filterValues { it.connected }.keys
+        .filter { it != com.popmusic.app.data.music.MusicService.SPOTIFY }
+        .toList()
 
     val updateViewModel: UpdateViewModel = viewModel()
     val updateState by updateViewModel.state.collectAsState()

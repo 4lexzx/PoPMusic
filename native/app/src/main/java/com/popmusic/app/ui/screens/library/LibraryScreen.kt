@@ -95,6 +95,8 @@ import com.popmusic.app.ui.components.GlassTextField
 import com.popmusic.app.ui.components.PopIconButton
 import com.popmusic.app.ui.components.SolidMenu
 import com.popmusic.app.ui.components.SolidMenuRow
+import com.popmusic.app.ui.components.copyAndOpenSpotifyExport
+import com.popmusic.app.ui.components.spotifyExportText
 import com.popmusic.app.ui.components.SyncTargetSelector
 import com.popmusic.app.ui.components.TrackRow
 import com.popmusic.app.ui.components.TopBarIcon
@@ -147,6 +149,8 @@ fun LibraryScreen(
     // Ítem 1: cambiar nombre de la playlist (con propagación a las plataformas).
     var renameTarget by remember { mutableStateOf<Playlist?>(null) }
     var renameText by remember { mutableStateOf("") }
+    // Exportar a Spotify sin OAuth: se copia la lista y se abre TuneMyMusic.
+    var spotifyExportTarget by remember { mutableStateOf<Playlist?>(null) }
     var fabVisible by remember { mutableStateOf(false) }
     var filter by rememberSaveable { mutableStateOf(LibraryFilter.HOME) }
 
@@ -157,7 +161,11 @@ fun LibraryScreen(
     var syncPlaylistTarget by remember { mutableStateOf<Playlist?>(null) }
     var syncPlaylistChoice by remember { mutableStateOf<String?>(null) }
     val syncState by viewModel.syncState.collectAsState()
-    val connectedServices = syncState.filterValues { it.connected }.keys.toList()
+    // Spotify ya no se conecta por cuenta: aunque quede una sesión antigua en
+    // preferencias, no se ofrece sincronizar con ella.
+    val connectedServices = syncState.filterValues { it.connected }.keys
+        .filter { it != MusicService.SPOTIFY }
+        .toList()
 
     // Ítem 6: el FAB no tiene su propio hide-on-scroll; baja junto con la
     // barra de navegación cuando esta se colapsa por scroll real.
@@ -391,10 +399,7 @@ fun LibraryScreen(
                                         icon = BrandIcons.Spotify, iconTint = Color.Unspecified,
                                         label = "Exportar a Spotify",
                                         onClick = {
-                                            viewModel.exportPlaylist(
-                                                playlist.id,
-                                                MusicService.SPOTIFY,
-                                            )
+                                            spotifyExportTarget = playlist
                                             dismiss()
                                         },
                                     )
@@ -540,10 +545,7 @@ fun LibraryScreen(
                                         icon = BrandIcons.Spotify, iconTint = Color.Unspecified,
                                         label = "Exportar a Spotify",
                                         onClick = {
-                                            viewModel.exportPlaylist(
-                                                playlist.id,
-                                                MusicService.SPOTIFY,
-                                            )
+                                            spotifyExportTarget = playlist
                                             dismiss()
                                         },
                                     )
@@ -657,14 +659,10 @@ fun LibraryScreen(
                 },
             )
             Spacer(Modifier.height(10.dp))
-            GlassActionRow(
-                icon = BrandIcons.Spotify, iconTint = Color.Unspecified,
-                title = MusicService.SPOTIFY.displayName(),
-                subtitle = "Trae tus playlists de Spotify",
-                onClick = {
-                    viewModel.importFromService(MusicService.SPOTIFY)
-                    dialog = null
-                },
+            Text(
+                text = "Las playlists de Spotify se traen desde Importar, pegando el enlace.",
+                style = MaterialTheme.typography.bodySmall,
+                color = Faint,
             )
         }
     }
@@ -744,6 +742,42 @@ fun LibraryScreen(
                     onClick = {
                         viewModel.syncPlaylist(targetPlaylist.id, syncPlaylistChoice)
                         syncPlaylistTarget = null
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+
+    // Exportar a Spotify sin cuenta conectada: TuneMyMusic (el servicio que
+    // usa el propio Spotify para importar) crea la playlist a partir de una
+    // lista de texto. No hace falta Premium ni añadir usuarios a una app.
+    spotifyExportTarget?.let { target ->
+        GlassDialog(onDismiss = { spotifyExportTarget = null }) {
+            GlassDialogHeader(
+                title = AnnotatedString("Exportar a Spotify"),
+                subtitle = boldName("Se copiará la lista de ", target.name, "."),
+                onClose = { spotifyExportTarget = null },
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "Se abrirá TuneMyMusic. Pega la lista allí, elige Spotify " +
+                    "y acepta para crear la playlist en tu cuenta.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Faint,
+            )
+            Spacer(Modifier.height(20.dp))
+            GlassDialogActions {
+                GlassTextButton(
+                    text = "Cancelar",
+                    onClick = { spotifyExportTarget = null },
+                    modifier = Modifier.weight(1f),
+                )
+                GlassPrimaryButton(
+                    text = "Copiar y abrir",
+                    onClick = {
+                        copyAndOpenSpotifyExport(context, spotifyExportText(target))
+                        spotifyExportTarget = null
                     },
                     modifier = Modifier.weight(1f),
                 )

@@ -668,7 +668,10 @@ private fun SettingsDetail(
 private fun AccountsDetail(musicSync: MusicSyncManager) {
     val accounts by musicSync.state.collectAsState()
 
-    MusicService.entries.forEach { service ->
+    // Spotify no admite conexión de cuenta en una app personal (Premium del
+    // dueño + máximo 5 cuentas). Su importación va por enlace y su exportación
+    // por TuneMyMusic, así que aquí solo se ofrece YouTube.
+    listOf(MusicService.YOUTUBE).forEach { service ->
         val state = accounts[service] ?: ServiceSyncState(service = service)
         SettingsCard(title = service.displayName()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -687,8 +690,6 @@ private fun AccountsDetail(musicSync: MusicSyncManager) {
                                 if (state.working) "Sincronizando…" else "Sincronizada"
                             !state.configured ->
                                 "Falta el Client ID en local.properties"
-                            service == MusicService.SPOTIFY ->
-                                "El dueño añade hasta 5 cuentas en Spotify y necesita Premium"
                             else -> "Toca Conectar para iniciar sesión"
                         },
                         style = MaterialTheme.typography.bodySmall,

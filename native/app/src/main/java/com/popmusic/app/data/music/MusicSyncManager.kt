@@ -119,20 +119,34 @@ class MusicSyncManager(
 
     /** Abre el navegador para vincular la cuenta; al volver importa automáticamente. */
     fun connect(service: MusicService) {
-        val started = oauth.startAuthorization(service) { ok, error ->
-            Log.i(TAG, "connect(${service.name}) ok=$ok error=$error")
-            if (ok) {
-                refreshConnection(service)
-                _events.value = "${service.displayName()} conectado. Importando playlists…"
-                scope.launch {
-                    delay(300)
-                    importFrom(service)
-                }
-            } else {
-                _events.value = error ?: "No se pudo conectar ${service.displayName()}"
-                refreshConnection(service)
-            }
+        if (service == MusicService.SPOTIFY) {
+            _events.value =
+                "Spotify ya no se conecta por cuenta: importa por enlace y exporta con TuneMyMusic."
+            return
         }
+        val started = oauth.startAuthorization(
+            service,
+            onResult = { ok, error ->
+                Log.i(TAG, "connect(${service.name}) ok=$ok error=$error")
+                if (ok) {
+                    refreshConnection(service)
+                    _events.value = "${service.displayName()} conectado. Importando playlists…"
+                    scope.launch {
+                        delay(300)
+                        importFrom(service)
+                    }
+                } else {
+                    _events.value = error ?: "No se pudo conectar ${service.displayName()}"
+                    refreshConnection(service)
+                }
+            },
+            onCallbackReceived = {
+                // Aviso inmediato: el navegador ya volvió, el token se está
+                // intercambiando. Antes solo se veía el mensaje al terminar,
+                // lo que parecía que la app no había regresado.
+                _events.value = "Conectando ${service.displayName()}…"
+            },
+        )
         if (!started) {
             _events.value = "Faltan credenciales de ${service.displayName()}. " +
                 "Configúralas en local.properties y recompila."
@@ -400,6 +414,9 @@ class MusicSyncManager(
             var keepPending = false
 
             for ((service, repository) in services) {
+                // Spotify ya no se vincula: una sesión antigua no debe seguir
+                // intentando subir canciones y generando 403 en segundo plano.
+                if (service == MusicService.SPOTIFY) continue
                 val externalId = playlist.external[service.name]
                 if (!repository.isConnected()) {
                     // Cuenta caída con borrados pendientes: se reintenta
