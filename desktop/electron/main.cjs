@@ -1,5 +1,6 @@
 const { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, nativeImage, shell } = require('electron')
-const { pathToFileURL } = require('node:url')
+const http = require('node:http')
+const fs = require('node:fs')
 const path = require('node:path')
 
 const DEV_URL = process.env.VITE_DEV_SERVER_URL || 'http://localhost:5174'
@@ -8,10 +9,66 @@ const isDev = !app.isPackaged
 let mainWindow = null
 let overlayWindow = null
 let tray = null
+let staticServer = null
+let localUrl = ''
 let lastTrack = { title: 'PoP Music', artist: '', thumbnail: '', playing: false }
 let lastDeepLink = null
 
 const iconPath = path.join(__dirname, '..', 'icons', 'icon.ico')
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.wasm': 'application/wasm',
+  '.ico': 'image/x-icon',
+}
+
+/**
+ * La app se sirve desde localhost en lugar de file://: así el iframe de
+ * YouTube recibe un origen válido y el reproductor funciona con normalidad.
+ */
+function startStaticServer() {
+  const root = path.join(__dirname, '..', 'dist')
+  return new Promise((resolve, reject) => {
+    const server = http.createServer((request, response) => {
+      let pathname = '/'
+      try {
+        pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname)
+      } catch {
+        response.writeHead(400).end()
+        return
+      }
+      let file = path.join(root, pathname === '/' ? 'index.html' : pathname)
+      if (!file.startsWith(root)) {
+        response.writeHead(403).end()
+        return
+      }
+      if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(root, 'index.html')
+      response.setHeader('Content-Type', MIME[path.extname(file)] || 'application/octet-stream')
+      fs.createReadStream(file).pipe(response)
+    })
+    // Puerto fijo para que localStorage (biblioteca y ajustes) persista entre
+    // ejecuciones. Si está ocupado, se usa uno libre como último recurso.
+    const onListening = () => {
+      staticServer = server
+      localUrl = `http://127.0.0.1:${server.address().port}`
+      resolve(localUrl)
+    }
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        server.listen(0, '127.0.0.1', onListening)
+      } else {
+        reject(error)
+      }
+    })
+    server.listen(41730, '127.0.0.1', onListening)
+  })
+}
 
 function sendToRenderer(channel, payload) {
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -37,11 +94,7 @@ function createMainWindow() {
     },
   })
 
-  if (isDev) {
-    mainWindow.loadURL(DEV_URL)
-  } else {
-    mainWindow.loadURL(pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href)
-  }
+  mainWindow.loadURL(isDev ? DEV_URL : `${localUrl}/`)
 
   mainWindow.once('ready-to-show', () => mainWindow.show())
 
@@ -81,8 +134,7 @@ function createOverlay() {
     },
   })
 
-  const url = isDev ? `${DEV_URL}/#/overlay` : `${pathToFileURL(path.join(__dirname, '..', 'dist', 'index.html')).href}#/overlay`
-  overlayWindow.loadURL(url)
+  overlayWindow.loadURL(isDev ? `${DEV_URL}/#/overlay` : `${localUrl}/#/overlay`)
   overlayWindow.setIgnoreMouseEvents(false)
 
   overlayWindow.webContents.on('did-finish-load', () => {
@@ -102,9 +154,32 @@ function handleDeepLink(url) {
 }
 
 function registerShortcuts() {
-  globalShortcut.register('MediaPlayPause', () => sendToRenderer('player:command', 'play-pause'))
-  globalShortcut.register('MediaTrackNext', () => sendToRenderer('player:command', 'next'))
-  globalShortcut.register('MediaTrackPrevious', () => sendToRenderer('player:command', 'prev'))
+  const send = (command) => () => sendToRenderer('player:command', command)
+  const candidates =
+    process.platform === 'win32'
+      ? // Windows no expone las teclas multimedia a globalShortcut.
+        [
+          ['CmdOrCtrl+Alt+P', 'play-pause'],
+          ['CmdOrCtrl+Alt+Right', 'next'],
+          ['CmdOrCtrl+Alt+Left', 'prev'],
+        ]
+      : [
+          ['MediaPlayPause', 'play-pause'],
+          ['MediaTrackNext', 'next'],
+          ['MediaTrackPrevious', 'prev'],
+          ['CmdOrCtrl+Alt+P', 'play-pause'],
+          ['CmdOrCtrl+Alt+Right', 'next'],
+          ['CmdOrCtrl+Alt+Left', 'prev'],
+        ]
+  const registered = new Set()
+  for (const [accelerator, command] of candidates) {
+    if (registered.has(command)) continue
+    try {
+      if (globalShortcut.register(accelerator, send(command))) registered.add(command)
+    } catch {
+      // Accelerator no soportado en este sistema: se prueba el siguiente.
+    }
+  }
 }
 
 function createTray() {
@@ -143,8 +218,9 @@ if (!app.requestSingleInstanceLock()) {
     if (protocolArg) handleDeepLink(protocolArg)
   })
 
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     if (process.platform === 'win32') app.setAsDefaultProtocolClient('popmusic')
+    if (!isDev) await startStaticServer()
     createMainWindow()
     createTray()
     registerShortcuts()
@@ -160,6 +236,7 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('will-quit', () => {
     globalShortcut.unregisterAll()
+    staticServer?.close()
   })
 
   app.on('window-all-closed', () => {

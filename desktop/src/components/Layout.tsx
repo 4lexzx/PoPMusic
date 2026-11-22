@@ -71,7 +71,7 @@ export function Layout() {
               animate={{ opacity: 1, y: 0 }}
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
               transition={{ duration: reduceMotion ? 0.12 : 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="desktop-page"
+              className={`desktop-page ${isFullscreenPlayer ? 'desktop-page--player' : ''}`}
             >
               <Outlet />
             </motion.div>
