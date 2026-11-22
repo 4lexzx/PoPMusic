@@ -15,15 +15,15 @@ import androidx.compose.ui.unit.dp
 private val PoPDarkScheme: ColorScheme
     get() = darkColorScheme(
     primary = Ink,
-    onPrimary = Black,
+    onPrimary = OnInk,
     primaryContainer = Surface3,
     onPrimaryContainer = Ink,
     secondary = Accent,
-    onSecondary = Black,
+    onSecondary = OnInk,
     secondaryContainer = Surface2,
     onSecondaryContainer = Ink,
     tertiary = Muted,
-    onTertiary = Black,
+    onTertiary = OnInk,
     background = Black,
     onBackground = Ink,
     surface = Surface,
@@ -36,7 +36,7 @@ private val PoPDarkScheme: ColorScheme
     outline = LineStrong,
     outlineVariant = Line,
     error = Danger,
-    onError = Black,
+    onError = OnInk,
 )
 
 private val PoPShapes = Shapes(

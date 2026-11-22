@@ -68,7 +68,7 @@ import com.popmusic.app.ui.components.PopLogo
 import com.popmusic.app.ui.theme.Danger
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
-import com.popmusic.app.ui.theme.Surface
+import com.popmusic.app.ui.theme.Black
 import com.popmusic.app.ui.theme.LiquidGlass
 import com.popmusic.app.ui.theme.pressScale
 
@@ -490,7 +490,7 @@ private fun ModePill(
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) Surface else Faint,
+            color = if (selected) Black else Faint,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         )
     }
@@ -531,10 +531,12 @@ private fun SocialButton(
             text = if (loading) "Conectando…" else label,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Medium,
+            // El botón es blanco fijo: el texto debe ser negro siempre, aunque
+            // el fondo de la app sea claro (Surface se aclararía y desaparecería).
             color = if (enabled) {
-                Surface
+                Black
             } else {
-                Surface.copy(alpha = 0.40f)
+                Black.copy(alpha = 0.40f)
             },
         )
     }

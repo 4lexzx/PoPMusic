@@ -95,33 +95,7 @@ class AppCloseReceiver : BroadcastReceiver() {
         }
 
         Log.d(TAG, "Cierre automatico: ${idleMs / 1000}s sin actividad")
-        // 1. Sin cola guardada: al volver es como la primera vez. La bandera
-        //    evita que onDestroy del servicio re-guarde la cola borrada.
-        PlaybackService.closeForGood = true
-        runCatching {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .remove(SNAPSHOT_KEY)
-                .commit()
-        }
-        // 2. Soltar el controlador y limpiar el estado en memoria (mini
-        //    reproductor vacío al volver) y así dejar el servicio sin
-        //    clientes para que pueda destruirse.
-        runCatching { app?.playerConnection?.resetAfterClose() }
-        // 3. Notificación fuera ya (refuerzo del borrado en onDestroy).
-        runCatching {
-            context.getSystemService(NotificationManager::class.java)
-                ?.cancel(NOTIFICATION_ID)
-        }
-        // 4. Parar el servicio: media3 destruye la sesión y quita su
-        //    notificación en onDestroy (startService sin kill no se revive).
-        runCatching { context.stopService(Intent(context, PlaybackService::class.java)) }
-        // 5. Quitar la tarea de recientes (funciona aunque no haya Activity viva).
-        runCatching {
-            context.getSystemService(ActivityManager::class.java)
-                .appTasks
-                .forEach { it.finishAndRemoveTask() }
-        }
+        closeForGood(context)
     }
 
     private fun markActive(context: Context) {
@@ -146,6 +120,46 @@ class AppCloseReceiver : BroadcastReceiver() {
 
         /** Id de la notificación de media3 (MediaNotification.DEFAULT). */
         private const val NOTIFICATION_ID = 1001
+
+        /**
+         * Cierre total, compartido con [PlaybackService.onTaskRemoved] (cuando el
+         * usuario barre la app de las ventanas de recientes) y con la alarma de
+         * los 8 min. Borra la cola guardada, suelta el controlador, quita la
+         * notificación, para el servicio y elimina la tarea. Al volver a abrir es
+         * como la primera vez: sin mini reproductor y sin retomar la última canción.
+         */
+        fun closeForGood(context: Context) {
+            if (PlaybackService.closeForGood) return
+            PlaybackService.closeForGood = true
+            val app = context.applicationContext as? PoPMusicApplication
+
+            // 1. Sin cola guardada: al volver es como la primera vez. La bandera
+            //    evita que onDestroy del servicio re-guarde la cola borrada.
+            runCatching {
+                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                    .edit()
+                    .remove(SNAPSHOT_KEY)
+                    .commit()
+            }
+            // 2. Soltar el controlador y limpiar el estado en memoria (mini
+            //    reproductor vacío al volver) y así dejar el servicio sin
+            //    clientes para que pueda destruirse.
+            runCatching { app?.playerConnection?.resetAfterClose() }
+            // 3. Notificación fuera ya (refuerzo del borrado en onDestroy).
+            runCatching {
+                context.getSystemService(NotificationManager::class.java)
+                    ?.cancel(NOTIFICATION_ID)
+            }
+            // 4. Parar el servicio: media3 destruye la sesión y quita su
+            //    notificación en onDestroy (startService sin kill no se revive).
+            runCatching { context.stopService(Intent(context, PlaybackService::class.java)) }
+            // 5. Quitar la tarea de recientes (funciona aunque no haya Activity viva).
+            runCatching {
+                context.getSystemService(ActivityManager::class.java)
+                    .appTasks
+                    .forEach { it.finishAndRemoveTask() }
+            }
+        }
 
         private fun pendingIntent(context: Context): PendingIntent =
             PendingIntent.getBroadcast(

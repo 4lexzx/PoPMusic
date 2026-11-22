@@ -1,6 +1,7 @@
 package com.popmusic.app.player
 
 import android.app.PendingIntent
+import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -37,6 +38,7 @@ import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionCommands
 import androidx.media3.session.SessionResult
 import com.popmusic.app.MainActivity
+import com.popmusic.app.AppCloseReceiver
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.SettableFuture
@@ -1070,21 +1072,16 @@ private fun handlePlaybackError(player: Player) {
     ): MediaSession? = mediaSession
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // Estilo Spotify: barrer la app de recientes (o salir con "atrás",
-        // que termina la Activity y elimina la tarea) NO debe matar la
-        // notificación mientras haya cola cargada. Con la app en primer
-        // plano (ventana de 10 min de media3 tras la pausa), stopSelf()
-        // destruiría el servicio en foreground y el sistema BORRA la
-        // notificación al instante. El cierre real lo hace AppCloseReceiver
-        // a los 8 min sin actividad; aquí solo se detiene si no queda nada.
-        val player = mediaSession?.player
-        val empty = player == null || player.mediaItemCount == 0
-        Log.d(
-            CLOSE_TAG,
-            "onTaskRemoved: colaVacia=$empty playWhenReady=${player?.playWhenReady} → " +
-                if (empty) "stopSelf" else "se mantiene (cierra AppClose a los 8 min)",
-        )
-        if (empty) stopSelf()
+        if (closeForGood) return
+        Log.d(CLOSE_TAG, "onTaskRemoved: ventana de recientes cerrada → cierre total")
+        // Quitar la notificación antes de parar el servicio: MediaSessionService
+        // en foreground mantiene la notificación viva si solo se llama a stopSelf.
+        stopForeground(Service.STOP_FOREGROUND_REMOVE)
+        // Borra la cola guardada, suelta el controlador y termina el servicio.
+        // Al volver a abrir la app no se retoma la última canción ni aparece
+        // el mini reproductor: es como si se acabara de instalar.
+        AppCloseReceiver.closeForGood(applicationContext)
+        stopSelf()
     }
 
     override fun onDestroy() {

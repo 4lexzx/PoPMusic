@@ -58,6 +58,7 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.MoreVert
@@ -65,6 +66,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.QueueMusic
 import androidx.compose.material.icons.rounded.PlaylistAdd
 import androidx.compose.material.icons.rounded.Repeat
 import androidx.compose.material.icons.rounded.RepeatOne
@@ -73,6 +75,7 @@ import androidx.compose.material.icons.rounded.Shuffle
 import androidx.compose.material.icons.rounded.SkipNext
 import androidx.compose.material.icons.rounded.SkipPrevious
 import androidx.compose.material.icons.rounded.Subtitles
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -128,6 +131,7 @@ import com.popmusic.app.ui.screens.lyrics.LyricsViewModel
 import com.popmusic.app.ui.theme.Ambient
 import com.popmusic.app.ui.theme.Ink
 import com.popmusic.app.ui.theme.Muted
+import com.popmusic.app.ui.theme.OnInk
 import com.popmusic.app.ui.theme.WavyShape
 import com.popmusic.app.ui.theme.pressScale
 import kotlinx.coroutines.delay
@@ -154,6 +158,10 @@ fun NowPlayingScreen(
     onOpenLyrics: () -> Unit,
     onAddToPlaylist: () -> Unit,
     onOpenInfo: () -> Unit,
+    /** Momento (epoch ms) en que se detiene la música; 0 = sin temporizador. */
+    sleepAtMs: Long = 0L,
+    onSetSleepMinutes: (Int?) -> Unit = {},
+    onAddToQueue: () -> Unit = {},
     isDownloaded: Boolean = false,
     downloadProgress: Float? = null,
     onDownload: () -> Unit = {},
@@ -288,6 +296,7 @@ fun NowPlayingScreen(
                 onShare = onShare,
                 onViewOnYouTube = onViewOnYouTube,
                 onSetRingtone = onSetRingtone,
+                onAddToQueue = onAddToQueue,
             )
 
             // Carátula GRANDE (Echo): ancho de pantalla - 2·32, centrada
@@ -422,8 +431,8 @@ fun NowPlayingScreen(
                                         progress = { downloadProgress.coerceIn(0f, 1f) },
                                         modifier = Modifier.size(24.dp),
                                         strokeWidth = 2.5.dp,
-                                        color = Color.Black,
-                                        trackColor = Color.Black.copy(alpha = 0.25f),
+                                        color = OnInk,
+                                        trackColor = OnInk.copy(alpha = 0.25f),
                                     )
                                 } else {
                                     Icon(
@@ -436,7 +445,7 @@ fun NowPlayingScreen(
                                             isDownloaded -> "Descargada"
                                             else -> "Descargar"
                                         },
-                                        tint = Color.Black,
+                                        tint = OnInk,
                                         modifier = Modifier.size(24.dp),
                                     )
                                 }
@@ -486,7 +495,7 @@ fun NowPlayingScreen(
                                     tint = if (isFavorite) {
                                         Color(0xFFFF3B30)
                                     } else {
-                                        Color.Black
+                                        OnInk
                                     },
                                     modifier = Modifier.size(24.dp),
                                 )
@@ -551,10 +560,12 @@ fun NowPlayingScreen(
 
                 Spacer(Modifier.height(30.dp))
 
-                // Fila inferior segmentada estilo Echo (Queue colapsada):
-                // [Letras | Aleatorio | Repetir] pegados a la izquierda
-                // (borde blanco 30 % apagado / relleno blanco encendido) y
-                // [Añadir playlist] en círculo blanco a la derecha.
+                // Fila inferior segmentada estilo Echo: cuatro botones
+                // pequeños de 42 dp (Letras, Aleatorio, Repetir y
+                // Temporizador) con el mismo estilo de borde blanco 30 % /
+                // relleno blanco, y Añadir playlist en círculo a la derecha.
+                // "Añadir a la cola" vive en el menú de 3 puntos: añade a la
+                // cola sin interrumpir la canción actual.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -589,13 +600,18 @@ fun NowPlayingScreen(
                         },
                         contentDescription = "Repetir",
                         isActive = state.repeatMode != Player.REPEAT_MODE_OFF,
+                        shape = RoundedCornerShape(3.dp),
+                        onClick = onCycleRepeat,
+                    )
+                    PlayerSleepSegmentButton(
+                        sleepAtMs = sleepAtMs,
+                        onSelect = onSetSleepMinutes,
                         shape = RoundedCornerShape(
                             topStart = 3.dp,
                             bottomStart = 3.dp,
                             topEnd = 50.dp,
                             bottomEnd = 50.dp,
                         ),
-                        onClick = onCycleRepeat,
                     )
 
                     Spacer(Modifier.weight(1f))
@@ -621,7 +637,7 @@ fun NowPlayingScreen(
                         Icon(
                             imageVector = Icons.Filled.PlaylistAdd,
                             contentDescription = "Añadir a playlist",
-                            tint = Color.Black,
+                            tint = OnInk,
                             modifier = Modifier.size(20.dp),
                         )
                     }
@@ -641,6 +657,7 @@ private fun PlayerChrome(
     onShare: () -> Unit,
     onViewOnYouTube: () -> Unit,
     onSetRingtone: () -> Unit,
+    onAddToQueue: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -676,7 +693,79 @@ private fun PlayerChrome(
             onShare = onShare,
             onViewOnYouTube = onViewOnYouTube,
             onSetRingtone = onSetRingtone,
+            onAddToQueue = onAddToQueue,
         )
+    }
+}
+
+/** Temporizador de sueño: mismo botón pequeño que Aleatorio/Repetir; el menú crece hacia arriba. */
+@Composable
+private fun PlayerSleepSegmentButton(
+    sleepAtMs: Long,
+    onSelect: (Int?) -> Unit,
+    shape: RoundedCornerShape = RoundedCornerShape(3.dp),
+) {
+    var open by remember { mutableStateOf(false) }
+    val active = sleepAtMs - System.currentTimeMillis() > 0L
+    Box {
+        PlayerSegmentButton(
+            icon = Icons.Rounded.Timer,
+            contentDescription = "Temporizador",
+            isActive = active,
+            shape = shape,
+            onClick = { open = true },
+        )
+        if (open) {
+            val density = LocalDensity.current
+            Popup(
+                alignment = Alignment.BottomStart,
+                offset = IntOffset(0, -with(density) { 52.dp.roundToPx() }),
+                onDismissRequest = { open = false },
+                properties = PopupProperties(focusable = true),
+            ) {
+                val shown = remember { Animatable(0f) }
+                LaunchedEffect(Unit) { shown.animateTo(1f, tween(150)) }
+                Column(
+                    modifier = Modifier
+                        .width(196.dp)
+                        .graphicsLayer {
+                            alpha = shown.value
+                            val s = 0.95f + 0.05f * shown.value
+                            scaleX = s
+                            scaleY = s
+                            transformOrigin = TransformOrigin(0f, 1f)
+                        }
+                        .shadow(14.dp, RoundedCornerShape(18.dp), clip = false)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Ambient.solid(Color(0xFF1A1A1E)))
+                        .border(
+                            1.dp,
+                            Color.White.copy(alpha = 0.08f),
+                            RoundedCornerShape(18.dp),
+                        )
+                        .padding(vertical = 6.dp),
+                ) {
+                    listOf(15, 30, 45, 60, 90).forEach { mins ->
+                        PlayerMenuRow(
+                            icon = Icons.Rounded.Timer,
+                            label = "$mins min",
+                            onClick = {
+                                open = false
+                                onSelect(mins)
+                            },
+                        )
+                    }
+                    PlayerMenuRow(
+                        icon = Icons.Rounded.Close,
+                        label = "Desactivar",
+                        onClick = {
+                            open = false
+                            onSelect(null)
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -691,6 +780,7 @@ private fun PlayerTopMenu(
     onShare: () -> Unit,
     onViewOnYouTube: () -> Unit,
     onSetRingtone: () -> Unit,
+    onAddToQueue: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     Box {
@@ -777,6 +867,14 @@ private fun PlayerTopMenu(
                         onClick = {
                             menuOpen = false
                             onSetRingtone()
+                        },
+                    )
+                    PlayerMenuRow(
+                        icon = Icons.Rounded.QueueMusic,
+                        label = "Añadir a la cola",
+                        onClick = {
+                            menuOpen = false
+                            onAddToQueue()
                         },
                     )
                 }
@@ -873,13 +971,13 @@ private fun PlayerWavyPlayButton(
         if (isBuffering && !isPlaying) {
             MusicLoader(
                 size = 34.dp,
-                color = Color.Black,
+                color = OnInk,
             )
         } else {
             Icon(
                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription = if (isPlaying) "Pausar" else "Reproducir",
-                tint = Color.Black,
+                tint = OnInk,
                 modifier = Modifier.size(36.dp),
             )
         }
@@ -914,13 +1012,13 @@ private fun CompactPlayerControl(
         if (isBuffering) {
             MusicLoader(
                 size = 34.dp,
-                color = Color.White,
+                color = Ink,
             )
         } else {
             Icon(
                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription = if (isPlaying) "Pausar" else "Reproducir",
-                tint = Color.White.copy(alpha = 0.92f),
+                tint = Ink.copy(alpha = 0.92f),
                 modifier = Modifier.size(56.dp),
             )
         }
@@ -1090,7 +1188,7 @@ private fun SlimSeekBar(
         val topLeft = Offset(0f, centerY - trackHeight / 2f)
 
         drawRoundRect(
-            color = Color.White.copy(alpha = 0.25f),
+            color = Ink.copy(alpha = 0.25f),
             topLeft = topLeft,
             size = Size(size.width, trackHeight),
             cornerRadius = corner,
@@ -1169,7 +1267,7 @@ private fun PlayerSegmentButton(
             // ~16 dp dentro; el glifo de Material a 24 dp se ve mucho más
             // grande y "raro". A 20 dp el peso visual es idéntico a Echo.
             modifier = Modifier.size(20.dp),
-            tint = if (isActive) Color.Black else Ink,
+            tint = if (isActive) OnInk else Ink,
         )
     }
 }

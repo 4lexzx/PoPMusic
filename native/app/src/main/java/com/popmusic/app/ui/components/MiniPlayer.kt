@@ -72,6 +72,7 @@ import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.GlassSurface
 import com.popmusic.app.ui.theme.Ink
 import com.popmusic.app.ui.theme.LocalLiquidGlassEnabled
+import com.popmusic.app.ui.theme.OnInk
 import com.popmusic.app.ui.theme.Surface3
 import com.popmusic.app.ui.theme.WavyShape
 import kotlin.math.roundToInt
@@ -405,13 +406,13 @@ private fun WavyMiniPlayButton(
             CircularProgressIndicator(
                 modifier = Modifier.size(if (buttonSize < 48.dp) 16.dp else 18.dp),
                 strokeWidth = 2.dp,
-                color = Color.Black,
+                color = OnInk,
             )
         } else {
             Icon(
                 imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
                 contentDescription = if (isPlaying) "Pausar" else "Reproducir",
-                tint = Color.Black,
+                tint = OnInk,
                 modifier = Modifier.size(iconSize),
             )
         }

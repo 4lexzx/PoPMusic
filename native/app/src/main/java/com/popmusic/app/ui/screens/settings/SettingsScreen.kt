@@ -1,5 +1,7 @@
 package com.popmusic.app.ui.screens.settings
 
+import android.content.Intent
+import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -70,6 +72,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -85,11 +88,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.popmusic.app.R
 import com.popmusic.app.data.auth.AuthRepository
 import com.popmusic.app.data.library.LibraryRepository
 import com.popmusic.app.data.music.MusicService
@@ -108,14 +113,16 @@ import com.popmusic.app.ui.components.GlassDialogHeader
 import com.popmusic.app.ui.components.GlassPrimaryButton
 import com.popmusic.app.ui.components.GlassTextButton
 import com.popmusic.app.ui.components.GlassTextField
-import com.popmusic.app.ui.components.PopLogo
 import com.popmusic.app.ui.theme.Accent
 import com.popmusic.app.ui.theme.Black
 import com.popmusic.app.ui.theme.Danger
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
 import com.popmusic.app.ui.theme.Line
+import com.popmusic.app.ui.theme.OnInk
 import com.popmusic.app.ui.theme.LiquidGlass
+import com.popmusic.app.ui.theme.LocalGlassOpacity
+import com.popmusic.app.ui.theme.LocalLiquidGlassEnabled
 import com.popmusic.app.ui.theme.Surface2
 import com.popmusic.app.ui.theme.Surface3
 import com.popmusic.app.ui.theme.Surface
@@ -177,10 +184,13 @@ fun SettingsScreen(
         musicSync.clearEvent()
     }
 
-    var view by remember { mutableStateOf<SettingsView?>(null) }
+    val (view, setView) = remember { mutableStateOf<SettingsView?>(null) }
     var filter by remember { mutableStateOf("") }
     var confirmReset by remember { mutableStateOf(false) }
     var confirmClearDownloads by remember { mutableStateOf(false) }
+    // Borrador de Fondos: los cambios (incluida la foto) se ven en la vista
+    // previa y solo se guardan al pulsar "Aplicar".
+    var backgroundDraft by remember(settings) { mutableStateOf(settings) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
@@ -207,11 +217,16 @@ fun SettingsScreen(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri != null) {
-            preferences.update { it.copy(mode = BackgroundMode.IMAGE, imageUri = uri.toString()) }
+            // La foto entra en el borrador: se ve en la vista previa y se
+            // guarda con "Aplicar" (no se aplica al elegirla).
+            backgroundDraft = backgroundDraft.copy(
+                mode = BackgroundMode.IMAGE,
+                imageUri = uri.toString(),
+            )
         }
     }
 
-    BackHandler(enabled = view != null) { view = null }
+    BackHandler(enabled = view != null) { setView(null) }
 
     val current = view
     if (current == null) {
@@ -235,7 +250,7 @@ fun SettingsScreen(
                         if (isEmpty()) add("Sincroniza playlists con YouTube y Spotify")
                     }.joinToString(" · "),
                     icon = Icons.Rounded.Sync,
-                    onClick = { view = SettingsView.ACCOUNTS },
+                    onClick = { setView(SettingsView.ACCOUNTS) },
                 ),
                 RootItem(
                     label = "Reproducción",
@@ -248,7 +263,7 @@ fun SettingsScreen(
                         if (playback.sleepAtEpochMs > 0L) add("Temporizador activo")
                     }.joinToString(" · "),
                     icon = Icons.Rounded.PlayArrow,
-                    onClick = { view = SettingsView.PLAYBACK },
+                    onClick = { setView(SettingsView.PLAYBACK) },
                 ),
                 RootItem(
                     label = "Audio y ecualizador",
@@ -259,7 +274,7 @@ fun SettingsScreen(
                             "Ecualizador desactivado"
                         },
                     icon = Icons.Rounded.VolumeUp,
-                    onClick = { view = SettingsView.AUDIO },
+                    onClick = { setView(SettingsView.AUDIO) },
                 ),
             ),
             "Apariencia" to listOf(
@@ -267,13 +282,13 @@ fun SettingsScreen(
                     label = "Cristal y desenfoque",
                     subtitle = "Nitidez, oscurecimiento y transparencia",
                     icon = Icons.Rounded.Palette,
-                    onClick = { view = SettingsView.APPEARANCE },
+                    onClick = { setView(SettingsView.APPEARANCE) },
                 ),
                 RootItem(
                     label = "Fondos",
                     subtitle = backgroundLabel(settings),
                     icon = Icons.Rounded.Image,
-                    onClick = { view = SettingsView.CUSTOMIZATION },
+                    onClick = { setView(SettingsView.CUSTOMIZATION) },
                 ),
             ),
             "Aplicación" to listOf(
@@ -282,19 +297,19 @@ fun SettingsScreen(
                     subtitle = "${songCount(library.downloads.size)} · " +
                         if (playback.downloadWifiOnly) "Solo Wi-Fi" else "Wi-Fi y datos",
                     icon = Icons.Rounded.Download,
-                    onClick = { view = SettingsView.DOWNLOADS },
+                    onClick = { setView(SettingsView.DOWNLOADS) },
                 ),
                 RootItem(
                     label = "Exportar biblioteca",
                     subtitle = "Copia de seguridad en un archivo",
                     icon = Icons.Rounded.FileDownload,
-                    onClick = { view = SettingsView.EXPORT },
+                    onClick = { setView(SettingsView.EXPORT) },
                 ),
                 RootItem(
                     label = "Caché y almacenamiento",
                     subtitle = "Libera espacio temporal",
                     icon = Icons.Rounded.Storage,
-                    onClick = { view = SettingsView.STORAGE },
+                    onClick = { setView(SettingsView.STORAGE) },
                 ),
                 RootItem(
                     label = "Restablecer ajustes",
@@ -306,7 +321,7 @@ fun SettingsScreen(
                     label = "Acerca de PoP Music",
                     subtitle = "Versión 0.1.0",
                     icon = Icons.Rounded.Info,
-                    onClick = { view = SettingsView.ABOUT },
+                    onClick = { setView(SettingsView.ABOUT) },
                 ),
             ),
             "Ayuda" to listOf(
@@ -314,13 +329,13 @@ fun SettingsScreen(
                     label = "Documentación",
                     subtitle = "Cómo funciona PoP Music",
                     icon = Icons.Rounded.MenuBook,
-                    onClick = { view = SettingsView.DOCS },
+                    onClick = { setView(SettingsView.DOCS) },
                 ),
                 RootItem(
                     label = "Soporte",
                     subtitle = "Contacta con nosotros",
                     icon = Icons.Rounded.HelpOutline,
-                    onClick = { view = SettingsView.SUPPORT },
+                    onClick = { setView(SettingsView.SUPPORT) },
                 ),
             ),
         )
@@ -394,6 +409,8 @@ fun SettingsScreen(
     SettingsDetail(
         view = current,
         settings = settings,
+        backgroundDraft = backgroundDraft,
+        onDraftChange = { backgroundDraft = it },
         playback = playback,
         preferences = preferences,
         musicSync = musicSync,
@@ -401,7 +418,7 @@ fun SettingsScreen(
         playlistCount = library.playlists.size,
         downloadCount = library.downloads.size,
         downloadBytes = libraryRepository.downloadsDir.totalSize(),
-        onOpenView = { view = it },
+        onOpenView = { setView(it) },
         onPickImage = { imagePicker.launch("image/*") },
         onExport = { exportLauncher.launch("popmusic-biblioteca.json") },
         onOpenDownloads = onOpenDownloads,
@@ -415,7 +432,7 @@ fun SettingsScreen(
             }
         },
         onRequestClearDownloads = { confirmClearDownloads = true },
-        onBack = { view = null },
+        onBack = { setView(null) },
         modifier = modifier,
     )
 
@@ -528,6 +545,8 @@ private fun SettingsRoot(
 private fun SettingsDetail(
     view: SettingsView,
     settings: BackgroundSettings,
+    backgroundDraft: BackgroundSettings,
+    onDraftChange: (BackgroundSettings) -> Unit,
     playback: PlaybackSettings,
     preferences: AppPreferences,
     musicSync: MusicSyncManager,
@@ -570,19 +589,35 @@ private fun SettingsDetail(
 
             SettingsView.APPEARANCE -> AppearanceDetail(settings, playback, preferences)
             SettingsView.CUSTOMIZATION -> {
-                // Borrador: el usuario ve el cambio en la vista previa y confirma
-                // con "Aplicar" (ítem 4). Las imágenes (galería) se aplican al
-                // elegirlas porque el selector devuelve la URI.
-                var draft by remember(settings) { mutableStateOf(settings) }
+                // Borrador: fondo, foto, desenfoque y oscurecimiento se ven
+                // en la vista previa y se guardan juntos al pulsar "Aplicar".
+                // La transparencia del cristal no es un ajuste de fondo: se
+                // cambia en "Cristal y desenfoque" y se aplica al instante.
+                val draft = backgroundDraft
                 SectionLabel("Fondos dinámicos")
                 BackgroundChoices(
                     settings = draft,
                     onSelectPreset = { index ->
-                        draft = draft.copy(mode = BackgroundMode.PRESET, presetId = index)
+                        onDraftChange(draft.copy(mode = BackgroundMode.PRESET, presetId = index))
                     },
-                    onSelectNone = { draft = draft.copy(mode = BackgroundMode.NONE) },
+                    onSelectNone = { onDraftChange(draft.copy(mode = BackgroundMode.NONE)) },
                     onPickImage = onPickImage,
                 )
+                if (draft.mode != BackgroundMode.NONE) {
+                    Spacer(Modifier.height(18.dp))
+                    SectionLabel("Ajustes del fondo")
+                    SliderRow(
+                        title = "Desenfoque",
+                        value = draft.backgroundBlur,
+                        onValueChange = { onDraftChange(draft.copy(backgroundBlur = it)) },
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    SliderRow(
+                        title = "Oscurecimiento",
+                        value = draft.backgroundDim,
+                        onValueChange = { onDraftChange(draft.copy(backgroundDim = it)) },
+                    )
+                }
                 Spacer(Modifier.height(18.dp))
                 SectionLabel("Vista previa")
                 AppScreenPreview(settings = draft, playback = playback, glassOpacity = draft.glassOpacity)
@@ -618,16 +653,12 @@ private fun SettingsDetail(
             }
 
             SettingsView.STORAGE -> StorageDetail(preferences)
-            SettingsView.ABOUT -> AboutDetail(onCheckUpdates = onCheckUpdates)
-            SettingsView.DOCS -> SupportText(
-                "PoP Music reproduce música desde YouTube, muestra letras sincronizadas con " +
-                    "LRCLIB y permite importar playlists. Usa el buscador para encontrar " +
-                    "canciones o el micrófono para reconocer la música que suena a tu alrededor.",
+            SettingsView.ABOUT -> AboutDetail(
+                onCheckUpdates = onCheckUpdates,
+                onOpenDocs = { onOpenView(SettingsView.DOCS) },
             )
-
-            SettingsView.SUPPORT -> SupportText(
-                "¿Necesitas ayuda? Escríbenos y te responderemos lo antes posible.",
-            )
+            SettingsView.DOCS -> DocumentationDetail()
+            SettingsView.SUPPORT -> SupportDetail(onOpenDocs = { onOpenView(SettingsView.DOCS) })
         }
         Spacer(Modifier.height(30.dp))
     }
@@ -1029,12 +1060,9 @@ private fun AppearanceDetail(
         )
     }
 
-    // Vista previa viva al fondo: pantalla de Inicio con el fondo, el
-    // desenfoque, la transparencia, la miniatura y la nav (sólida o
-    // liquid glass) ACTUALES — todo lo que muevas se ve aquí.
-    Spacer(Modifier.height(18.dp))
-    SectionLabel("Vista previa")
-    AppScreenPreview(settings = settings, playback = playback, glassOpacity = settings.glassOpacity)
+    // El cristal líquido se activa al instante desde el interruptor; la
+    // vista previa de esta sección se elimina porque no aportaba cambio
+    // visible. La previsualización de fondos está en "Fondos".
 }
 
 @Composable
@@ -1092,15 +1120,28 @@ private fun StorageDetail(preferences: AppPreferences) {
 }
 
 @Composable
-private fun AboutDetail(onCheckUpdates: () -> Unit) {
+private fun AboutDetail(
+    onCheckUpdates: () -> Unit,
+    onOpenDocs: () -> Unit,
+) {
     SettingsCard(title = null) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            ArtworkPlaceholder()
+            // La imagen de perfil de la app ES el logo; al lado va el nombre
+            // en texto normal (antes se repetía el logo como wordmark).
+            Image(
+                painter = painterResource(R.drawable.ic_app_logo),
+                contentDescription = "Logo de PoP Music",
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(15.dp)),
+            )
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                PopLogo(
-                    contentDescription = "PoP Music",
-                    modifier = Modifier.height(19.dp),
+                Text(
+                    text = "PoP Music",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink,
                 )
                 Spacer(Modifier.height(3.dp))
                 Text(
@@ -1145,32 +1186,13 @@ private fun AboutDetail(onCheckUpdates: () -> Unit) {
     Spacer(Modifier.height(10.dp))
     SettingsCard(title = "Documentación") {
         Text(
-            text = "Ajustes: los cambios de fondo, cristal y reproducción se " +
-                "previsualizan en vivo antes de aplicarlos. Las playlists se " +
-                "sincronizan con YouTube o Spotify si vinculas tu cuenta. Los " +
-                "me gusta y la biblioteca se guardan en tu cuenta al iniciar " +
-                "sesión, así los conservas al cambiar de dispositivo.",
+            text = "Guía de uso de la app: búsqueda, reproducción, letras, " +
+                "biblioteca, sincronización, descargas y ajustes.",
             style = MaterialTheme.typography.bodyMedium,
             color = Faint,
         )
-    }
-}
-
-@Composable
-private fun ArtworkPlaceholder() {
-    Box(
-        modifier = Modifier
-            .size(54.dp)
-            .clip(RoundedCornerShape(15.dp))
-            .background(Brush.linearGradient(listOf(Accent, Surface2))),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "P",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = Black,
-        )
+        Spacer(Modifier.height(12.dp))
+        PrimaryAction(text = "Abrir documentación", onClick = onOpenDocs)
     }
 }
 
@@ -1458,7 +1480,7 @@ private fun PrimaryAction(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = BgElev,
+            color = OnInk,
         )
     }
 }
@@ -1484,13 +1506,200 @@ private fun InfoRow(label: String, value: String) {
     }
 }
 
+/** Guía de uso completa (Ajustes → Ayuda → Documentación). */
 @Composable
-private fun SupportText(text: String) {
-    SettingsCard(title = "Información") {
+private fun DocumentationDetail() {
+    DocSection(
+        "Primeros pasos",
+        "La barra inferior tiene Inicio, Buscar, Reconocer y Biblioteca. En Buscar " +
+            "escribe un artista o canción y toca el resultado para reproducirlo. " +
+            "El micrófono de Reconocer escucha unos segundos y te dice qué suena a " +
+            "tu alrededor. Toca la carátula del reproductor para ver la letra " +
+            "sincronizada y deslízala hacia abajo para abrir el panel de letras.",
+    )
+    DocSection(
+        "Reproductor",
+        "Los controles son anterior, play/pausa y siguiente. Aleatorio y Repetir " +
+            "están en la fila pequeña junto a Letras y Temporizador. El botón ⋮ " +
+            "de arriba abre Información, Compartir, Ver en YouTube, Establecer " +
+            "como tono y Añadir a la cola. Añadir a la cola busca canciones y las " +
+            "encola sin reproducirlas ni interrumpir la canción actual. El " +
+            "Temporizador detiene la música a los 15, 30, 45, 60 o 90 minutos.",
+    )
+    DocSection(
+        "Letras e información",
+        "La letra sincronizada resalta la línea que suena. En la pantalla de " +
+            "Letras puedes cambiar el estilo con el botón «Aa» y ajustar el desfase " +
+            "si va adelantada o atrasada. El botón Información del reproductor " +
+            "muestra foto del artista, biografía, álbum y datos de la canción.",
+    )
+    DocSection(
+        "Biblioteca y sincronización",
+        "En Biblioteca tienes Favoritos, Descargas, Recientes y tus playlists. " +
+            "Puedes crear playlists, renombrarlas y ordenarlas. El botón «+» abre " +
+            "el importador: pega un enlace de YouTube o de Spotify para traer una " +
+            "playlist completa. Si vinculas tu cuenta en Ajustes → Cuentas, las " +
+            "playlists se sincronizan con YouTube o Spotify; también puedes elegir " +
+            "el destino desde el menú ⋮ de cada playlist.",
+    )
+    DocSection(
+        "Descargas y reproducción offline",
+        "En el menú ⋮ del reproductor, o en los botones de la tarjeta de canción, " +
+            "tienes Descargar. La canción se guarda en el teléfono y aparece en " +
+            "Biblioteca → Descargas. El reproductor prefiere el archivo local, así " +
+            "que sigue funcionando sin internet. Compartir y Establecer como tono " +
+            "también están en el menú ⋮.",
+    )
+    DocSection(
+        "Salas y podcasts",
+        "El icono de grupo de la cabecera del Inicio abre Salas: crea una sala con " +
+            "código de 7 caracteres, compártelo y todos pueden controlar la cola " +
+            "y añadir canciones desde su música o desde Buscar. La pestaña Podcasts " +
+            "del Inicio busca programas reales, permite suscribirse y reproduce " +
+            "sus episodios directamente.",
+    )
+    DocSection(
+        "Apariencia y cuenta",
+        "En Ajustes → Apariencia puedes cambiar el fondo (color, degradado o foto), " +
+            "el desenfoque y el oscurecimiento. La vista previa muestra los cambios " +
+            "en vivo y se guardan con Aplicar. En Cristal y desenfoque ajustas la " +
+            "transparencia, que se aplica al instante. Si inicias sesión, tus " +
+            "me gusta y tu biblioteca se guardan en la cuenta.",
+    )
+}
+
+/** Contacto y ayuda (Ajustes → Ayuda → Soporte). */
+@Composable
+private fun SupportDetail(onOpenDocs: () -> Unit) {
+    val context = LocalContext.current
+    SettingsCard(title = "Contacto") {
+        ExternalLinkRow(
+            label = "Correo",
+            value = "solisumboalexander@hotmail.com",
+            url = "mailto:solisumboalexander@hotmail.com",
+        )
+        HorizontalDivider(color = Line)
+        ExternalLinkRow(
+            label = "Informes en GitHub",
+            value = "github.com/4lexzx/PoPMusic/issues",
+            url = "https://github.com/4lexzx/PoPMusic/issues",
+        )
+        HorizontalDivider(color = Line)
+        ExternalLinkRow(
+            label = "Sitio web",
+            value = "4lexzx.github.io/PoPMusic",
+            url = "https://4lexzx.github.io/PoPMusic/",
+        )
+        HorizontalDivider(color = Line)
+        ExternalLinkRow(
+            label = "Documentación",
+            value = "Guía de uso dentro de la app",
+            onClick = onOpenDocs,
+        )
+    }
+    Spacer(Modifier.height(10.dp))
+    SettingsCard(title = "Antes de escribirnos") {
         Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
+            text = "1. Comprueba que la app esté actualizada en Ajustes → " +
+                "Acerca de PoP Music → Buscar actualizaciones.\n" +
+                "2. Si es un problema de audio, prueba a reiniciar la canción y " +
+                "comprueba tu conexión.\n" +
+                "3. Indica qué pantalla usabas, qué esperabas que pasara y qué " +
+                "ocurrió. Si puedes, adjunta una captura de pantalla.\n" +
+                "4. Envíalo por correo o abre un informe en GitHub. Respondemos " +
+                "lo antes posible.",
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    Spacer(Modifier.height(10.dp))
+    SettingsCard(title = "Preguntas frecuentes") {
+        FaqItem(
+            question = "¿La música sigue sonando al cerrar la app?",
+            answer = "No. Si cierras la ventana de recientes, la app se cierra del " +
+                "todo: se borra la cola guardada y al volver se abre como la " +
+                "primera vez, sin retomar la última canción.",
+        )
+        HorizontalDivider(color = Line)
+        FaqItem(
+            question = "¿Se puede escuchar sin internet?",
+            answer = "Sí, si has descargado antes las canciones. Aparecen en " +
+                "Biblioteca → Descargas y se reproducen desde el archivo local.",
+        )
+        HorizontalDivider(color = Line)
+        FaqItem(
+            question = "¿Por qué no veo mis playlists de Spotify?",
+            answer = "La importación por enlace funciona sin iniciar sesión. Para " +
+                "la sincronización automática hay que completar la configuración " +
+                "de Spotify en el proveedor de la app.",
+        )
+    }
+}
+
+@Composable
+private fun DocSection(title: String, body: String) {
+    SettingsCard(title = title) {
+        Text(
+            text = body,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun FaqItem(question: String, answer: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(
+            text = question,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = answer,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun ExternalLinkRow(
+    label: String,
+    value: String,
+    url: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    val context = LocalContext.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                if (onClick != null) {
+                    onClick()
+                } else if (url != null) {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                    }
+                }
+            }
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = Ink.copy(alpha = 0.5f),
+            modifier = Modifier.size(18.dp),
         )
     }
 }
@@ -1882,11 +2091,17 @@ private fun AppScreenPreview(
     glassOpacity: Float = 0.65f,
 ) {
     val shape = RoundedCornerShape(22.dp)
+    // El cristal de la vista previa usa los VALORES DEL BORRADOR, no los
+    // guardados, para que la transparencia se vea al mover el deslizador.
+    CompositionLocalProvider(
+        LocalGlassOpacity provides glassOpacity,
+        LocalLiquidGlassEnabled provides settings.liquidGlass,
+    ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp)
-            .height(300.dp)
+            .height(380.dp)
             .clip(shape)
             .border(1.dp, Color.White.copy(alpha = 0.12f), shape),
     ) {
@@ -1955,8 +2170,12 @@ private fun AppScreenPreview(
                     .fillMaxWidth()
                     .padding(horizontal = 14.dp)
                     .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White.copy(alpha = 0.10f))
-                    .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(16.dp))
+                    .background(Color.White.copy(alpha = 0.03f + 0.14f * glassOpacity))
+                    .border(
+                        1.dp,
+                        Color.White.copy(alpha = 0.08f + 0.14f * glassOpacity),
+                        RoundedCornerShape(16.dp),
+                    )
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -2012,8 +2231,10 @@ private fun AppScreenPreview(
             PreviewNav(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                 settings = settings,
+                glassOpacity = glassOpacity,
             )
         }
+    }
     }
 }
 
@@ -2023,7 +2244,11 @@ private fun AppScreenPreview(
  * liquid glass — el cambio se ve al mover el interruptor.
  */
 @Composable
-private fun PreviewNav(modifier: Modifier, settings: BackgroundSettings) {
+private fun PreviewNav(
+    modifier: Modifier,
+    settings: BackgroundSettings,
+    glassOpacity: Float,
+) {
     val pill = RoundedCornerShape(24.dp)
     Box(modifier = modifier.fillMaxWidth()) {
         if (settings.liquidGlass) {
@@ -2039,7 +2264,7 @@ private fun PreviewNav(modifier: Modifier, settings: BackgroundSettings) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(pill)
-                    .background(Surface3)
+                    .background(Surface3.copy(alpha = 0.55f + 0.45f * glassOpacity))
                     .border(1.dp, Faint.copy(alpha = 0.30f), pill),
             ) {
                 PreviewNavTabs()

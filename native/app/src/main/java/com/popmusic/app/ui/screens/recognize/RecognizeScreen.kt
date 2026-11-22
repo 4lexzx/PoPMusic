@@ -50,6 +50,7 @@ import com.popmusic.app.domain.Song
 import com.popmusic.app.ui.theme.Accent
 import com.popmusic.app.ui.theme.Danger
 import com.popmusic.app.ui.theme.Ink
+import com.popmusic.app.ui.theme.OnInk
 import com.popmusic.app.ui.theme.Surface2
 import com.popmusic.app.ui.theme.Surface3
 import com.popmusic.app.ui.theme.pressScale
@@ -183,13 +184,13 @@ fun RecognizeScreen(
                     CircularProgressIndicator(
                         modifier = Modifier.size(48.dp),
                         strokeWidth = 3.dp,
-                        color = Surface2,
+                        color = OnInk,
                     )
                 } else {
                     Icon(
                         imageVector = Icons.Rounded.Mic,
                         contentDescription = "Reconocer canción",
-                        tint = Surface2,
+                        tint = OnInk,
                         modifier = Modifier.size(56.dp),
                     )
                 }

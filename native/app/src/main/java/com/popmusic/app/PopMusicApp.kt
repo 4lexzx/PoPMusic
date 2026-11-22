@@ -118,6 +118,7 @@ import com.popmusic.app.ui.screens.lyrics.LyricsScreen
 import com.popmusic.app.ui.screens.onboarding.OnboardingScreen
 import com.popmusic.app.ui.screens.party.PartyScreen
 import com.popmusic.app.ui.screens.tastes.TastesScreen
+import com.popmusic.app.ui.screens.player.AddToQueueDialog
 import com.popmusic.app.ui.screens.player.NowPlayingScreen
 import com.popmusic.app.ui.screens.playlist.PlaylistScreen
 import com.popmusic.app.ui.screens.recognize.RecognizeScreen
@@ -195,6 +196,7 @@ fun PopMusicApp() {
 
     var showAddToPlaylist by remember { mutableStateOf(false) }
     var addToPlaylistSong by remember { mutableStateOf<Song?>(null) }
+    var showAddToQueue by remember { mutableStateOf(false) }
     var navInline by remember { mutableStateOf(false) }
     val supportsLiquidGlass = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     val appBackdrop = rememberLayerBackdrop(
@@ -574,6 +576,19 @@ fun PopMusicApp() {
                                     showAddToPlaylist = true
                                 },
                                 onOpenInfo = { navController.navigate(Routes.SONG_INFO) },
+                                sleepAtMs = playbackSettings.sleepAtEpochMs,
+                                onSetSleepMinutes = { minutes ->
+                                    app.preferences.updatePlayback {
+                                        it.copy(
+                                            sleepAtEpochMs = if (minutes == null) {
+                                                0L
+                                            } else {
+                                                System.currentTimeMillis() + minutes * 60_000L
+                                            },
+                                        )
+                                    }
+                                },
+                                onAddToQueue = { showAddToQueue = true },
                                 isDownloaded = isDownloaded,
                                 downloadProgress = currentDownloadProgress,
                                 onDownload = {
@@ -885,6 +900,17 @@ fun PopMusicApp() {
                 }
             },
             syncServices = connectedMusicServices,
+        )
+    }
+
+    if (showAddToQueue) {
+        AddToQueueDialog(
+            onDismiss = { showAddToQueue = false },
+            onAdd = { song ->
+                playerViewModel.addToQueue(listOf(song))
+                showAddToQueue = false
+                Toast.makeText(context, "Añadido a la cola", Toast.LENGTH_SHORT).show()
+            },
         )
     }
 
