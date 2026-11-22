@@ -117,6 +117,6 @@ class RecognizeViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private companion object {
-        const val RECORDING_MILLIS = 8_000L
+        const val RECORDING_MILLIS = 5_000L
     }
 }

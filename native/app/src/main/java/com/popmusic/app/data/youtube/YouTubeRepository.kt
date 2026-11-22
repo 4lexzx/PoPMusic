@@ -219,7 +219,7 @@ class YouTubeRepository {
 
     private companion object {
         const val ATTEMPTS = 2
-        const val RETRY_DELAY_MS = 700L
+        const val RETRY_DELAY_MS = 300L
     }
 }
 

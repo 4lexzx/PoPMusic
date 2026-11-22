@@ -180,6 +180,7 @@ class PlayerConnection(private val context: Context) {
     fun addToQueue(songs: List<Song>) {
         val mediaController = controller ?: return
         mediaController.addMediaItems(songs.map { it.toMediaItem(0) })
+        nearEndNotified = false
     }
 
     fun togglePlayPause() {
@@ -426,7 +427,7 @@ class PlayerConnection(private val context: Context) {
             nearEndNotified = false
             return
         }
-        val threshold = (player.mediaItemCount - 2).coerceAtLeast(0)
+        val threshold = (player.mediaItemCount - 3).coerceAtLeast(0)
         val nearEnd = player.currentMediaItemIndex >= threshold
         if (nearEnd && !nearEndNotified) {
             nearEndNotified = true

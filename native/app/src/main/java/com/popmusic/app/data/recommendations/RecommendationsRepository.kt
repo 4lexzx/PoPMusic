@@ -264,7 +264,7 @@ class RecommendationsRepository(
 
     private companion object {
         const val SONG_LIMIT = 20
-        const val RADIO_BATCH = 12
+        const val RADIO_BATCH = 20
         const val MIN_SONGS = 8
         const val MIN_DURATION = 45L
         const val MAX_DURATION = 600L
