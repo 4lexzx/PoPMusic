@@ -1,13 +1,13 @@
 {
-  "published": false,
+  "published": true,
   "versionCode": 2,
-  "versionName": "0.2.0",
-  "apkUrl": "",
-  "sha256": "",
-  "sizeBytes": 0,
+  "versionName": "0.1.2",
+  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.2/PoPMusic-v0.1.2.apk",
+  "sha256": "ebc8752162604fd48f43b0449809fb7a963145835cbf9c9f13a2ccd7bec17109",
+  "sizeBytes": 18977589,
   "mandatory": false,
   "changelog": [
-    "Mejoras de rendimiento y estabilidad.",
-    "Actualizaciones de la interfaz y del reproductor."
+    "La radio de la cola sigue al artista de la canción elegida.",
+    "Versión de prueba del aviso de actualización."
   ]
 }
