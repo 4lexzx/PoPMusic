@@ -1,14 +1,14 @@
 {
   "published": true,
-  "versionCode": 4,
-  "versionName": "0.1.4",
-  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.4/PoPMusic-v0.1.4.apk",
-  "sha256": "57c826ae80553eebf80a9aeab0d788898313a2385f20fafc0307560a8ebf33e0",
+  "versionCode": 5,
+  "versionName": "0.1.5",
+  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.5/PoPMusic-v0.1.5.apk",
+  "sha256": "f2233ce5ba754dcf9ee4143ff062a572040902293cb5b8b146d0ffe169ef0b15",
   "sizeBytes": 19010357,
   "mandatory": false,
   "changelog": [
-    "La radio mantiene el género elegido y varía canciones y artistas sin parar.",
-    "Sugerencias del mismo idioma y priorizando las más escuchadas.",
-    "Cambio de canción con gesto y transición suave."
+    "Cambio de cancion instantaneo: el salto ya no espera a resolver la URL de YouTube.",
+    "La cancion entrante se resuelve en segundo plano al cambiar de pista.",
+    "Menos saturacion de red al cargar la cola, saltos seguidos sin trabarse."
   ]
 }
