@@ -1,198 +1,219 @@
-# Liner · Música
+<div align="center">
+  <img src="assets/banner.png" alt="PoP Music"/>
 
-Reproductor de música web **mobile-first**, inspirado en [Liner](https://tryliner.fun). Funciona
-**100 % en el navegador**, sin backend propio (salvo una Serverless Function opcional para Spotify)
-y se despliega en **Vercel gratis**.
+  <p><b>App de música para Android: streaming sin anuncios, letras sincronizadas, descargas offline y salas para escuchar con amigos en tiempo real.</b></p>
 
-![stack](https://img.shields.io/badge/React-19-61dafb) ![stack](https://img.shields.io/badge/TypeScript-5-3178c6) ![stack](https://img.shields.io/badge/Tailwind-4-38bdf8) ![stack](https://img.shields.io/badge/Vite-6-646cff)
+  <p>
+    <a href="https://4lexzx.github.io/PoPMusic/">🌐 Sitio web</a> ·
+    <a href="https://4lexzx.github.io/PoPMusic/privacidad.html">🔒 Privacidad</a> ·
+    <a href="https://4lexzx.github.io/PoPMusic/terminos.html">📄 Términos</a>
+  </p>
+
+  <p>
+    <img src="https://img.shields.io/badge/Kotlin-1.9-7F52FF?logo=kotlin&logoColor=white" alt="Kotlin"/>
+    <img src="https://img.shields.io/badge/Jetpack%20Compose-UI-4285F4?logo=jetpackcompose&logoColor=white" alt="Jetpack Compose"/>
+    <img src="https://img.shields.io/badge/Android-15%2B-3DDC84?logo=android&logoColor=white" alt="Android"/>
+    <img src="https://img.shields.io/badge/Media3-ExoPlayer-FF0000?logo=android&logoColor=white" alt="Media3"/>
+  </p>
+</div>
+
+---
+
+## 📸 Capturas
+
+<div align="center">
+  <table>
+    <tr>
+      <td align="center" style="padding: 12px;">
+        <b>Inicio</b><br><br>
+        <img src="screenshots/01-inicio.png" alt="Pantalla de inicio" width="220" style="border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.35);"/>
+      </td>
+      <td align="center" style="padding: 12px;">
+        <b>Buscar</b><br><br>
+        <img src="screenshots/02-buscar.png" alt="Buscar" width="220" style="border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.35);"/>
+      </td>
+      <td align="center" style="padding: 12px;">
+        <b>Biblioteca</b><br><br>
+        <img src="screenshots/03-biblioteca.png" alt="Biblioteca" width="220" style="border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.35);"/>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 12px;">
+        <b>Reproductor</b><br><br>
+        <img src="screenshots/04-reproductor.png" alt="Reproductor" width="220" style="border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.35);"/>
+      </td>
+      <td align="center" style="padding: 12px;">
+        <b>Letras sincronizadas</b><br><br>
+        <img src="screenshots/05-letras.png" alt="Letras sincronizadas" width="220" style="border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.35);"/>
+      </td>
+      <td align="center" style="padding: 12px;">
+        <b>Salas con amigos</b><br><br>
+        <img src="screenshots/06-salas.png" alt="Salas con amigos" width="220" style="border-radius: 14px; box-shadow: 0 8px 20px rgba(0,0,0,0.35);"/>
+      </td>
+    </tr>
+  </table>
+</div>
 
 ---
 
 ## ✨ Características
 
-- **Diseño oscuro con vidrio 3D (glassmorphism)**, inspirado en la interfaz de Liner: negro puro,
-  paneles translúcidos con `blur(20px) saturate(160%)`, profundidad por sombras y grano sutil. Barra
-  de navegación inferior flotante (Inicio · Buscar · Biblioteca · Sonando).
-- **Reproductor de YouTube** mediante IFrame Player API con iframe oculto y UI propia.
-- **Controles completos**: play/pausa, siguiente/anterior, aleatorio, repetir, barra de progreso,
-  volumen y cola de reproducción.
-- **Letras sincronizadas** tipo karaoke (línea y palabra activas) desde **LRCLIB**, con animación de
-  difuminado/escala en las líneas inactivas, control de desfase (offset ±10 s) y modo pantalla
-  completa con fondo dinámico reactivo al color de la portada.
-- **Botón «+» en la Biblioteca**: crear una playlist vacía o **importar** playlists de YouTube
-  (Data API v3) y Spotify (metadatos vía Web API), todo desde una hoja deslizable.
-- **Ajustes**: color de acento personalizable (6 opciones) y activación del fondo dinámico.
-- **Biblioteca local**: playlists (con portada en mosaico y añadido/quitado de canciones), favoritos
-  e historial guardados en `localStorage`.
-- **Búsqueda** de canciones/artistas en YouTube, y traducción automática de pistas de Spotify
-  a YouTube para su reproducción.
-- **Modo demo** automático si no configuras claves: la app es totalmente navegable y reproducible.
-- Integración con **Media Session** (controles en pantalla de bloqueo, cuando el navegador lo permite).
+<details>
+<summary><b>🎙 Reproducción</b></summary>
+<br>
+
+- **Streaming sin anuncios** de YouTube con el extractor de NewPipe y Media3/ExoPlayer.
+- **Cola completa**: siguiente/anterior, aleatorio, repetir (todo/una), salto a cualquier pista.
+- **Transiciones**: crossfade de hasta 10 s, fundido de entrada y salto automático de silencios.
+- **Reproducción instantánea**: precarga de la cola para que el aleatorio sea inmediato.
+- **Segundo plano y pantalla bloqueada** con controles de Media Session (notificación con shuffle/repeat).
+- **Descargas offline**: descarga canciones y reprodúcelas sin datos (funciona en modo avión).
+- **Temporizador de sueño**, ecualizador de 5 bandas y refuerzo de volumen.
+
+</details>
+
+<details>
+<summary><b>📝 Letras sincronizadas</b></summary>
+<br>
+
+- **Letras en tiempo real** desde LRCLIB con la línea activa resaltada al estilo Echo.
+- **Estilos de letra**: clásico, grande, serif y monoespaciado.
+- **Letras inline**: arrastra hacia abajo sobre la carátula para ver la letra mientras suena.
+- **Información de la canción**: foto y biografía del artista (Wikipedia), álbum y ficha técnica.
+- **Music DNA**: el backstory de la canción basado en Wikipedia.
+
+</details>
+
+<details>
+<summary><b>🔍 Búsqueda y descubrimiento</b></summary>
+<br>
+
+- **Búsqueda** de canciones, videos y artistas en YouTube con filtros (ocultar videos y Shorts).
+- **Tendencias mundiales y de tu país** desde Spotify Charts, resueltas a YouTube.
+- **Reconocer música**: identifica la canción que suena a tu alrededor.
+- **Chips de ánimo** y secciones de descubrimiento que se adaptan a lo que exploras.
+- **Podcasts**: pestaña con novedades y suscripciones (iTunes + RSS), con reproducción directa.
+
+</details>
+
+<details>
+<summary><b>📚 Biblioteca y playlists</b></summary>
+<br>
+
+- **Favoritos, recientes y descargas** guardados localmente en tu dispositivo.
+- **Playlists** propias con portada en mosaico, añadir y quitar canciones.
+- **Importar por enlace** playlists de YouTube y Spotify (se resuelven a YouTube).
+- **Sincronización con YouTube**: crea tus playlists en tu cuenta y sube/borra canciones en tiempo real.
+- **Exportar biblioteca** a JSON como copia de seguridad.
+
+</details>
+
+<details>
+<summary><b>🎉 Salas “Todos controlan”</b></summary>
+<br>
+
+- **Crea una sala** y comparte el código: cualquiera puede entrar desde su móvil.
+- **Cola compartida en vivo**: todos ven la misma cola; cualquier participante puede pausar, saltar o añadir canciones.
+- **Sin host**: el último cambio manda; la sala sigue viva aunque navegues por la app.
+- **Sugerencias por gustos** para llenar la sala rápido.
+
+</details>
+
+<details>
+<summary><b>🎨 Personalización</b></summary>
+<br>
+
+- **Fondos dinámicos**: degradados o tu propia imagen, con desenfoque y oscurecimiento ajustables.
+- **Cristal líquido** (liquid glass) en la barra de navegación, con transparencia ajustable.
+- **Vista previa en vivo**: una miniatura de la pantalla de Inicio cambia en tiempo real con cada ajuste.
+- **Reproductor minimalista**: ocultar carátula, canvas ambiental y arrastrar para cerrar.
+- **Modo oscuro** de fúbrica con paleta negro, blanco y gris.
+
+</details>
+
+<details>
+<summary><b>👤 Cuenta y extras</b></summary>
+<br>
+
+- **Inicio de sesión con Google** (Supabase) con avatar y estadísticas de escucha.
+- **Establecer como tono** cualquier canción con un toque.
+- **Compartir** canciones y abrir en YouTube.
+- **Ajustes de contenido**: ocultar videos, Shorts y podcasts que no te interesen.
+
+</details>
 
 ---
 
 ## 🧱 Stack técnico
 
-| Área            | Tecnología                                        |
-| --------------- | ------------------------------------------------- |
-| UI              | React 19 + TypeScript                             |
-| Estilos         | Tailwind CSS v4 (`@tailwindcss/vite`)             |
-| Estado global   | Zustand (con `persist`)                           |
-| Rutas           | React Router v6                                   |
-| Audio           | YouTube IFrame Player API                         |
-| Búsqueda        | YouTube Data API v3                               |
-| Letras          | LRCLIB (`https://lrclib.net/api`)                 |
-| Playlists       | YouTube Data API v3 + Spotify Web API (serverless) |
-| Bundler         | Vite 6                                            |
-| Deploy          | Vercel (SPA + funciones en `/api`)                |
+| Área | Tecnología |
+| --- | --- |
+| Lenguaje | Kotlin |
+| UI | Jetpack Compose + Material 3 |
+| Audio | Media3 / ExoPlayer + extractor de NewPipe |
+| Imágenes | Coil 3 |
+| Letras | LRCLIB (`lrclib.net`) |
+| Tendencias | Spotify Charts (embed público) → YouTube |
+| Podcasts | iTunes Search API + RSS |
+| Tiempo real | Supabase Realtime (WebSockets, para las Salas) |
+| Cuenta | Supabase Auth (Google Sign-In) |
+| Mínimo | Android 15 (API 35) |
 
 ---
 
-## 🚀 Puesta en marcha
+## 🚀 Descargar e instalar
 
-### Requisitos
+**[⬇️ Descargar APK (v0.1.0)](https://github.com/4lexzx/PoPMusic/releases/latest)** — Android 15 o superior.
 
-- Node.js 20 o superior (probado con Node 22/24)
-- npm
+1. Descarga el APK en tu móvil y ábrelo (acepta instalar de orígenes desconocidos si te lo pide).
+2. Abre **PoP Music** y listo: tu biblioteca y tu sesión se guardan localmente.
 
-### Instalación
+<details>
+<summary><b>Compilar desde el código</b></summary>
+<br>
 
 ```bash
-npm install
-cp .env.example .env   # en Windows: copy .env.example .env
+git clone https://github.com/4lexzx/PoPMusic.git
+cd PoPMusic/native
 ```
 
-### Variables de entorno
+1. Crea `native/local.properties` con la ruta de tu SDK:
 
-| Variable                  | Obligatoria | Dónde se usa               | Descripción                                        |
-| ------------------------- | ----------- | -------------------------- | -------------------------------------------------- |
-| `VITE_YT_API_KEY`         | Opcional    | Navegador                  | Clave de YouTube Data API v3 (búsqueda e import).  |
-| `VITE_SPOTIFY_CLIENT_ID`  | Opcional    | Cliente / servidor         | Client ID de Spotify (solo identificador).         |
-| `SPOTIFY_CLIENT_SECRET`   | Opcional    | **Servidor** (`/api`)      | Client Secret de Spotify. **Nunca** va al cliente. |
+   ```properties
+   sdk.dir=C\:\\Users\\tu_usuario\\AppData\\Local\\Android\\Sdk
+   ```
 
-> La app funciona **sin claves** en *modo demo*: podrás reproducir canciones de muestra y probar
-> toda la interfaz. Las claves se leen en tiempo de build.
+2. Compila la versión de producción:
 
-### Obtener las claves (gratis)
+   ```bash
+   ./gradlew :app:assembleRelease
+   ```
 
-**YouTube Data API v3**
+3. Instala el APK:
 
-1. Entra en [Google Cloud Console](https://console.cloud.google.com/) y crea un proyecto.
-2. Habilita *YouTube Data API v3* en **APIs y servicios → Biblioteca**.
-3. Crea una credencial **Clave de API** en **Credenciales**.
-4. (Recomendado) Restríngela a "Sitios web" con tus dominios.
-5. Pégala en `VITE_YT_API_KEY`.
+   ```bash
+   adb install -r app/build/outputs/apk/release/app-release.apk
+   ```
 
-**Spotify Web API** (solo metadatos de playlists)
+> En Windows usa `gradlew.bat`. El APK queda firmado con la clave del proyecto; para usar la tuya propia configura un `keystore.properties`.
 
-1. Crea una app en [Spotify Developer Dashboard](https://developer.spotify.com/dashboard).
-2. Copia el **Client ID** en `VITE_SPOTIFY_CLIENT_ID` y el **Client Secret** en
-   `SPOTIFY_CLIENT_SECRET`.
-
-### Desarrollo
-
-```bash
-npm run dev
-```
-
-El servidor de Vite emula la función `/api/spotify` en desarrollo, así que puedes importar
-playlists de Spotify con `npm run dev` sin instalar nada más.
-
-Abre `http://localhost:5173` (o usa la IP de red para probar en tu móvil).
-
-### Build de producción
-
-```bash
-npm run build     # tsc --noEmit && vite build
-npm run preview   # sirve la carpeta dist localmente
-```
+</details>
 
 ---
 
-## ☁️ Deploy en Vercel (gratis)
+## 🔒 Privacidad
 
-1. Sube el repositorio a GitHub/GitLab.
-2. En [Vercel](https://vercel.com/new) importa el repositorio. Detecta Vite automáticamente
-   (gracias a `vercel.json`).
-3. En **Settings → Environment Variables** añade:
-   - `VITE_YT_API_KEY`
-   - `VITE_SPOTIFY_CLIENT_ID`
-   - `SPOTIFY_CLIENT_SECRET` (marca que es sensible)
-4. Deploy. La función `api/spotify.ts` se publica como `/api/spotify` automáticamente.
+- **Sin publicidad, sin rastreo de terceros y sin venta de datos.**
+- Tu biblioteca, favoritos y playlists se guardan **localmente** en tu dispositivo.
+- Solo se sincroniza lo que tú decidas al vincular una cuenta (playlists e IDs de vídeos para la sincronización).
+- Política completa: **[privacidad.html](https://4lexzx.github.io/PoPMusic/privacidad.html)** · Términos: **[terminos.html](https://4lexzx.github.io/PoPMusic/terminos.html)**
 
-> `vercel.json` incluye el rewrite de SPA (todas las rutas → `index.html`) excluyendo `/api/*`,
-> y cabeceras de caché para los assets.
-
-También puedes usar la CLI:
-
-```bash
-npm i -g vercel
-vercel        # preview
-vercel --prod # producción
-```
+**Contacto:** [solisumboalexander@hotmail.com](mailto:solisumboalexander@hotmail.com)
 
 ---
 
-## 📁 Estructura del proyecto
+## ⚠️ Aviso legal
 
-```
-api/
-  spotify.ts                 # Serverless Function de Vercel (Spotify, Client Credentials)
-server/
-  spotify.ts                 # Lógica compartida Spotify (usada por la función y por Vite en dev)
-public/                      # favicon y manifiesto PWA
-src/
-  components/                # UI reutilizable (Button, Slider, Sheet, PillTabs, Artwork, Logo, Icons, Layout)
-  features/
-    player/                  # Reproductor YouTube, controles, mini reproductor, cola
-    lyrics/                  # Hook de letras y vistas sincronizadas / karaoke con offset
-    library/                 # Tarjetas, filas de pistas, hoja «+» (crear/importar) y añadir canciones
-    search/                  # Resultados de búsqueda
-    settings/                # Hoja de ajustes (acento de color y fondo dinámico)
-    visuals/                 # Fondo dinámico reactivo a la portada
-  shared/
-    api/                     # Clientes: youtube.ts, lrclib.ts, spotify.ts, http.ts
-    store/                   # Zustand: playerStore, libraryStore, uiStore, settingsStore
-    types/                   # Tipos TypeScript
-    utils/                   # lrc.ts, color.ts, text.ts, time.ts
-  pages/                     # Home, Search, Library, NowPlaying, Playlist
-  App.tsx
-  main.tsx
-```
+PoP Music es una app libre y gratuita creada con fines educativos y de uso personal. No almacena, sube ni distribuye contenido con derechos: la reproducción se realiza sobre enlaces públicos de YouTube respetando sus Términos de Servicio. Si eres titular de un contenido y tienes alguna consulta legal, escríbenos a [solisumboalexander@hotmail.com](mailto:solisumboalexander@hotmail.com).
 
-Rutas de la app: `/` · `/search` · `/library` · `/now-playing` · `/playlist/:id`.
-
----
-
-## ⚠️ Limitaciones y notas
-
-- **Reproducción en segundo plano**: en móvil (iOS Safari / Chrome Android) el navegador puede
-  pausar el iframe oculto al pasar a segundo plano. Se integra *Media Session* para ofrecer
-  controles en la pantalla de bloqueo, pero no se garantiza el audio continuo en todos los equipos.
-- **Cuota de YouTube Data API**: 10 000 unidades/día. Una búsqueda cuesta ~100 unidades
-  (≈100 búsquedas/día). Importar playlists y resolver pistas de Spotify consumen menos.
-- **Spotify**: desde nov-2024 Spotify restringe varios endpoints para apps nuevas. La app obtiene
-  los metadatos de la playlist vía función serverless y, si Spotify no permite listar las canciones,
-  lo informa. La reproducción de Spotify no está soportada: las pistas de Spotify se resuelven
-  automáticamente buscándolas en YouTube (`"[título] [artista] official"`).
-- **Letras (LRCLIB)**: base de datos colaborativa; algunos registros pueden ser incorrectos o
-  contener solo letra sin sincronizar. Si no hay LRC, se muestra la letra estática.
-- **Karaoke por palabra**: si el LRC solo trae tiempo por línea, la app reparte las palabras dentro
-  de la duración de la línea para animarlas de forma aproximada.
-- **Uso de YouTube**: la app incrusta el reproductor oficial mediante la IFrame Player API,
-  respetando sus términos de servicio.
-
----
-
-## 📜 Scripts
-
-| Script              | Descripción                                     |
-| ------------------- | ----------------------------------------------- |
-| `npm run dev`       | Servidor de desarrollo (incluye API de Spotify) |
-| `npm run build`     | Chequeo de tipos + build de producción          |
-| `npm run preview`   | Sirve el build de producción                    |
-| `npm run typecheck` | Solo chequeo de tipos (`tsc --noEmit`)          |
-
----
-
-Hecho con React, Tailwind y APIs gratuitas. Cero dependencias de pago.
+Apoya a los artistas: considera una suscripción a [YouTube Premium](https://www.youtube.com/premium).
