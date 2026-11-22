@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Sidebar } from '@/components/Sidebar'
@@ -52,13 +52,18 @@ function MessageToast() {
 export function Layout() {
   const location = useLocation()
   const reduceMotion = useReducedMotion()
+  const [maximized, setMaximized] = useState(false)
+
+  useEffect(() => {
+    return window.popDesktop?.onMaximized(setMaximized)
+  }, [])
   const wallpaper = useSettingsStore((state) => state.wallpaper)
   const wallpaperImage = useSettingsStore((state) => state.wallpaperImage)
   const isFullscreenPlayer = location.pathname === '/now-playing'
   const hasTrack = usePlayerStore((state) => state.queue.length > 0)
 
   return (
-    <div className="desktop-shell">
+    <div className={`desktop-shell ${maximized ? 'is-maximized' : ''}`}>
       <WallpaperLayer css={wallpaper} image={wallpaperImage} />
       <TitleBar />
       <div className="desktop-body">
@@ -67,9 +72,9 @@ export function Layout() {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
-              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 6, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6, filter: 'blur(4px)' }}
               transition={{ duration: reduceMotion ? 0.12 : 0.3, ease: [0.22, 1, 0.36, 1] }}
               className={`desktop-page ${isFullscreenPlayer ? 'desktop-page--player' : ''}`}
             >

@@ -626,6 +626,12 @@ body {
   width: 100vw;
   overflow: hidden;
   color: var(--desk-text);
+  border-radius: 12px;
+  background: var(--desk-bg);
+}
+
+.desktop-shell.is-maximized {
+  border-radius: 0;
 }
 
 .desktop-page.desktop-page--player {
@@ -663,11 +669,17 @@ body {
 .titlebar__controls {
   display: flex;
   -webkit-app-region: no-drag;
+  height: 28px;
+  margin-right: 12px;
+  align-items: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
 }
 
 .titlebar__button {
-  width: 46px;
-  height: 38px;
+  width: 40px;
+  height: 28px;
   display: grid;
   place-items: center;
   color: var(--desk-faint);
@@ -692,76 +704,71 @@ body {
   min-height: 0;
 }
 
-.sidebar {
-  flex: 0 0 214px;
+.rail {
+  flex: 0 0 72px;
   display: flex;
   flex-direction: column;
+  align-items: center;
   justify-content: space-between;
-  padding: 18px 12px 16px;
-  background: rgba(12, 12, 18, 0.72);
+  padding: 12px 0 16px;
+  background: rgba(10, 10, 16, 0.55);
   border-right: 1px solid var(--desk-line);
   backdrop-filter: blur(24px);
 }
 
-.sidebar__nav {
+.rail__brand {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin-bottom: 18px;
+  color: #fff;
+  filter: drop-shadow(0 0 12px rgba(150, 130, 255, 0.4));
+}
+
+.rail__nav,
+.rail__bottom {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.sidebar__item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  height: 42px;
-  padding: 0 14px;
-  border-radius: 12px;
-  color: var(--desk-faint);
-  font-size: 13.5px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  transition: color 160ms ease, background 160ms ease;
-  overflow: hidden;
-}
-
-.sidebar__item:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.sidebar__item.active {
-  color: #fff;
-}
-
-.sidebar__active {
-  position: absolute;
-  inset: 0;
-  border-radius: 12px;
-  background: linear-gradient(100deg, rgba(124, 92, 255, 0.3), rgba(0, 200, 255, 0.14));
-  border: 1px solid rgba(160, 140, 255, 0.28);
-  z-index: -1;
-}
-
-.sidebar__icon {
-  flex: 0 0 auto;
-  filter: drop-shadow(0 0 8px rgba(150, 130, 255, 0.18));
-}
-
-.sidebar__bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.sidebar__hint {
-  display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px 0;
-  font-size: 10.5px;
-  color: #5c5c68;
+  width: 100%;
+}
+
+.rail__bottom {
+  padding-top: 10px;
   border-top: 1px solid var(--desk-line);
+  width: 40px;
+}
+
+.rail__item {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: var(--desk-faint);
+  transition: color 160ms ease, transform 160ms ease;
+  isolation: isolate;
+}
+
+.rail__item:hover {
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.rail__item.active {
+  color: #fff;
+}
+
+.rail__active {
+  position: absolute;
+  inset: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  z-index: -1;
 }
 
 .desktop-main {
@@ -793,15 +800,19 @@ body {
 .playerbar {
   position: relative;
   z-index: 25;
-  flex: 0 0 82px;
+  flex: 0 0 84px;
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(320px, 1.4fr) minmax(220px, 1fr);
+  grid-template-columns: minmax(200px, 1fr) minmax(320px, 1.4fr) minmax(200px, 1fr);
   align-items: center;
   gap: 20px;
-  padding: 0 22px;
-  background: rgba(10, 10, 16, 0.9);
-  border-top: 1px solid var(--desk-line);
-  backdrop-filter: blur(26px);
+  margin: 0 12px 10px;
+  padding: 0 18px;
+  height: 74px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(28px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
 }
 
 .playerbar--empty {
@@ -1097,12 +1108,18 @@ body {
 }
 
 .now-playing__title {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.now-playing__volume {
+  width: min(100%, 300px);
+  margin-top: 14px;
+  opacity: 0.75;
 }
 
 .now-playing__artist {

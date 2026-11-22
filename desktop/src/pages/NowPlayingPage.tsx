@@ -30,6 +30,7 @@ import { selectCurrentTrack, usePlayerStore } from '@/shared/store/playerStore'
 import { useUiStore } from '@/shared/store/uiStore'
 import { formatDuration } from '@/shared/utils/time'
 import { Slider } from '@/components/ui'
+import { VolumeControl } from '@/features/player/PlayerControls'
 
 /** Reproductor a pantalla completa con letras sincronizadas y fondo reactivo. */
 export function NowPlayingPage() {
@@ -156,6 +157,10 @@ export function NowPlayingPage() {
             <IconButton label="Repetir" onClick={cycleRepeat} active={repeat !== 'off'}>
               {repeat === 'one' ? <RepeatOneIcon size={20} /> : <RepeatIcon size={20} />}
             </IconButton>
+          </div>
+
+          <div className="now-playing__volume">
+            <VolumeControl />
           </div>
         </motion.section>
 
