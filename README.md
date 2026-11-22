@@ -9,7 +9,8 @@
     <a href="https://4lexzx.github.io/PoPMusic/">Sitio web</a> ·
     <a href="https://4lexzx.github.io/PoPMusic/privacidad.html">Política de privacidad</a> ·
     <a href="https://4lexzx.github.io/PoPMusic/terminos.html">Términos de servicio</a> ·
-    <a href="https://github.com/4lexzx/PoPMusic/releases/latest">Descargar APK</a>
+    <a href="https://github.com/4lexzx/PoPMusic/releases/latest">Descargar APK</a> ·
+    <a href="https://github.com/4lexzx/PoPMusic/releases/latest">Descargar para PC (Windows)</a>
   </p>
 
   <p>
@@ -27,6 +28,14 @@
 **[PoP Music v0.1.0](https://github.com/4lexzx/PoPMusic/releases/latest)** — requiere Android 8.0 (API 26) o superior.
 
 Descarga el APK en el dispositivo y ábrelo para instalarlo. La biblioteca, las playlists y la sesión se guardan localmente; nada se pierde al reinstalar.
+
+La versión para Windows se descarga como `.exe` desde la misma página de Releases. El APK sigue siendo para Android; ambas versiones están en el mismo sitio.
+
+---
+
+## Versión para PC
+
+Disponible para Windows 10 y 11 como instalador `.exe`. Incluye las mismas funciones: letras sincronizadas, fondo reactivo, reproductor flotante y salas para escuchar con amigos. El código está en `desktop/`.
 
 ---
 

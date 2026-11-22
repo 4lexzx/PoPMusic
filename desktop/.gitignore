@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-electron/
+release/
+src/wasm/pkg/
+.env
+.env.*
+!.env.example

@@ -71,6 +71,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -81,6 +82,8 @@ import com.popmusic.app.domain.Playlist
 import com.popmusic.app.domain.Song
 import com.popmusic.app.ui.components.ArtworkCollage
 import com.popmusic.app.ui.components.BrandIcons
+import com.popmusic.app.ui.components.boldName
+import com.popmusic.app.ui.components.boldQuoted
 import com.popmusic.app.ui.components.EmptyState
 import com.popmusic.app.ui.components.GlassActionRow
 import com.popmusic.app.ui.components.GlassDialog
@@ -165,7 +168,7 @@ fun LibraryScreen(
     LaunchedEffect(syncEvents) {
         val message = syncEvents
         if (message != null) {
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, message.boldQuoted(), Toast.LENGTH_SHORT).show()
             viewModel.clearSyncEvent()
         }
     }
@@ -718,8 +721,8 @@ fun LibraryScreen(
     syncPlaylistTarget?.let { targetPlaylist ->
         GlassDialog(onDismiss = { syncPlaylistTarget = null }) {
             GlassDialogHeader(
-                title = "Sincronizar",
-                subtitle = "¿A qué plataforma subir «${targetPlaylist.name}»?",
+                title = AnnotatedString("Sincronizar"),
+                subtitle = boldName("¿A qué plataforma subir ", targetPlaylist.name, "?"),
                 onClose = { syncPlaylistTarget = null },
             )
             Spacer(Modifier.height(18.dp))
@@ -819,7 +822,7 @@ fun LibraryScreen(
                 is ImportState.Success -> {
                     Spacer(Modifier.height(14.dp))
                     Text(
-                        text = "Añadida «${current.name}» con ${songCount(current.count)}.",
+                        text = boldName("Añadida ", current.name, " con ${songCount(current.count)}."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = Accent,
                     )
@@ -870,8 +873,8 @@ fun LibraryScreen(
     confirmDelete?.let { playlist ->
         GlassDialog(onDismiss = { confirmDelete = null }) {
             GlassDialogHeader(
-                title = "¿Eliminar «${playlist.name}»?",
-                subtitle = "Se quitará de tu biblioteca. Esta acción no se puede deshacer.",
+                title = boldName("¿Eliminar ", playlist.name, "?"),
+                subtitle = AnnotatedString("Se quitará de tu biblioteca. Esta acción no se puede deshacer."),
                 onClose = { confirmDelete = null },
             )
             Spacer(Modifier.height(20.dp))

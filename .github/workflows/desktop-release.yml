@@ -1,0 +1,81 @@
+name: Desktop Windows
+
+# Compila el instalador de Windows y lo sube a la MISMA release del APK (v0.1.0).
+# El APK no se toca: action-gh-release solo añade el .exe a la release existente.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag de la release donde subir el instalador (la del APK)'
+        required: true
+        default: 'v0.1.0'
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-release.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    env:
+      VITE_YT_API_KEY: ${{ secrets.VITE_YT_API_KEY }}
+      VITE_SPOTIFY_CLIENT_ID: ${{ secrets.VITE_SPOTIFY_CLIENT_ID }}
+      VITE_AUDD_API_KEY: ${{ secrets.VITE_AUDD_API_KEY }}
+      VITE_AUDIO_API: ${{ secrets.VITE_AUDIO_API }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SPOTIFY_API: ${{ secrets.VITE_SPOTIFY_API }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Configurar Rust (wasm32)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Configurar wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+
+      - name: Instalar dependencias
+        working-directory: desktop
+        run: npm ci
+
+      - name: Compilar módulo WebAssembly
+        working-directory: desktop
+        run: node scripts/build-wasm.mjs
+
+      - name: Compilar aplicación
+        working-directory: desktop
+        run: npm run build
+
+      # Genera desktop/release/PoP Music Setup.exe
+      - name: Generar instalador Windows
+        working-directory: desktop
+        run: npx electron-builder --win --x64 --publish never
+
+      # Sube el .exe a la release del APK, sin borrar el APK ni crear otra release.
+      - name: Subir instalador a la release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || 'v0.1.0' }}
+          name: PoP Music v0.1.0
+          body: |
+            Se ha añadido la versión para PC Windows: descarga el instalador `.exe` adjunto a esta release.
+
+            El APK de Android sigue disponible en la misma página de Releases.
+          append_body: true
+          files: desktop/release/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

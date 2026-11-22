@@ -52,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -154,6 +155,20 @@ fun GlassDialog(
 fun GlassDialogHeader(
     title: String,
     subtitle: String? = null,
+    onClose: (() -> Unit)? = null,
+) {
+    GlassDialogHeader(
+        title = AnnotatedString(title),
+        subtitle = subtitle?.let(::AnnotatedString),
+        onClose = onClose,
+    )
+}
+
+/** Variante con texto enriquecido: permite dejar el nombre en negrita. */
+@Composable
+fun GlassDialogHeader(
+    title: AnnotatedString,
+    subtitle: AnnotatedString? = null,
     onClose: (() -> Unit)? = null,
 ) {
     Row(
