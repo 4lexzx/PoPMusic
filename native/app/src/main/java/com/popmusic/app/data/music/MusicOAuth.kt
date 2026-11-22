@@ -6,6 +6,7 @@ import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import com.popmusic.app.BuildConfig
+import com.popmusic.app.MainActivity
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -165,6 +166,9 @@ class MusicOAuthManager(
             return
         }
 
+        // El navegador se queda con la página de confirmación del servidor
+        // local: devolvemos la app al primer plano para que se vea el aviso.
+        bringAppToFront()
         Thread {
             Log.i(TAG, "Intercambiando código por token…")
             val result = runCatching { exchangeCode(service, code, verifier) }
@@ -208,7 +212,13 @@ class MusicOAuthManager(
         val access = json.optString("access_token")
         if (access.isBlank()) error("El proveedor no devolvió token de acceso")
 
-        val profile = retryNetwork("Perfil") { fetchProfile(service, access) }
+        // El perfil es solo decorativo (nombre e id en Ajustes): un 404 del
+        // endpoint /me no debe impedir que la cuenta quede conectada.
+        val profile = runCatching { retryNetwork("Perfil") { fetchProfile(service, access) } }
+            .getOrElse {
+                Log.w(TAG, "Perfil de ${service.displayName()} no disponible: ${it.message}")
+                "desconocido" to service.displayName()
+            }
         accounts.linkAccount(
             MusicAccount(
                 service = service,
@@ -293,7 +303,10 @@ class MusicOAuthManager(
             .build()
         client.newCall(request).execute().use { response ->
             val text = response.body?.string().orEmpty()
-            if (!response.isSuccessful) error("Perfil no disponible (${response.code})")
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Perfil ${service.name}: HTTP ${response.code} ${text.take(200)}")
+                error("Perfil no disponible (${response.code})")
+            }
             val json = JSONObject(text)
             val id = json.optString(idKey).takeIf { it.isNotBlank() } ?: "desconocido"
             val name = json.optString(nameKey)
@@ -368,6 +381,19 @@ class MusicOAuthManager(
             current = current.cause
         }
         return null
+    }
+
+    /** Vuelve a PoP Music en cuanto el navegador entrega el código. */
+    private fun bringAppToFront() {
+        runCatching {
+            context.startActivity(
+                Intent(context, MainActivity::class.java).addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP,
+                ),
+            )
+        }.onFailure { Log.w(TAG, "No se pudo traer la app al frente: ${it.message}") }
     }
 
     private fun redirectUri(service: MusicService): String = when (service) {
@@ -450,18 +476,17 @@ class MusicOAuthManager(
         private fun listen(server: ServerSocket) {
             var handled = false
             try {
-                // Acepta UNA petición y cierra el listener de inmediato: el
-                // puerto queda libre aunque el manejo se tarde o cuelgue.
-                val connection = try {
-                    server.accept()
-                } finally {
-                    runCatching { server.close() }
+                // El navegador puede abrir conexiones especulativas antes de
+                // la redirección real (o pedir /favicon.ico). Se ignoran hasta
+                // que llegue una con `code` o `error`; antes se cerraba el
+                // listener en la primera conexión y el callback nunca entraba.
+                while (!closed && !handled) {
+                    val connection = server.accept()
+                    connection.use { c ->
+                        c.soTimeout = READ_TIMEOUT_MS
+                        handled = handle(c)
+                    }
                 }
-                connection.use { c ->
-                    c.soTimeout = READ_TIMEOUT_MS
-                    handle(c)
-                }
-                handled = true
             } catch (t: Throwable) {
                 Log.w(TAG, "Servidor de callback detenido: ${t.message}")
                 if (!closed && !handled) {
@@ -478,30 +503,58 @@ class MusicOAuthManager(
             executor.shutdown()
         }
 
-        private fun handle(connection: Socket) {
+        /**
+         * Atiende una conexión. Devuelve true solo si era el callback real
+         * (traía `code` o `error`); las conexiones especulativas del navegador
+         * reciben 204 y se ignoran para seguir esperando.
+         */
+        private fun handle(connection: Socket): Boolean {
             val reader = BufferedReader(InputStreamReader(connection.getInputStream()))
             val requestLine = reader.readLine().orEmpty()
             val path = requestLine.split(" ").getOrNull(1).orEmpty()
             val uri = Uri.parse("http://127.0.0.1:$port$path")
+            val code = uri.getQueryParameter("code")
+            val error = uri.getQueryParameter("error")
+            Log.i(TAG, "Petición al callback: ${requestLine.take(120)}")
 
-            val body = """
+            if (code.isNullOrBlank() && error.isNullOrBlank()) {
+                respond(connection, "HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
+                return false
+            }
+
+            val body = if (error != null) {
+                """
+                <html><head><meta charset="utf-8"><title>PoP Music</title></head>
+                <body style="font-family:sans-serif;background:#0c0c16;color:#fff;text-align:center;padding-top:20vh">
+                <h2>Autorización cancelada</h2><p>Ya puedes volver a PoP Music.</p></body></html>
+                """.trimIndent().toByteArray()
+            } else {
+                """
                 <html><head><meta charset="utf-8"><title>PoP Music</title></head>
                 <body style="font-family:sans-serif;background:#0c0c16;color:#fff;text-align:center;padding-top:20vh">
                 <h2>Cuenta conectada</h2><p>Ya puedes volver a PoP Music.</p></body></html>
-            """.trimIndent().toByteArray()
+                """.trimIndent().toByteArray()
+            }
+            respond(
+                connection,
+                "HTTP/1.1 200 OK\r\n" +
+                    "Content-Type: text/html; charset=utf-8\r\n" +
+                    "Content-Length: ${body.size}\r\n" +
+                    "Connection: close\r\n\r\n",
+                body,
+            )
+            onCallback(uri)
+            return true
+        }
 
-            val header = "HTTP/1.1 200 OK\r\n" +
-                "Content-Type: text/html; charset=utf-8\r\n" +
-                "Content-Length: ${body.size}\r\n" +
-                "Connection: close\r\n\r\n"
+        private fun respond(connection: Socket, header: String, body: ByteArray? = null) {
             runCatching {
                 connection.getOutputStream().apply {
                     write(header.toByteArray())
-                    write(body)
+                    if (body != null) write(body)
                     flush()
                 }
             }
-            onCallback(uri)
         }
     }
 

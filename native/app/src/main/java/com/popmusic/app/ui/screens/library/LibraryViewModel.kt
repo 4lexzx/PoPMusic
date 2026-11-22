@@ -100,17 +100,23 @@ class LibraryViewModel(application: Application) : AndroidViewModel(application)
         sync.renamePlaylist(playlistId, name.trim())
     }
 
-    fun importPlaylist(link: String) {
+    fun importPlaylist(link: String, platform: MusicService? = null) {
         if (link.isBlank() || importJob?.isActive == true) return
 
         importJob = viewModelScope.launch {
             _importState.value = ImportState.Loading
-            // Tanda 6 (punto 3): el import por URL acepta Spotify y YouTube.
+            // El usuario elige la plataforma antes de pegar el enlace: el
+            // enrutado es explícito. Si no viene (llamada antigua), se detecta
+            // por el contenido del enlace como antes.
             // Ítem 3: al importar por enlace vinculamos la playlist con su id
             // remoto para que los cambios se repliquen en la plataforma
             // original (write-back). Sin vínculo, el watcher crearía una
             // playlist remota duplicada.
-            val spotifyId = charts.spotifyPlaylistId(link)
+            val spotifyId = when (platform) {
+                MusicService.SPOTIFY -> charts.spotifyPlaylistId(link)
+                MusicService.YOUTUBE -> null
+                else -> charts.spotifyPlaylistId(link)
+            }
             val playlist: com.popmusic.app.domain.Playlist?
             val external: Map<String, String>
             if (spotifyId != null) {

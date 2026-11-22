@@ -140,8 +140,8 @@ fun LibraryScreen(
     var dialog by remember { mutableStateOf<LibraryDialog?>(null) }
     var newName by remember { mutableStateOf("") }
     var importLink by remember { mutableStateOf("") }
-    // Tanda 6/7: importar por URL con 2 secciones (YouTube y Spotify).
-    var spotifyLink by remember { mutableStateOf("") }
+    // Importar: primero se elige la plataforma y después se pega un solo enlace.
+    var importPlatform by remember { mutableStateOf<MusicService?>(null) }
     // Menú ⋯ por playlist (ítem 10) y confirmación de borrado en rojo (ítem 12).
     var confirmDelete by remember { mutableStateOf<Playlist?>(null) }
     // Ítem 1: cambiar nombre de la playlist (con propagación a las plataformas).
@@ -310,7 +310,7 @@ fun LibraryScreen(
                             icon = Icons.Rounded.Link,
                             onClick = {
                                 importLink = ""
-                                spotifyLink = ""
+                                importPlatform = null
                                 viewModel.resetImportState()
                                 dialog = LibraryDialog.IMPORT
                             },
@@ -624,7 +624,7 @@ fun LibraryScreen(
                 subtitle = "Spotify y YouTube: pega el enlace de la playlist",
                 onClick = {
                     importLink = ""
-                    spotifyLink = ""
+                    importPlatform = null
                     viewModel.resetImportState()
                     dialog = LibraryDialog.IMPORT
                 },
@@ -783,23 +783,77 @@ fun LibraryScreen(
                 },
             )
             Spacer(Modifier.height(16.dp))
-            ImportPlatformSection(
-                icon = BrandIcons.YouTube,
-                name = "YouTube",
-                hint = "https://www.youtube.com/playlist?list=…",
-                value = importLink,
-                onValueChange = { importLink = it },
-                enabled = !loading && success == null,
-            )
-            Spacer(Modifier.height(10.dp))
-            ImportPlatformSection(
-                icon = BrandIcons.Spotify,
-                name = "Spotify",
-                hint = "https://open.spotify.com/playlist/…",
-                value = spotifyLink,
-                onValueChange = { spotifyLink = it },
-                enabled = !loading && success == null,
-            )
+            val platform = importPlatform
+            if (platform == null) {
+                Text(
+                    text = "¿Desde dónde quieres importar?",
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Ink,
+                )
+                Spacer(Modifier.height(12.dp))
+                ImportPlatformChoice(
+                    icon = BrandIcons.YouTube,
+                    name = "YouTube",
+                    enabled = !loading && success == null,
+                    onClick = {
+                        importLink = ""
+                        importPlatform = MusicService.YOUTUBE
+                    },
+                )
+                Spacer(Modifier.height(10.dp))
+                ImportPlatformChoice(
+                    icon = BrandIcons.Spotify,
+                    name = "Spotify",
+                    enabled = !loading && success == null,
+                    onClick = {
+                        importLink = ""
+                        importPlatform = MusicService.SPOTIFY
+                    },
+                )
+            } else {
+                val platformIcon = if (platform == MusicService.YOUTUBE) {
+                    BrandIcons.YouTube
+                } else {
+                    BrandIcons.Spotify
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = platformIcon,
+                        contentDescription = null,
+                        tint = Color.Unspecified,
+                        modifier = Modifier.size(22.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = platform.displayName(),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Ink,
+                    )
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        text = "Cambiar",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Accent,
+                        modifier = Modifier
+                            .clickable(
+                                enabled = !loading && success == null,
+                                onClick = {
+                                    importPlatform = null
+                                    importLink = ""
+                                },
+                            )
+                            .padding(8.dp),
+                    )
+                }
+                Spacer(Modifier.height(10.dp))
+                GlassTextField(
+                    value = importLink,
+                    onValueChange = { importLink = it },
+                    placeholder = "Pegar url",
+                    enabled = !loading && success == null,
+                )
+            }
             when (val current = importState) {
                 ImportState.Loading -> {
                     Spacer(Modifier.height(16.dp))
@@ -843,27 +897,28 @@ fun LibraryScreen(
             } else {
                 GlassDialogActions {
                     GlassTextButton(
-                        text = "Cancelar",
+                        text = if (platform == null) "Cancelar" else "Atrás",
                         onClick = {
-                            dialog = null
-                            viewModel.resetImportState()
-                            importLink = ""
-                            spotifyLink = ""
+                            if (platform == null) {
+                                dialog = null
+                                viewModel.resetImportState()
+                                importLink = ""
+                            } else {
+                                importPlatform = null
+                                importLink = ""
+                            }
                         },
                         modifier = Modifier.weight(1f),
                         enabled = !loading,
                     )
-                    GlassPrimaryButton(
-                        text = if (loading) "Importando…" else "Importar",
-                        onClick = {
-                            // El enlace puede estar en cualquiera de las 2 secciones;
-                            // el enrutado (Spotify vs YouTube) lo decide el contenido.
-                            val link = importLink.trim().ifBlank { spotifyLink.trim() }
-                            viewModel.importPlaylist(link)
-                        },
-                        modifier = Modifier.weight(1f),
-                        enabled = (importLink.isNotBlank() || spotifyLink.isNotBlank()) && !loading,
-                    )
+                    if (platform != null) {
+                        GlassPrimaryButton(
+                            text = if (loading) "Importando…" else "Importar",
+                            onClick = { viewModel.importPlaylist(importLink.trim(), platform) },
+                            modifier = Modifier.weight(1f),
+                            enabled = importLink.isNotBlank() && !loading,
+                        )
+                    }
                 }
             }
         }
@@ -1225,49 +1280,46 @@ private fun songCount(count: Int): String = when (count) {
 }
 
 /**
- * Sección de importación por plataforma (tanda 7, punto 2): logo oficial +
- * nombre + campo propio para pegar el enlace de esa plataforma.
+ * Opción de plataforma en el primer paso del import: logo oficial + nombre.
+ * Al elegirla se muestra un único campo «Pegar url» para esa plataforma.
  */
 @Composable
-private fun ImportPlatformSection(
+private fun ImportPlatformChoice(
     icon: ImageVector,
     name: String,
-    hint: String,
-    value: String,
-    onValueChange: (String) -> Unit,
     enabled: Boolean,
+    onClick: () -> Unit,
 ) {
     val shape = RoundedCornerShape(16.dp)
-    Column(
+    val interaction = remember { MutableInteractionSource() }
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
             .background(Surface2.copy(alpha = 0.55f))
             .border(1.dp, Color.White.copy(alpha = 0.10f), shape)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                enabled = enabled,
+                onClick = onClick,
+            )
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                // Sin tinte: los iconos de marca conservan sus colores oficiales.
-                tint = Color.Unspecified,
-                modifier = Modifier.size(22.dp),
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                color = Ink,
-            )
-        }
-        Spacer(Modifier.height(10.dp))
-        GlassTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = hint,
-            enabled = enabled,
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            // Sin tinte: los iconos de marca conservan sus colores oficiales.
+            tint = Color.Unspecified,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Medium,
+            color = if (enabled) Ink else Faint,
         )
     }
 }
