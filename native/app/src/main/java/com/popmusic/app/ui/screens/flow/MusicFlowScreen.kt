@@ -94,6 +94,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.popmusic.app.domain.LyricLine
 import com.popmusic.app.domain.Song
 import com.popmusic.app.player.PlayerUiState
+import com.popmusic.app.ui.components.AnimatedFavoriteHeart
 import com.popmusic.app.ui.components.Artwork
 import com.popmusic.app.ui.components.GlassBackdrop
 import com.popmusic.app.ui.components.PopIconButton
@@ -283,19 +284,22 @@ private fun FlowPage(
             },
     ) {
         if (showHeartBurst || heartScale > 0.05f) {
-            Icon(
-                imageVector = Icons.Rounded.Favorite,
-                contentDescription = null,
-                tint = Accent,
+            Box(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .size(88.dp)
                     .graphicsLayer {
-                        scaleX = heartScale
-                        scaleY = heartScale
+                        scaleX = heartScale / 1.25f
+                        scaleY = heartScale / 1.25f
                         alpha = (heartScale / 1.25f).coerceIn(0f, 1f)
                     },
-            )
+            ) {
+                AnimatedFavoriteHeart(
+                    active = true,
+                    iconSize = 80.dp,
+                    trigger = 1,
+                    popOnActivate = false,
+                )
+            }
         }
 
         Column(

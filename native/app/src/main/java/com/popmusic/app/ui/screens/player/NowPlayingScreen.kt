@@ -56,8 +56,6 @@ import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.DownloadDone
-import androidx.compose.material.icons.rounded.Favorite
-import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -120,6 +118,7 @@ import androidx.media3.common.Player
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.popmusic.app.domain.Lyrics
 import com.popmusic.app.player.PlayerUiState
+import com.popmusic.app.ui.components.AnimatedFavoriteHeart
 import com.popmusic.app.ui.components.Artwork
 import com.popmusic.app.ui.components.GlassBackdrop
 import com.popmusic.app.ui.components.MusicLoader
@@ -481,23 +480,17 @@ fun NowPlayingScreen(
                                     ),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Icon(
-                                    imageVector = if (isFavorite) {
-                                        Icons.Rounded.Favorite
-                                    } else {
-                                        Icons.Rounded.FavoriteBorder
-                                    },
+                                AnimatedFavoriteHeart(
+                                    active = isFavorite,
+                                    iconSize = 24.dp,
+                                    trigger = if (isFavorite) 1 else 0,
+                                    inactiveTint = OnInk,
+                                    popOnActivate = false,
                                     contentDescription = if (isFavorite) {
                                         "Quitar de favoritos"
                                     } else {
                                         "Añadir a favoritos"
                                     },
-                                    tint = if (isFavorite) {
-                                        Color(0xFFFF3B30)
-                                    } else {
-                                        OnInk
-                                    },
-                                    modifier = Modifier.size(24.dp),
                                 )
                             }
                         }

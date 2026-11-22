@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -43,7 +42,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.popmusic.app.domain.Song
-import com.popmusic.app.ui.theme.Danger
 import com.popmusic.app.ui.theme.pressScale
 
 @Composable
@@ -224,12 +222,7 @@ fun TrackRow(
                 )
                 if (liked) {
                     Spacer(Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Rounded.Favorite,
-                        contentDescription = "Favorito",
-                        tint = Danger,
-                        modifier = Modifier.size(15.dp),
-                    )
+                    FavoriteBadge(active = true)
                 }
             }
             Text(
@@ -319,12 +312,7 @@ fun GroupedSongList(
                             )
                             if (song.id in favoriteIds) {
                                 Spacer(Modifier.width(6.dp))
-                                Icon(
-                                    imageVector = Icons.Rounded.Favorite,
-                                    contentDescription = "Favorito",
-                                    tint = Danger,
-                                    modifier = Modifier.size(15.dp),
-                                )
+                                FavoriteBadge(active = true)
                             }
                         }
                         Text(
