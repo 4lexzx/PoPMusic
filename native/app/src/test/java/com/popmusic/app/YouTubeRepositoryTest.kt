@@ -2,13 +2,33 @@ package com.popmusic.app
 
 import com.popmusic.app.data.youtube.YouTubeRepository
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class YouTubeRepositoryTest {
 
     private val repository = YouTubeRepository()
+
+    @Test
+    fun playlistIdIsParsedFromLinks() {
+        assertEquals(
+            "PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI",
+            repository.playlistIdFrom("https://www.youtube.com/playlist?list=PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI"),
+        )
+        assertEquals(
+            "RDCLAK5uy_k0p8mK",
+            repository.playlistIdFrom("https://music.youtube.com/watch?v=abc&list=RDCLAK5uy_k0p8mK"),
+        )
+        assertEquals(
+            "PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI",
+            repository.playlistIdFrom("  PLFgquLnL59alCl_2TQvOiD5Vgm1hCaGSI  "),
+        )
+        assertNull(repository.playlistIdFrom("https://www.youtube.com/watch?v=k4V3Mo61fJM"))
+        assertNull(repository.playlistIdFrom(""))
+    }
 
     @Test
     fun searchReturnsSongs() = runBlocking {

@@ -10,6 +10,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,13 +20,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,6 +52,7 @@ import com.popmusic.app.ui.theme.Danger
 import com.popmusic.app.ui.theme.Ink
 import com.popmusic.app.ui.theme.Surface2
 import com.popmusic.app.ui.theme.Surface3
+import com.popmusic.app.ui.theme.pressScale
 
 @Composable
 fun RecognizeScreen(
@@ -111,7 +116,7 @@ fun RecognizeScreen(
         else -> if (permissionDenied) {
             "Necesitamos el micrófono para reconocer la canción."
         } else {
-            "Analizamos unos segundos de audio y buscamos la canción en YouTube Music."
+            "Analizamos unos segundos de audio y buscamos la canción."
         }
     }
 
@@ -150,12 +155,17 @@ fun RecognizeScreen(
                 ),
             contentAlignment = Alignment.Center,
         ) {
+            val micInteraction = remember { MutableInteractionSource() }
             Box(
                 modifier = Modifier
                     .size(140.dp)
                     .clip(CircleShape)
                     .background(Ink)
-                    .clickable(enabled = !busy) {
+                    .clickable(
+                        interactionSource = micInteraction,
+                        indication = ripple(color = Surface2),
+                        enabled = !busy,
+                    ) {
                         permissionDenied = false
                         when {
                             !hasPermission -> permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -165,7 +175,8 @@ fun RecognizeScreen(
                             }
                             else -> viewModel.start(context)
                         }
-                    },
+                    }
+                    .pressScale(micInteraction, pressedScale = 0.9f),
                 contentAlignment = Alignment.Center,
             ) {
                 if (state is RecognitionUiState.Recognizing) {
@@ -199,7 +210,32 @@ fun RecognizeScreen(
             textAlign = TextAlign.Center,
         )
 
+        if (state is RecognitionUiState.Recording) {
+            Spacer(Modifier.height(18.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline,
+                        shape = RoundedCornerShape(50),
+                    )
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = ripple(),
+                        onClick = { viewModel.cancel() },
+                    )
+                    .padding(horizontal = 30.dp, vertical = 10.dp),
+            ) {
+                Text(
+                    text = "Cancelar",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+
         Spacer(Modifier.weight(1f))
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(160.dp))
     }
 }

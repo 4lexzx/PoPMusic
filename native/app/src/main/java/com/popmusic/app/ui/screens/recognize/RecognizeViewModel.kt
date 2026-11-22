@@ -11,6 +11,7 @@ import com.popmusic.app.data.recognize.RecognitionRepository
 import com.popmusic.app.data.youtube.YouTubeRepository
 import com.popmusic.app.domain.Song
 import com.popmusic.app.media.AudioRecorder
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -31,14 +32,25 @@ class RecognizeViewModel(application: Application) : AndroidViewModel(applicatio
     var state by mutableStateOf<RecognitionUiState>(RecognitionUiState.Idle)
         private set
 
+    private var activeJob: Job? = null
+
+    /** Generación de la sesión actual: invalida los resultados si se cancela. */
+    @Volatile
+    private var runId = 0
+
     fun start(context: Context) {
         if (state is RecognitionUiState.Recording || state is RecognitionUiState.Recognizing) return
 
-        viewModelScope.launch {
+        val id = ++runId
+        activeJob = viewModelScope.launch {
             state = RecognitionUiState.Recording
 
             val file = runCatching { recorder.start() }.getOrElse { error ->
-                state = RecognitionUiState.Error(error.message ?: "No se pudo acceder al micrófono")
+                if (id == runId) {
+                    state = RecognitionUiState.Error(
+                        error.message ?: "No se pudo acceder al micrófono",
+                    )
+                }
                 return@launch
             }
 
@@ -46,14 +58,21 @@ class RecognizeViewModel(application: Application) : AndroidViewModel(applicatio
             val recorded = recorder.stop()
 
             if (recorded == null) {
-                state = RecognitionUiState.Error("La grabación falló. Inténtalo de nuevo.")
+                if (id == runId) {
+                    state = RecognitionUiState.Error("La grabación falló. Inténtalo de nuevo.")
+                }
                 return@launch
             }
 
+            if (id != runId) {
+                recorded.delete()
+                return@launch
+            }
             state = RecognitionUiState.Recognizing
             val recognized = runCatching { recognitionRepository.recognize(recorded) }.getOrNull()
             recorded.delete()
 
+            if (id != runId) return@launch
             if (recognized == null) {
                 state = RecognitionUiState.Error(
                     if (com.popmusic.app.BuildConfig.AUDD_API_KEY.isBlank()) {
@@ -69,6 +88,7 @@ class RecognizeViewModel(application: Application) : AndroidViewModel(applicatio
                 youtubeRepository.search("${recognized.title} ${recognized.artist}")
             }.getOrDefault(emptyList())
 
+            if (id != runId) return@launch
             val song = results.firstOrNull()
             state = if (song != null) {
                 RecognitionUiState.Found(song)
@@ -76,6 +96,15 @@ class RecognizeViewModel(application: Application) : AndroidViewModel(applicatio
                 RecognitionUiState.Error("Reconocimos \"${recognized.title}\" pero no encontramos el audio.")
             }
         }
+    }
+
+    /** Cancela la escucha/analisis en curso (botón "Cancelar" de Echo). */
+    fun cancel() {
+        runId++
+        activeJob?.cancel()
+        activeJob = null
+        recorder.cancel()
+        state = RecognitionUiState.Idle
     }
 
     fun reset() {

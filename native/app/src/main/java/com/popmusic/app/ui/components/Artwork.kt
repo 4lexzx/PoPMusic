@@ -1,8 +1,9 @@
 package com.popmusic.app.ui.components
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material3.Icon
@@ -10,15 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.shape.RoundedCornerShape
-import com.popmusic.app.ui.theme.Line
-import com.popmusic.app.ui.theme.Surface2
-import com.popmusic.app.ui.theme.Surface3
 import coil3.compose.AsyncImage
 
 @Composable
@@ -30,13 +26,7 @@ fun Artwork(
 ) {
     val shape = RoundedCornerShape(cornerRadius)
     Box(
-        modifier = modifier
-            .clip(shape)
-            .background(
-                Brush.linearGradient(
-                    listOf(Surface3, Surface2, Line),
-                ),
-            ),
+        modifier = modifier.clip(shape),
         contentAlignment = Alignment.Center,
     ) {
         if (url != null) {
@@ -50,9 +40,14 @@ fun Artwork(
             Icon(
                 imageVector = Icons.Rounded.MusicNote,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.55f),
+                tint = Color.White.copy(alpha = 0.5f),
                 modifier = Modifier.fillMaxSize(0.34f),
             )
         }
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(1.dp, Color.White.copy(alpha = 0.08f), shape),
+        )
     }
 }

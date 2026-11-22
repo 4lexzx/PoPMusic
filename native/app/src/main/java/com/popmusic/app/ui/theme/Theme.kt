@@ -1,13 +1,19 @@
 package com.popmusic.app.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
 
-private val PoPDarkScheme = darkColorScheme(
+/**
+ * Esquema dinámico: se reconstruye al cambiar el tinte ambiental del fondo
+ * (tanda 6, punto 5), así `MaterialTheme.colorScheme` sigue al fondo.
+ */
+private val PoPDarkScheme: ColorScheme
+    get() = darkColorScheme(
     primary = Ink,
     onPrimary = Black,
     primaryContainer = Surface3,

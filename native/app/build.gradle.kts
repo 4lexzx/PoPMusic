@@ -13,6 +13,17 @@ val localProperties = Properties().apply {
     }
 }
 val auddApiKey = localProperties.getProperty("audd.apiKey") ?: ""
+val supabaseUrl = localProperties.getProperty("supabase.url") ?: ""
+val supabaseAnonKey = localProperties.getProperty("supabase.anonKey") ?: ""
+val updateManifestUrl = localProperties.getProperty("update.url")
+    ?: "https://raw.githubusercontent.com/4lexzx/PoPMusic/main/native/update.json"
+val youtubeClientId = localProperties.getProperty("youtube.clientId") ?: ""
+val youtubeClientSecret = localProperties.getProperty("youtube.clientSecret") ?: ""
+val spotifyClientId = localProperties.getProperty("spotify.clientId") ?: ""
+val spotifyRedirectUri = localProperties.getProperty("spotify.redirectUri")
+    ?: "http://127.0.0.1:5599/callback"
+val youtubeRedirectUri = localProperties.getProperty("youtube.redirectUri")
+    ?: "http://127.0.0.1:5599/callback"
 
 val keystoreProperties = Properties().apply {
     val file = rootProject.file("keystore.properties")
@@ -33,6 +44,15 @@ android {
         versionName = "0.1.0"
 
         buildConfigField("String", "AUDD_API_KEY", "\"$auddApiKey\"")
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
+        buildConfigField("String", "SUPABASE_REDIRECT_URL", "\"popmusic://auth-callback\"")
+        buildConfigField("String", "UPDATE_MANIFEST_URL", "\"$updateManifestUrl\"")
+        buildConfigField("String", "YOUTUBE_CLIENT_ID", "\"$youtubeClientId\"")
+        buildConfigField("String", "YOUTUBE_CLIENT_SECRET", "\"$youtubeClientSecret\"")
+        buildConfigField("String", "SPOTIFY_CLIENT_ID", "\"$spotifyClientId\"")
+        buildConfigField("String", "MUSIC_REDIRECT_URI", "\"$spotifyRedirectUri\"")
+        buildConfigField("String", "YOUTUBE_REDIRECT_URI", "\"$youtubeRedirectUri\"")
     }
 
     signingConfigs {
@@ -49,13 +69,21 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            if (keystoreProperties.isNotEmpty()) {
-                signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (keystoreProperties.isNotEmpty()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
             }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+        }
+        create("perf") {
+            initWith(getByName("release"))
+            isDebuggable = false
+            applicationIdSuffix = ".perf"
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -108,6 +136,9 @@ dependencies {
     implementation(libs.androidx.media3.session)
     implementation(libs.newpipe.extractor)
     implementation(libs.okhttp)
+    implementation(libs.haze)
+    implementation(libs.haze.blur)
+    implementation(libs.androidx.palette.ktx)
     coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
 
     debugImplementation(libs.androidx.compose.ui.tooling)

@@ -1,0 +1,13 @@
+{
+  "published": false,
+  "versionCode": 2,
+  "versionName": "0.2.0",
+  "apkUrl": "",
+  "sha256": "",
+  "sizeBytes": 0,
+  "mandatory": false,
+  "changelog": [
+    "Mejoras de rendimiento y estabilidad.",
+    "Actualizaciones de la interfaz y del reproductor."
+  ]
+}

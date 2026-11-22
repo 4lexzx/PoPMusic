@@ -1,9 +1,13 @@
-package com.popmusic.app.ui.components
+﻿package com.popmusic.app.ui.components
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,18 +15,56 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.popmusic.app.domain.Song
+import com.popmusic.app.ui.theme.Danger
+import com.popmusic.app.ui.theme.pressScale
+
+@Composable
+fun TopBarIcon(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = modifier.size(38.dp),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = tint,
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
 
 @Composable
 fun SectionHeader(
@@ -30,24 +72,58 @@ fun SectionHeader(
     modifier: Modifier = Modifier,
     action: String? = null,
     onActionClick: (() -> Unit)? = null,
+    playAll: Boolean = false,
+    onPlayAll: (() -> Unit)? = null,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = modifier.fillMaxWidth().enterOnVisible(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
+            text = title.uppercase(),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
-        if (action != null && onActionClick != null) {
+        if (playAll && onPlayAll != null) {
+            OutlinedButton(
+                onClick = onPlayAll,
+                shape = RoundedCornerShape(50),
+                border = BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
+                modifier = Modifier.height(28.dp),
+            ) {
+                Text(
+                    text = "Reproducir todo",
+                    style = MaterialTheme.typography.labelSmall,
+                    maxLines = 1,
+                )
+            }
+        } else if (action != null && onActionClick != null) {
+            val interaction = remember { MutableInteractionSource() }
             Text(
                 text = action,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier
-                    .clickable(onClick = onActionClick)
-                    .padding(4.dp),
+                    .clip(RoundedCornerShape(50))
+                    .clickable(
+                        interactionSource = interaction,
+                        indication = ripple(bounded = true),
+                        onClick = onActionClick,
+                    )
+                    .pressScale(interaction, pressedScale = 0.90f)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
     }
@@ -59,16 +135,26 @@ fun MediaCard(
     subtitle: String,
     artworkUrl: String? = null,
     width: Dp = 148.dp,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .width(width)
-            .clickable(onClick = onClick),
+            .enterOnVisible()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                onClick = onClick,
+            )
+            .pressScale(interaction, pressedScale = 0.95f)
+            .padding(4.dp),
     ) {
         Artwork(
             url = artworkUrl,
-            modifier = Modifier.size(width),
+            modifier = Modifier.size(width - 8.dp),
             cornerRadius = 14.dp,
             iconSize = 34.dp,
         )
@@ -94,15 +180,26 @@ fun TrackRow(
     title: String,
     artist: String,
     artworkUrl: String? = null,
+    liked: Boolean = false,
     modifier: Modifier = Modifier,
     onClick: () -> Unit = {},
     onMoreClick: (() -> Unit)? = null,
+    /** Menú compacto sólido anclado al ⋯; recibe el cierre del menú. */
+    moreMenu: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
 ) {
+    val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 6.dp),
+            .enterOnVisible()
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                onClick = onClick,
+            )
+            .pressScale(interaction, pressedScale = 0.98f)
+            .padding(horizontal = 6.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Artwork(
@@ -113,12 +210,27 @@ fun TrackRow(
         )
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            // Item 4 (tanda 3): el favorito va a la derecha del título con
+            // el texto ocupando todo el ancho, de modo que todos los
+            // corazones quedan alineados en la misma posición.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                if (liked) {
+                    Spacer(Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Rounded.Favorite,
+                        contentDescription = "Favorito",
+                        tint = Danger,
+                        modifier = Modifier.size(15.dp),
+                    )
+                }
+            }
             Text(
                 text = artist,
                 style = MaterialTheme.typography.bodyMedium,
@@ -127,13 +239,120 @@ fun TrackRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        if (onMoreClick != null) {
-            IconButton(onClick = onMoreClick) {
-                Icon(
-                    imageVector = Icons.Rounded.MoreVert,
+        if (onMoreClick != null || moreMenu != null) {
+            Box {
+                var menuOpen by remember { mutableStateOf(false) }
+                PopIconButton(
+                    icon = Icons.Rounded.MoreVert,
                     contentDescription = "Más opciones",
+                    onClick = {
+                        if (moreMenu != null) {
+                            menuOpen = true
+                        } else {
+                            onMoreClick?.invoke()
+                        }
+                    },
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    iconSize = 22.dp,
                 )
+                if (moreMenu != null) {
+                    SolidMenu(
+                        expanded = menuOpen,
+                        onDismiss = { menuOpen = false },
+                    ) { dismiss ->
+                        moreMenu(dismiss)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Lista de canciones agrupada en un único contenedor redondeado, como en
+ * Echo Music (una tarjeta con filas separadas por divisores sutiles).
+ */
+@Composable
+fun GroupedSongList(
+    songs: List<Song>,
+    onPlay: (index: Int) -> Unit,
+    modifier: Modifier = Modifier,
+    onMore: ((Song) -> Unit)? = null,
+    /** Ids de favoritos: se marca el corazón junto al nombre (ítem 4). */
+    favoriteIds: Set<String> = emptySet(),
+) {
+    if (songs.isEmpty()) return
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+    ) {
+        Column {
+            songs.forEachIndexed { index, song ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        // Entrada escalonada: 0, 25, 50… máx. 175 ms de retardo.
+                        .enterOnVisible(delayMillis = (index * 25).coerceAtMost(175))
+                        .clickable { onPlay(index) }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Artwork(
+                        url = song.thumbnailUrl,
+                        modifier = Modifier.size(48.dp),
+                        cornerRadius = 10.dp,
+                        iconSize = 20.dp,
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = song.title,
+                                style = MaterialTheme.typography.titleMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                            if (song.id in favoriteIds) {
+                                Spacer(Modifier.width(6.dp))
+                                Icon(
+                                    imageVector = Icons.Rounded.Favorite,
+                                    contentDescription = "Favorito",
+                                    tint = Danger,
+                                    modifier = Modifier.size(15.dp),
+                                )
+                            }
+                        }
+                        Text(
+                            text = song.artist,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (onMore != null) {
+                        PopIconButton(
+                            icon = Icons.Rounded.MoreVert,
+                            contentDescription = "Más opciones",
+                            onClick = { onMore(song) },
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            iconSize = 22.dp,
+                        )
+                    }
+                }
+                if (index != songs.lastIndex) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 72.dp, end = 12.dp)
+                            .height(1.dp)
+                            .background(
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                            ),
+                    )
+                }
             }
         }
     }

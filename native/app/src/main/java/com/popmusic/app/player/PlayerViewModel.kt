@@ -1,21 +1,79 @@
 package com.popmusic.app.player
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import com.popmusic.app.PoPMusicApplication
+import com.popmusic.app.data.recommendations.RecommendationsRepository
 import com.popmusic.app.domain.Song
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
     private val app = application as PoPMusicApplication
     private val connection = app.playerConnection
+    private val recommendations = RecommendationsRepository()
+    private var autoExtend = false
+    private var queueIds: Set<String> = emptySet()
+    private var radioJob: Job? = null
+    private var prefetchedKey: String? = null
 
     val state: StateFlow<PlayerUiState> = connection.state
+    val positionMs: StateFlow<Long> = connection.positionMs
 
-    fun play(songs: List<Song>, startIndex: Int = 0) = connection.play(songs, startIndex)
+    init {
+        connection.onNearQueueEnd = {
+            if (autoExtend && radioJob?.isActive != true) {
+                radioJob = viewModelScope.launch {
+                    val batch = runCatching {
+                        recommendations.radio(
+                            library = app.libraryRepository.state.value,
+                            excludeIds = queueIds,
+                        )
+                    }.onFailure {
+                        Log.w(TAG, "No se pudo ampliar la cola", it)
+                    }.getOrDefault(emptyList())
+                    if (batch.isNotEmpty()) {
+                        queueIds = queueIds + batch.map { it.id }
+                        connection.addToQueue(batch)
+                        Log.d(TAG, "Radio añadió ${batch.size} canciones a la cola")
+                    }
+                }
+            }
+        }
 
-    fun addToQueue(songs: List<Song>) = connection.addToQueue(songs)
+        viewModelScope.launch {
+            connection.state.collect { state ->
+                if (state.mediaId.isBlank() || state.durationMs <= 0L) return@collect
+                val key = "${state.mediaId}|${state.durationMs / 1000}"
+                if (key == prefetchedKey) return@collect
+                prefetchedKey = key
+                app.lyricsRepository.prefetch(
+                    songId = state.mediaId,
+                    title = state.title,
+                    artist = state.artist,
+                    durationMs = state.durationMs,
+                )
+            }
+        }
+    }
+
+    fun play(songs: List<Song>, startIndex: Int = 0, autoExtend: Boolean = false) {
+        this.autoExtend = autoExtend
+        queueIds = songs.mapTo(HashSet()) { it.id }
+        radioJob?.cancel()
+        connection.play(songs, startIndex)
+    }
+
+    fun addToQueue(songs: List<Song>) {
+        queueIds = queueIds + songs.map { it.id }
+        connection.addToQueue(songs)
+    }
 
     fun next() = connection.next()
 
@@ -25,9 +83,28 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun seekTo(positionMs: Long) = connection.seekTo(positionMs)
 
+    fun currentPositionMs(): Long = connection.currentPositionMs()
+
     fun setRepeatMode(mode: Int) = connection.setRepeatMode(mode)
 
     fun setShuffle(enabled: Boolean) = connection.setShuffle(enabled)
 
+    fun prefetchAllQueue() = connection.prefetchAllQueue()
+
+    fun setInstantPlay(enabled: Boolean) {
+        app.preferences.updatePlayback { it.copy(instantPlay = enabled) }
+    }
+
+    val instantPlay: Flow<Boolean> = app.preferences.playback.map { it.instantPlay }
+
     fun clearError() = connection.clearError()
+
+    override fun onCleared() {
+        connection.onNearQueueEnd = null
+        super.onCleared()
+    }
+
+    private companion object {
+        const val TAG = "PlayerViewModel"
+    }
 }
