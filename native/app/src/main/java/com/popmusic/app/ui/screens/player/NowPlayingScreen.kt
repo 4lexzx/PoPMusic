@@ -180,6 +180,16 @@ fun NowPlayingScreen(
     val currentDurationMs by rememberUpdatedState(state.durationMs)
     val currentOnSeek by rememberUpdatedState(onSeek)
     val currentOnBack by rememberUpdatedState(onBack)
+    val currentOnNext by rememberUpdatedState(onNext)
+    val currentOnPrevious by rememberUpdatedState(onPrevious)
+
+    // Deslizar la carátula cambia de pista: a la derecha = anterior,
+    // a la izquierda = siguiente. Se suma a los botones, no los sustituye.
+    val swipeX = remember { mutableFloatStateOf(0f) }
+    val swipeScope = rememberCoroutineScope()
+    val swipeThresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
+    // Distancia de salida para la transición en carrusel (fuera de pantalla).
+    val swipeOutPx = with(LocalDensity.current) { 340.dp.toPx() }
 
     // Letras (carga compartida con LyricsScreen vía el mismo ViewModel).
     val lyricsViewModel: LyricsViewModel = viewModel()
@@ -340,14 +350,108 @@ fun NowPlayingScreen(
                     val artSize = minOf(maxWidth, maxHeight - 72.dp)
                         .coerceAtLeast(140.dp)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        PlayerArtwork(
-                            artworkUrl = state.artworkUrl,
-                            isPlaying = state.isPlaying,
-                            isBuffering = state.isBuffering,
-                            onTogglePlayPause = onTogglePlayPause,
-                            onToggleFavorite = onToggleFavorite,
-                            modifier = Modifier.size(artSize),
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(artSize)
+                                .graphicsLayer {
+                                    translationX = swipeX.floatValue
+                                    // La carátula se inclina y se desvanece al
+                                    // arrastrarla, como una tarjeta que sale.
+                                    rotationZ = (swipeX.floatValue / swipeOutPx) * 8f
+                                    val t = (kotlin.math.abs(swipeX.floatValue) / swipeOutPx)
+                                        .coerceIn(0f, 1f)
+                                    alpha = 1f - t * 0.55f
+                                    scaleX = 1f - t * 0.08f
+                                    scaleY = scaleX
+                                }
+                                .pointerInput(Unit) {
+                                    detectHorizontalDragGestures(
+                                        onDragStart = { swipeX.floatValue = 0f },
+                                        onDragEnd = {
+                                            val x = swipeX.floatValue
+                                            when {
+                                                x >= swipeThresholdPx -> swipeScope.launch {
+                                                    // Sale hacia la derecha, cambia
+                                                    // de pista y la nueva entra desde
+                                                    // la izquierda con muelle suave.
+                                                    animate(
+                                                        x,
+                                                        swipeOutPx,
+                                                        animationSpec = tween(170),
+                                                    ) { value, _ -> swipeX.floatValue = value }
+                                                    currentOnPrevious()
+                                                    animate(
+                                                        -swipeOutPx,
+                                                        0f,
+                                                        animationSpec = spring(
+                                                            stiffness = Spring.StiffnessLow,
+                                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                                        ),
+                                                    ) { value, _ -> swipeX.floatValue = value }
+                                                }
+
+                                                x <= -swipeThresholdPx -> swipeScope.launch {
+                                                    animate(
+                                                        x,
+                                                        -swipeOutPx,
+                                                        animationSpec = tween(170),
+                                                    ) { value, _ -> swipeX.floatValue = value }
+                                                    currentOnNext()
+                                                    animate(
+                                                        swipeOutPx,
+                                                        0f,
+                                                        animationSpec = spring(
+                                                            stiffness = Spring.StiffnessLow,
+                                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                                        ),
+                                                    ) { value, _ -> swipeX.floatValue = value }
+                                                }
+
+                                                else -> swipeScope.launch {
+                                                    animate(
+                                                        x,
+                                                        0f,
+                                                        animationSpec = spring(
+                                                            stiffness = Spring.StiffnessMedium,
+                                                            dampingRatio = Spring.DampingRatioNoBouncy,
+                                                        ),
+                                                    ) { value, _ -> swipeX.floatValue = value }
+                                                }
+                                            }
+                                        },
+                                        onDragCancel = {
+                                            val from = swipeX.floatValue
+                                            swipeScope.launch {
+                                                animate(
+                                                    from,
+                                                    0f,
+                                                    animationSpec = spring(
+                                                        stiffness = Spring.StiffnessMedium,
+                                                        dampingRatio = Spring.DampingRatioNoBouncy,
+                                                    ),
+                                                ) { value, _ -> swipeX.floatValue = value }
+                                            }
+                                        },
+                                        onHorizontalDrag = { change, amount ->
+                                            change.consume()
+                                            swipeX.floatValue =
+                                                (swipeX.floatValue + amount).coerceIn(
+                                                    -swipeOutPx,
+                                                    swipeOutPx,
+                                                )
+                                        },
+                                    )
+                                },
+                        ) {
+                            PlayerArtwork(
+                                artworkUrl = state.artworkUrl,
+                                isPlaying = state.isPlaying,
+                                isBuffering = state.isBuffering,
+                                onTogglePlayPause = onTogglePlayPause,
+                                onToggleFavorite = onToggleFavorite,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
                         Spacer(Modifier.height(18.dp))
                         PlayerSyncedLine(
                             lyrics = lyrics,

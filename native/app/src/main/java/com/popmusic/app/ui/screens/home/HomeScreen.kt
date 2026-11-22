@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.popmusic.app.data.filter.ContentFilters
+import com.popmusic.app.data.recommendations.DiscoveryPool
 import com.popmusic.app.data.recommendations.MOODS
 import com.popmusic.app.data.recommendations.Mood
 import com.popmusic.app.data.recent.RecentStore
@@ -112,6 +113,8 @@ fun HomeScreen(
     onOpenParty: () -> Unit,
     onOpenAccount: () -> Unit,
     onPlay: (List<Song>, Int, Boolean) -> Unit,
+    /** Arranca una radio de la canción elegida (búsqueda, tendencias, descubrimiento). */
+    onPlayRadio: (Song) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
 ) {
@@ -366,7 +369,7 @@ fun HomeScreen(
                         ) {
                             DailyDiscoveryCard(
                                 song = hero,
-                                onPlay = { onPlay(heroes, page % heroes.size, true) },
+                                onPlay = { onPlayRadio(hero) },
                             )
                         }
                     }
@@ -415,7 +418,7 @@ fun HomeScreen(
                             modifier = Modifier.width(132.dp),
                             onClick = {
                                 if (randomPool.isNotEmpty()) {
-                                    onPlay(randomPool, Random.nextInt(randomPool.size), false)
+                                    onPlayRadio(randomPool[Random.nextInt(randomPool.size)])
                                 }
                             },
                         )
@@ -458,7 +461,7 @@ fun HomeScreen(
                                     val filtered =
                                         ContentFilters.apply(songs, hideVideos, hideShorts)
                                     if (filtered.isNotEmpty()) {
-                                        onPlay(filtered, 0, true)
+                                        onPlayRadio(filtered[0])
                                     }
                                 }
                             },
@@ -486,7 +489,7 @@ fun HomeScreen(
                             ChartTile(
                                 rank = index + 1,
                                 song = song,
-                                onClick = { onPlay(chartSongs, index, true) },
+                                onClick = { onPlayRadio(song) },
                             )
                         }
                     }
@@ -505,7 +508,7 @@ fun HomeScreen(
                         SectionHeader(
                             title = "Para ti",
                             playAll = true,
-                            onPlayAll = { onPlay(songs, 0, true) },
+                            onPlayAll = { if (songs.isNotEmpty()) onPlayRadio(songs[0]) },
                             action = if (tab == HomeTab.ALL && tasteSongs.size > 6) {
                                 "Ver todo"
                             } else {
@@ -531,7 +534,7 @@ fun HomeScreen(
                         GroupedSongList(
                             songs = songs,
                             favoriteIds = favoriteIds,
-                            onPlay = { index -> onPlay(songs, index, true) },
+                            onPlay = { index -> onPlayRadio(songs[index]) },
                         )
                     }
                 }
@@ -546,7 +549,7 @@ fun HomeScreen(
                 SongShelf(
                     title = section.title,
                     songs = section.songs,
-                    onPlay = onPlay,
+                    onPlayRadio = onPlayRadio,
                     favoriteIds = favoriteIds,
                 )
             }
@@ -612,7 +615,7 @@ fun HomeScreen(
                 SongShelf(
                     title = section.title,
                     songs = section.songs,
-                    onPlay = onPlay,
+                    onPlayRadio = onPlayRadio,
                     favoriteIds = favoriteIds,
                 )
             }
@@ -1059,22 +1062,30 @@ private fun QuickTile(
 private fun SongShelf(
     title: String,
     songs: List<Song>,
-    onPlay: (List<Song>, Int, Boolean) -> Unit,
+    onPlayRadio: (Song) -> Unit,
     favoriteIds: Set<String> = emptySet(),
 ) {
     if (songs.isEmpty()) return
+    fun play(song: Song) {
+        // El título de la estantería ("Metal", "Reggaetón"...) se guarda como
+        // etiqueta para que la radio explore todo el género, no solo la canción.
+        DiscoveryPool.add(listOf(song), listOf(title))
+        onPlayRadio(song)
+    }
     Spacer(Modifier.height(24.dp))
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         SectionHeader(
             title = title,
             playAll = true,
-            onPlayAll = { onPlay(songs, 0, false) },
+            // Los géneros y las secciones de descubrimiento son radios:
+            // arrancan en la canción elegida y siguen con parecidas sin parar.
+            onPlayAll = { play(songs[0]) },
         )
         Spacer(Modifier.height(10.dp))
         GroupedSongList(
             songs = songs,
             favoriteIds = favoriteIds,
-            onPlay = { index -> onPlay(songs, index, false) },
+            onPlay = { index -> play(songs[index]) },
         )
     }
 }

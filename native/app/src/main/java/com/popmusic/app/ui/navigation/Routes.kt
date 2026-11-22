@@ -16,6 +16,7 @@ object Routes {
     const val TASTES = "tastes"
     const val PARTY = "party"
     const val PLAYLIST = "playlist/{playlistId}"
+    const val ARTIST = "artist"
 
     fun playlist(playlistId: String): String = "playlist/$playlistId"
 }

@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.popmusic.app.PoPMusicApplication
+import com.popmusic.app.data.recommendations.DiscoveryPool
 import com.popmusic.app.data.recommendations.RecommendationsRepository
 import com.popmusic.app.domain.Lyrics
 import com.popmusic.app.domain.Song
@@ -76,6 +77,7 @@ class MusicFlowViewModel(application: Application) : AndroidViewModel(applicatio
                 Log.w(TAG, "No se pudo cargar el feed del flow", it)
             }.getOrNull()?.songs.orEmpty()
 
+            DiscoveryPool.add(fresh, taste.genres.toList() + taste.artists)
             val merged = (local + fresh).distinctBy { it.id }
             state = MusicFlowState(
                 songs = merged,

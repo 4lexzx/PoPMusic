@@ -11,6 +11,7 @@ import com.popmusic.app.PoPMusicApplication
 import com.popmusic.app.data.charts.ChartsRepository
 import com.popmusic.app.data.filter.ContentFilters
 import com.popmusic.app.data.library.LibraryState
+import com.popmusic.app.data.recommendations.DiscoveryPool
 import com.popmusic.app.data.recommendations.RecommendationsRepository
 import com.popmusic.app.data.youtube.YouTubeRepository
 import com.popmusic.app.domain.Song
@@ -80,11 +81,21 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     val chartPageCount: Int
         get() = (chartList.size + CHART_PAGE_SIZE - 1) / CHART_PAGE_SIZE
 
+    /** Artistas distintos de la última búsqueda, para la tarjeta de artista. */
+    var artistMatches by mutableStateOf<List<Pair<String, Song>>>(emptyList())
+        private set
+
     init {
         viewModelScope.launch {
+            val taste = app.preferences.taste.value
             forYou = filtered(runCatching {
-                recommendations.forTaste(app.libraryRepository.state.value).songs
+                recommendations.forTaste(
+                    library = app.libraryRepository.state.value,
+                    tasteGenres = taste.genres,
+                    tasteArtists = taste.artists,
+                ).songs
             }.getOrDefault(emptyList()))
+            DiscoveryPool.add(forYou, taste.genres.toList() + taste.artists)
         }
         loadTrending(DEFAULT_CHART_COUNTRY)
     }
@@ -116,6 +127,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                         .getOrDefault(emptyList())
                 }
             trending = songs
+            DiscoveryPool.add(songs)
             isChartLoading = false
         }
     }
@@ -141,6 +153,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         val term = value.trim()
         if (term.length < 2) {
             results = emptyList()
+            artistMatches = emptyList()
             error = null
             isLoading = false
             return
@@ -181,6 +194,8 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             isLoading = false
             error = null
             results = localMatches(term)
+            artistMatches = artistCards(results, term)
+            DiscoveryPool.add(results, listOf(term))
             return
         }
         isLoading = true
@@ -198,7 +213,11 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
 
         outcome
             .onFailure { error = it.message ?: "Error de búsqueda" }
-            .onSuccess { results = filtered(it) }
+            .onSuccess { songs ->
+                results = filtered(songs)
+                artistMatches = artistCards(results, term)
+                DiscoveryPool.add(results, listOf(term))
+            }
         isLoading = false
     }
 
@@ -220,6 +239,30 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
         return filtered(matches)
+    }
+
+    /** Artistas de los resultados, con los que concuerdan mejor primero. */
+    private fun artistCards(songs: List<Song>, term: String): List<Pair<String, Song>> {
+        val needle = normalize(term)
+        return songs
+            .filter { it.artist.isNotBlank() }
+            .groupBy { it.artist.trim() }
+            .map { (artist, group) ->
+                val key = normalize(artist)
+                val score = when {
+                    key == needle -> 3
+                    key.contains(needle) -> 2
+                    needle.contains(key) && key.length >= 3 -> 1
+                    else -> 0
+                }
+                val cover = group.firstOrNull { !it.thumbnailUrl.isNullOrBlank() } ?: group.first()
+                Triple(artist, cover, score to group.size)
+            }
+            .filter { it.third.first > 0 || needle.isBlank() }
+            .sortedWith(compareByDescending<Triple<String, Song, Pair<Int, Int>>> { it.third.first }
+                .thenByDescending { it.third.second })
+            .take(3)
+            .map { it.first to it.second }
     }
 
     private fun loadSource(): SearchSource = runCatching {

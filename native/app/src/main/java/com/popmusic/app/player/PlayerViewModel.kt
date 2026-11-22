@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.popmusic.app.PoPMusicApplication
+import com.popmusic.app.data.recommendations.DiscoveryPool
 import com.popmusic.app.data.recommendations.RecommendationsRepository
 import com.popmusic.app.domain.Song
 import kotlinx.coroutines.Job
@@ -22,35 +23,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var queueIds: Set<String> = emptySet()
     private var radioJob: Job? = null
     private var prefetchedKey: String? = null
-    /** Artista de la canción elegida, por si el estado aún no lo trae. */
-    private var lastArtist: String? = null
+    /** Semilla original de la radio: el género no cambia al avanzar la cola. */
+    private var radioSeed: Song? = null
 
     val state: StateFlow<PlayerUiState> = connection.state
     val positionMs: StateFlow<Long> = connection.positionMs
 
     init {
         connection.onNearQueueEnd = {
-            if (autoExtend && radioJob?.isActive != true) {
-                radioJob = viewModelScope.launch {
-                    // Semilla = lo que está sonando ahora (no la primera canción
-                    // de la cola), para que la radio siga al mismo artista.
-                    val current = connection.state.value
-                    val seed = current.artist.ifBlank { lastArtist.orEmpty() }
-                    val batch = runCatching {
-                        recommendations.radio(
-                            library = app.libraryRepository.state.value,
-                            excludeIds = queueIds,
-                            seedArtist = seed,
-                        )
-                    }.onFailure {
-                        Log.w(TAG, "No se pudo ampliar la cola", it)
-                    }.getOrDefault(emptyList())
-                    if (batch.isNotEmpty()) {
-                        queueIds = queueIds + batch.map { it.id }
-                        connection.addToQueue(batch)
-                        Log.d(TAG, "Radio añadió ${batch.size} canciones a la cola")
-                    }
-                }
+            if (autoExtend) {
+                // Igual que el playlist RD de YouTube: la radio se construye
+                // desde la semilla elegida, no desde la última canción que
+                // sonó. Así el género queda fijo y solo cambian las canciones.
+                radioSeed?.let(::extendRadio)
             }
         }
 
@@ -72,10 +57,50 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     fun play(songs: List<Song>, startIndex: Int = 0, autoExtend: Boolean = false) {
         this.autoExtend = autoExtend
-        lastArtist = songs.getOrNull(startIndex)?.artist
         queueIds = songs.mapTo(HashSet()) { it.id }
         radioJob?.cancel()
         connection.play(songs, startIndex)
+    }
+
+    /**
+     * Reproduce una sola canción como semilla de radio, igual que hace Echo
+     * al tocar un resultado de búsqueda o un tema de Tendencias: la cola se
+     * construye con canciones parecidas a la elegida, no con el resto de la
+     * lista ordenada que viniera de detrás.
+     */
+    fun playRadio(seed: Song) {
+        autoExtend = true
+        radioSeed = seed
+        queueIds = setOf(seed.id)
+        radioJob?.cancel()
+        recommendations.resetRadio()
+        connection.play(listOf(seed), 0)
+        extendRadio(seed)
+    }
+
+    private fun extendRadio(seed: Song) {
+        if (radioJob?.isActive == true) return
+        radioJob = viewModelScope.launch {
+            val batch = runCatching {
+                recommendations.radio(
+                    library = app.libraryRepository.state.value,
+                    excludeIds = queueIds,
+                    seedSong = seed,
+                    discovered = DiscoveryPool.snapshot(),
+                )
+            }.onFailure {
+                Log.w(TAG, "No se pudo crear la radio de ${seed.title}", it)
+            }.getOrDefault(emptyList())
+            if (batch.isNotEmpty()) {
+                queueIds = queueIds + batch.map { it.id }
+                connection.addToQueue(batch)
+                Log.d(
+                    TAG,
+                    "Radio de ${seed.title}: ${batch.size} canciones parecidas → " +
+                        batch.joinToString(" | ") { "${it.title} (${it.artist})" },
+                )
+            }
+        }
     }
 
     fun addToQueue(songs: List<Song>) {

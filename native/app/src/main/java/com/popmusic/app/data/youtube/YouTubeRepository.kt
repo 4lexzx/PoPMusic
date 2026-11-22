@@ -12,6 +12,7 @@ import org.schabi.newpipe.extractor.search.SearchExtractor
 import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
+import org.schabi.newpipe.extractor.InfoItem
 import java.util.UUID
 
 data class VideoDetails(
@@ -181,6 +182,50 @@ class YouTubeRepository {
         null
     }
 
+    /** Etiquetas y categoría del vídeo semilla, para fijar el género de la radio. */
+    suspend fun streamTags(videoId: String): Set<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            NewPipeInitializer.ensureInitialized()
+            val info = StreamInfo.getInfo("https://www.youtube.com/watch?v=$videoId")
+            (info.tags.orEmpty() + listOfNotNull(info.category))
+                .flatMap { com.popmusic.app.data.recommendations.RecommendationText.tags(it) }
+                .toSet()
+        }.getOrDefault(emptySet())
+    }
+
+    /**
+     * Canciones similares a un vídeo: equivalente al endpoint `next`/related
+     * que Echo usa para convertir una canción en radio. NewPipe expone los
+     * vídeos relacionados dentro del StreamInfo; se filtran los que no son
+     * canciones (duración muy corta o nula) para no mezclar shorts.
+     */
+    suspend fun related(videoId: String, limit: Int = 20): List<Song> = withContext(Dispatchers.IO) {
+        NewPipeInitializer.ensureInitialized()
+        runCatching {
+            val info = StreamInfo.getInfo("https://www.youtube.com/watch?v=$videoId")
+            val related: List<InfoItem> = info.relatedStreams.orEmpty()
+            related.mapNotNull { item ->
+                val stream = item as? StreamInfoItem ?: return@mapNotNull null
+                val id = videoIdFrom(stream.url) ?: return@mapNotNull null
+                if (id == videoId || stream.duration in 1..45) return@mapNotNull null
+                val views = stream.viewCount
+                // Subidas de canales pequeños con poquísimas reproducciones
+                // suelen ser la misma canción repetida con otro título.
+                if (views in 1..MIN_RELATED_VIEWS) return@mapNotNull null
+                Song(
+                    id = id,
+                    title = stream.name.cleanForDisplay(),
+                    artist = stream.uploaderName.orEmpty().cleanForDisplay(),
+                    durationSeconds = stream.duration.coerceAtLeast(0L),
+                    thumbnailUrl = bestThumbnail(stream, id),
+                ) to views
+            }.distinctBy { it.first.id }
+                .sortedByDescending { it.second.coerceAtLeast(0L) }
+                .map { it.first }
+                .take(limit)
+        }.getOrDefault(emptyList())
+    }
+
     suspend fun videoDetails(videoId: String): VideoDetails? = withContext(Dispatchers.IO) {
         NewPipeInitializer.ensureInitialized()
         runCatching {
@@ -218,6 +263,7 @@ class YouTubeRepository {
     }
 
     private companion object {
+        const val MIN_RELATED_VIEWS = 25_000L
         const val ATTEMPTS = 2
         const val RETRY_DELAY_MS = 300L
     }

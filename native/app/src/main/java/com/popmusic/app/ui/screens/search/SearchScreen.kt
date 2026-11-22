@@ -73,6 +73,8 @@ fun SearchScreen(
     onPlay: (List<Song>, Int) -> Unit,
     onOpenPlayer: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Abre la playlist de grandes éxitos del artista tocado. */
+    onOpenArtist: (String) -> Unit = {},
     /** Flecha de retroceso (tanda 5, ítem 7). */
     onBack: () -> Unit = {},
     viewModel: SearchViewModel = viewModel(),
@@ -158,6 +160,31 @@ fun SearchScreen(
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(bottom = 40.dp),
                 ) {
+                    if (viewModel.artistMatches.isNotEmpty()) {
+                        item(key = "artist-cards") {
+                            Text(
+                                text = "Artistas",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                            )
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                items(
+                                    viewModel.artistMatches,
+                                    key = { (name, _) -> name },
+                                ) { (name, song) ->
+                                    ArtistResultCard(
+                                        name = name,
+                                        artworkUrl = song.thumbnailUrl,
+                                        onClick = { onOpenArtist(name) },
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
                     itemsIndexed(results, key = { _, song -> song.id }) { index, song ->
                         TrackRow(
                             title = song.title,
@@ -570,6 +597,42 @@ private fun ArtistTrendCard(
             style = MaterialTheme.typography.titleMedium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** Tarjeta de artista en los resultados de búsqueda. */
+@Composable
+private fun ArtistResultCard(
+    name: String,
+    artworkUrl: String?,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .width(112.dp)
+            .clickable(onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Artwork(
+            url = artworkUrl,
+            modifier = Modifier.size(72.dp),
+            cornerRadius = 36.dp,
+            iconSize = 26.dp,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = "Grandes éxitos",
+            style = MaterialTheme.typography.labelSmall,
+            color = Faint,
+            maxLines = 1,
         )
     }
 }

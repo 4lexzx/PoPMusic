@@ -107,6 +107,8 @@ import com.popmusic.app.ui.navigation.Routes
 import com.popmusic.app.ui.screens.account.AccountScreen
 import com.popmusic.app.ui.screens.auth.AuthScreen
 import com.popmusic.app.ui.screens.auth.PasswordRecoveryDialog
+import com.popmusic.app.ui.screens.artist.ArtistScreen
+import com.popmusic.app.ui.screens.artist.ArtistViewModel
 import com.popmusic.app.ui.screens.flow.MusicFlowScreen
 import com.popmusic.app.ui.screens.home.HomeScreen
 
@@ -173,6 +175,7 @@ fun PopMusicApp() {
         .filter { it != com.popmusic.app.data.music.MusicService.SPOTIFY }
         .toList()
 
+    val artistViewModel: ArtistViewModel = viewModel()
     val updateViewModel: UpdateViewModel = viewModel()
     val updateState by updateViewModel.state.collectAsState()
     val authSession by app.authRepository.session.collectAsState()
@@ -493,16 +496,36 @@ fun PopMusicApp() {
                                     playerViewModel.play(songs, startIndex, autoExtend)
                                     openPlayer()
                                 },
+                                onPlayRadio = { song ->
+                                    playerViewModel.playRadio(song)
+                                    openPlayer()
+                                },
                             )
                         }
                         composable(Routes.SEARCH) {
                             SearchScreen(
                                 onPlay = { songs, startIndex ->
-                                    // La cola sigue con el artista de la canción
-                                    // elegida al llegar al final.
-                                    playerViewModel.play(songs, startIndex, autoExtend = true)
+                                    // Igual que Echo: tocar un resultado o un tema
+                                    // de Tendencias arranca una radio de esa canción,
+                                    // no reproduce la lista ordenada como playlist.
+                                    songs.getOrNull(startIndex)?.let(playerViewModel::playRadio)
+                                    openPlayer()
                                 },
                                 onOpenPlayer = { openPlayer() },
+                                onOpenArtist = { name ->
+                                    artistViewModel.open(name)
+                                    navController.navigate(Routes.ARTIST)
+                                },
+                                onBack = { navController.popBackStack() },
+                            )
+                        }
+                        composable(Routes.ARTIST) {
+                            ArtistScreen(
+                                viewModel = artistViewModel,
+                                onPlay = { songs, startIndex ->
+                                    playerViewModel.play(songs, startIndex, autoExtend = true)
+                                    openPlayer()
+                                },
                                 onBack = { navController.popBackStack() },
                             )
                         }
