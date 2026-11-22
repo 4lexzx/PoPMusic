@@ -37,7 +37,7 @@ pnpm-debug.log*
 .vercel
 .env*
 
-# Proyecto web anterior ("Liner") — solo local, fuera del repo
+# Proyecto web anterior — solo local, fuera del repo
 /api
 /backend
 /public

@@ -24,8 +24,8 @@ import java.util.regex.Pattern
  * disponible. Las URLs con firma (`?sqp=…&rs=…`) también se suben de nivel.
  *
  * Avatares/carátulas de Google (`lh3`/`yt3.googleusercontent…`): se reescriben
- * a 1024 px cuadrados (`=w1024-h1024-l90-rj`), como hace Liner
- * (tryliner/desktop), porque YouTube Music guarda las carátulas a 120 px.
+ * a 1024 px cuadrados (`=w1024-h1024-l90-rj`), porque YouTube Music guarda
+ * las carátulas a 120 px.
  *
  * Va DELANTE del motor de Coil, así que la caché (memoria y disco) sigue
  * siendo la nativa: cada URL se cachea bajo su propia clave, y un 404 no
