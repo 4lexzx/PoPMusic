@@ -27,11 +27,12 @@ const popFetch: typeof fetch = async (input, init) => {
   return fetch(input, init)
 }
 
-function getSession(): Promise<InstanceType<typeof Innertube>> {
+function getSession(poToken: string): Promise<InstanceType<typeof Innertube>> {
   if (!sessionPromise) {
     sessionPromise = Innertube.create({
       client_type: ClientType.WEB,
       fetch: popFetch,
+      po_token: poToken,
     }) as Promise<InstanceType<typeof Innertube>>
   }
   return sessionPromise
@@ -45,9 +46,9 @@ export interface DirectStream {
 }
 
 export async function resolveYoutubeStream(videoId: string): Promise<DirectStream> {
-  const youtube = await getSession()
   const poToken = await mintPoToken()
-  const info = await youtube.getInfo(videoId, poToken ? { po_token: poToken } : undefined)
+  const youtube = await getSession(poToken)
+  const info = await youtube.getInfo(videoId, { po_token: poToken })
 
   const formats = info.streaming_data?.adaptive_formats ?? []
   const audio = formats
