@@ -41,6 +41,7 @@ class PartyClient(
     private var topic = ""
     private val myId: String = UUID.randomUUID().toString().take(8)
     private var myName = ""
+    private var myAvatarUrl: String? = null
     private var shouldRun = false
     private var joined = false
     private var joinRef = "1"
@@ -57,8 +58,13 @@ class PartyClient(
 
     // ————————————————— API pública —————————————————
 
-    /** Crea o une la sala [roomCode] con nombre [displayName]. */
-    fun connect(roomCode: String, displayName: String, isCreate: Boolean) {
+    /** Crea o une la sala [roomCode] con nombre [displayName] y foto [avatarUrl]. */
+    fun connect(
+        roomCode: String,
+        displayName: String,
+        isCreate: Boolean,
+        avatarUrl: String? = null,
+    ) {
         val clean = roomCode.trim().lowercase()
         if (clean.length < 4) {
             onError?.invoke("El código debe tener al menos 4 caracteres.")
@@ -67,6 +73,7 @@ class PartyClient(
         disconnectInternal(notify = false)
         shouldRun = true
         myName = displayName.ifBlank { "Invitado" }
+        myAvatarUrl = avatarUrl?.takeIf { it.isNotBlank() }
         topic = "realtime:party-$clean"
         requirePresence = !isCreate
         joined = false
@@ -204,6 +211,7 @@ class PartyClient(
                         participants[id] = PartyParticipant(
                             id = id,
                             name = body.optString("name").ifBlank { "Invitado" },
+                            avatarUrl = body.optString("avatar").ifBlank { null },
                         )
                         if (isNew) {
                             // Presentación cruzada (termina: cada uno solo
@@ -309,10 +317,9 @@ class PartyClient(
 
     private fun sendHello() {
         if (!joined) return
-        broadcast(
-            "hello",
-            JSONObject().put("id", myId).put("name", myName),
-        )
+        val body = JSONObject().put("id", myId).put("name", myName)
+        myAvatarUrl?.let { body.put("avatar", it) }
+        broadcast("hello", body)
     }
 
     private fun broadcast(event: String, payload: JSONObject) {

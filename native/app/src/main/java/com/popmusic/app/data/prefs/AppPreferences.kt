@@ -8,14 +8,14 @@ import kotlinx.coroutines.flow.asStateFlow
 enum class BackgroundMode { NONE, PRESET, IMAGE }
 
 data class BackgroundSettings(
-    val mode: BackgroundMode = BackgroundMode.PRESET,
+    val mode: BackgroundMode = BackgroundMode.NONE,
     val presetId: Int = 0,
     val imageUri: String? = null,
     val backgroundBlur: Float = 0.30f,
     val backgroundDim: Float = 0.42f,
     val glassOpacity: Float = 0.65f,
     /** Efecto "liquid glass" en superficies (opcional, como en Echo). */
-    val liquidGlass: Boolean = true,
+    val liquidGlass: Boolean = false,
 )
 
 data class PlaybackSettings(
@@ -149,7 +149,7 @@ class AppPreferences(context: Context) {
             .putFloat(KEY_BLUR, BackgroundSettings().backgroundBlur)
             .putFloat(KEY_DIM, BackgroundSettings().backgroundDim)
             .putFloat(KEY_GLASS, BackgroundSettings().glassOpacity)
-            .putBoolean(KEY_LIQUID_GLASS, true)
+            .putBoolean(KEY_LIQUID_GLASS, BackgroundSettings().liquidGlass)
             .putBoolean(KEY_EQ_ENABLED, false)
             .putString(KEY_EQ_PRESET, PlaybackSettings().equalizerPreset)
             .putString(KEY_EQ_BANDS, "0.0,0.0,0.0,0.0,0.0")
@@ -165,18 +165,29 @@ class AppPreferences(context: Context) {
     }
 
     private fun load(): BackgroundSettings {
+        // Migración única: las instalaciones que ya arrancaron con el fondo
+        // azul y el liquid glass activo pasan una sola vez al fondo negro y
+        // al cristal normal. Después el usuario puede elegir lo que quiera.
+        if (!prefs.contains(KEY_DEFAULTS_MIGRATED)) {
+            prefs.edit()
+                .putString(KEY_MODE, BackgroundMode.NONE.name)
+                .putBoolean(KEY_LIQUID_GLASS, false)
+                .putBoolean(KEY_DEFAULTS_MIGRATED, true)
+                .apply()
+        }
+        val defaults = BackgroundSettings()
         val mode = runCatching {
-            BackgroundMode.valueOf(prefs.getString(KEY_MODE, null) ?: BackgroundMode.PRESET.name)
-        }.getOrDefault(BackgroundMode.PRESET)
+            BackgroundMode.valueOf(prefs.getString(KEY_MODE, null) ?: defaults.mode.name)
+        }.getOrDefault(defaults.mode)
 
-        return BackgroundSettings(
+        return defaults.copy(
             mode = mode,
-            presetId = prefs.getInt(KEY_PRESET, 0),
-            imageUri = prefs.getString(KEY_IMAGE, null),
-            backgroundBlur = prefs.getFloat(KEY_BLUR, 0.30f),
-            backgroundDim = prefs.getFloat(KEY_DIM, 0.42f),
-            glassOpacity = prefs.getFloat(KEY_GLASS, 0.65f),
-            liquidGlass = prefs.getBoolean(KEY_LIQUID_GLASS, true),
+            presetId = prefs.getInt(KEY_PRESET, defaults.presetId),
+            imageUri = prefs.getString(KEY_IMAGE, defaults.imageUri),
+            backgroundBlur = prefs.getFloat(KEY_BLUR, defaults.backgroundBlur),
+            backgroundDim = prefs.getFloat(KEY_DIM, defaults.backgroundDim),
+            glassOpacity = prefs.getFloat(KEY_GLASS, defaults.glassOpacity),
+            liquidGlass = prefs.getBoolean(KEY_LIQUID_GLASS, defaults.liquidGlass),
         )
     }
 
@@ -252,6 +263,7 @@ class AppPreferences(context: Context) {
         const val KEY_DIM = "bg_dim"
         const val KEY_GLASS = "glass_opacity"
         const val KEY_LIQUID_GLASS = "liquid_glass"
+        const val KEY_DEFAULTS_MIGRATED = "defaults_black_v1"
         const val KEY_LAST_BACKGROUND_AT = "last_background_at"
         const val KEY_EQ_ENABLED = "eq_enabled"
         const val KEY_EQ_PRESET = "eq_preset"

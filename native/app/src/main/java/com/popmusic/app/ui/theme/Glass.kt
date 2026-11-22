@@ -71,7 +71,7 @@ val LocalGlassOpacity = staticCompositionLocalOf { 0.65f }
  * [LiquidGlass] cae al cristal normal (tinte + blur), sin la lente líquida.
  * Se provee desde `PopMusicApp` según la preferencia de Ajustes.
  */
-val LocalLiquidGlassEnabled = staticCompositionLocalOf { true }
+val LocalLiquidGlassEnabled = staticCompositionLocalOf { false }
 
 /** Verdadero cuando el sistema pide "reducir movimiento". */
 val LocalReduceMotion = staticCompositionLocalOf { false }

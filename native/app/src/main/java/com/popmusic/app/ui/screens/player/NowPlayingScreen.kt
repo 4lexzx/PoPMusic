@@ -213,14 +213,12 @@ fun NowPlayingScreen(
             .fillMaxSize()
             .onSizeChanged { dragScreenHeightPx = it.height.toFloat().coerceAtLeast(1f) }
             .graphicsLayer {
+                // Solo desplazamiento y fundido. No escalar: esta capa lleva
+                // el GlassBackdrop desenfocado y reescalarlo a 60 fps produce
+                // un efecto borroso y con saltos al arrastrar.
                 translationY = dragY
-                // Profundidad: al arrastrar hacia abajo la pantalla se
-                // encoge un 5 % mientras se desvanece.
-                val fraction = (dragY / dragScreenHeightPx).coerceIn(0f, 1f)
-                scaleX = 1f - fraction * 0.05f
-                scaleY = 1f - fraction * 0.05f
                 alpha = if (dragY > 0f) {
-                    (1f - (dragY / dragScreenHeightPx) * 0.6f).coerceIn(0.35f, 1f)
+                    (1f - (dragY / dragScreenHeightPx) * 0.45f).coerceIn(0.55f, 1f)
                 } else {
                     1f
                 }

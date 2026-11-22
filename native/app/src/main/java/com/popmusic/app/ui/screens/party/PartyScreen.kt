@@ -61,6 +61,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -73,6 +74,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.media3.common.Player
 import com.popmusic.app.data.party.PartyStatus
 import com.popmusic.app.data.party.PartyUiState
+import coil3.compose.AsyncImage
 import com.popmusic.app.domain.Song
 import com.popmusic.app.ui.components.Artwork
 import com.popmusic.app.ui.components.ArtworkCollage
@@ -80,7 +82,11 @@ import com.popmusic.app.ui.components.GlassTextField
 import com.popmusic.app.ui.components.MusicLoader
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
+import com.popmusic.app.ui.theme.LineStrong
+import com.popmusic.app.ui.theme.OnInk
 import com.popmusic.app.ui.theme.Surface
+import com.popmusic.app.ui.theme.Surface2
+import com.popmusic.app.ui.theme.Surface3
 import com.popmusic.app.ui.theme.LiquidGlass
 import com.popmusic.app.ui.theme.Muted
 import com.popmusic.app.ui.theme.pressScale
@@ -330,16 +336,14 @@ private fun RoomContent(
     val interaction = remember { MutableInteractionSource() }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // ————— Código + participantes (tarjeta gris oscura) —————
+        // ————— Código + participantes (sigue el color del fondo) —————
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
                 .clip(RoundedCornerShape(22.dp))
                 .background(
-                    Brush.horizontalGradient(
-                        listOf(Color(0xFF2B2B31), Color(0xFF131316)),
-                    ),
+                    Brush.horizontalGradient(listOf(Surface2, Surface3)),
                 )
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -348,7 +352,7 @@ private fun RoomContent(
                 Text(
                     text = "Código de la sala",
                     style = MaterialTheme.typography.labelMedium,
-                    color = Color.White.copy(alpha = 0.85f),
+                    color = Muted,
                 )
                 Text(
                     text = state.code.uppercase(),
@@ -356,29 +360,58 @@ private fun RoomContent(
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
                     letterSpacing = 3.sp,
+                    color = Ink,
                 )
             }
 
-            // Participantes (avatares + contador).
+            // Participantes: máximo 3 fotos solapadas y un chip con el resto
+            // para que la fila no crezca aunque haya mucha gente en la sala.
+            val shown = state.participants.take(3)
+            val hidden = state.participants.size - shown.size
             Row(verticalAlignment = Alignment.CenterVertically) {
-                state.participants.take(5).forEachIndexed { index, participant ->
-                    if (index > 0) Spacer(Modifier.width((-8).dp))
+                shown.forEachIndexed { index, participant ->
+                    if (index > 0) Spacer(Modifier.width((-9).dp))
                     Box(
                         modifier = Modifier
                             .size(28.dp)
                             .clip(CircleShape)
-                            .background(
-                                if (index == 0) Color.White
-                                else Color.White.copy(alpha = 0.25f),
+                            .background(if (index == 0) Ink else Surface3)
+                            .border(2.dp, Surface2, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        val avatar = participant.avatarUrl
+                        if (!avatar.isNullOrBlank()) {
+                            AsyncImage(
+                                model = avatar,
+                                contentDescription = "Foto de ${participant.name}",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize(),
                             )
-                            .border(2.dp, Color.White.copy(alpha = 0.35f), CircleShape),
+                        } else {
+                            Text(
+                                text = participant.name.take(1).uppercase(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (index == 0) OnInk else Ink,
+                            )
+                        }
+                    }
+                }
+                if (hidden > 0) {
+                    Spacer(Modifier.width((-9).dp))
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(Surface3)
+                            .border(2.dp, Surface2, CircleShape),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = participant.name.take(1).uppercase(),
+                            text = "+$hidden",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
-                            color = if (index == 0) Color.Black else Ink,
+                            color = Ink,
                         )
                     }
                 }
@@ -395,7 +428,7 @@ private fun RoomContent(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))
-                    .background(Color.White.copy(alpha = 0.22f))
+                    .background(LineStrong)
                     .clickable(
                         interactionSource = interaction,
                         indication = ripple(bounded = true),

@@ -144,7 +144,12 @@ class PartySession(private val app: PoPMusicApplication) {
             participants = emptyList(),
             justAdded = emptySet(),
         )
-        client.connect(code, displayName(), isCreate = true)
+        client.connect(
+            code,
+            displayName(),
+            isCreate = true,
+            avatarUrl = myAvatarUrl(),
+        )
         // La cola de la sala ES la cola del reproductor local: se vacía
         // también para que la sala nueva arranque de cero (petición del
         // usuario: "al crear una nueva sala aún se quedan las canciones
@@ -168,7 +173,12 @@ class PartySession(private val app: PoPMusicApplication) {
             participants = emptyList(),
         )
         joinedAt = System.currentTimeMillis()
-        client.connect(clean, displayName(), isCreate = false)
+        client.connect(
+            clean,
+            displayName(),
+            isCreate = false,
+            avatarUrl = myAvatarUrl(),
+        )
     }
 
     fun leave() {
@@ -271,7 +281,13 @@ class PartySession(private val app: PoPMusicApplication) {
     /** Participantes (los demás + yo) para mostrar "N escuchando". */
     private fun publishParticipants(others: List<PartyParticipant>) {
         val withMe = if (_state.value.status == PartyStatus.JOINED) {
-            listOf(PartyParticipant(id = MY_ID, name = displayName())) + others
+            listOf(
+                PartyParticipant(
+                    id = MY_ID,
+                    name = displayName(),
+                    avatarUrl = myAvatarUrl(),
+                ),
+            ) + others
         } else {
             others
         }
@@ -352,6 +368,10 @@ class PartySession(private val app: PoPMusicApplication) {
         val raw = email.substringBefore("@").ifBlank { "Invitado" }
         return raw.take(16)
     }
+
+    /** Foto de la cuenta actual, para mostrarla en las burbujas de la sala. */
+    private fun myAvatarUrl(): String? =
+        app.authRepository.session.value?.avatarUrl?.takeIf { it.isNotBlank() }
 
     companion object {
         /** Id sintético de "yo" en la lista de participantes. */

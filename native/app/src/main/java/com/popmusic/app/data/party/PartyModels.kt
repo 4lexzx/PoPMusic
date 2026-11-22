@@ -16,6 +16,8 @@ import org.json.JSONObject
 data class PartyParticipant(
     val id: String,
     val name: String,
+    /** Foto de perfil de la cuenta (si el proveedor la compartió). */
+    val avatarUrl: String? = null,
     val lastSeen: Long = System.currentTimeMillis(),
 )
 

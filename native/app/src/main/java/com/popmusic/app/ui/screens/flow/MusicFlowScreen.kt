@@ -101,6 +101,7 @@ import com.popmusic.app.ui.components.PopIconButton
 import com.popmusic.app.ui.components.PopLogo
 import com.popmusic.app.ui.theme.Ink
 import com.popmusic.app.ui.theme.LiquidGlass
+import com.popmusic.app.ui.theme.Surface3
 import com.popmusic.app.ui.theme.pressScale
 import com.popmusic.app.ui.theme.Accent
 import kotlinx.coroutines.delay
@@ -478,14 +479,14 @@ private fun FlowPage(
     }
 }
 
-/** Botón circular "glass" de Echo: fondo negro 45 %, borde blanco 20 %. */
+/** Botón circular "glass" de Echo: sigue el color del fondo activo. */
 @Composable
 private fun FlowAction(
     icon: ImageVector,
     description: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = Color.White,
+    tint: Color = Ink,
     active: Boolean = false,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -494,11 +495,11 @@ private fun FlowAction(
             .size(46.dp)
             .clip(CircleShape)
             .background(
-                if (active) tint.copy(alpha = 0.22f) else Color.Black.copy(alpha = 0.45f),
+                if (active) tint.copy(alpha = 0.22f) else Surface3.copy(alpha = 0.75f),
             )
             .border(
                 width = 1.dp,
-                color = if (active) tint.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.20f),
+                color = if (active) tint.copy(alpha = 0.45f) else Ink.copy(alpha = 0.20f),
                 shape = CircleShape,
             )
             .clickable(
