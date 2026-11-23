@@ -30,7 +30,7 @@ export default function RemoveAllLocalDialog({
     if (!open) return;
     let active = true;
     setBytes(null);
-    void window.linerElectron
+    void window.popDesktop
       ?.localTracksUsage()
       .then((usage) => {
         if (active) setBytes(usage.bytes);

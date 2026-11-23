@@ -26,7 +26,7 @@ describe("window visibility", () => {
   it("follows the window state from main, where minimized means not visible", async () => {
     vi.resetModules();
     let sendState: (state: { isVisible: boolean }) => void = () => {};
-    vi.stubGlobal("linerElectron", {
+    vi.stubGlobal("popDesktop", {
       onWindowStateChange: (cb: typeof sendState) => {
         sendState = cb;
         return () => {};

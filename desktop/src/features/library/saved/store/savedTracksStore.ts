@@ -36,11 +36,11 @@ import {
   type SignOutChoice,
 } from "../engine/signOutChoice";
 
-export const SAVE_LIKED_ENABLED_KEY = "liner_save_liked_enabled";
-export const SAVED_LIMIT_KEY = "liner_saved_limit_bytes";
-export const SAVED_SYNC_MEMORY_KEY = "liner_saved_sync_v1";
-export const SAVED_CLAIMS_KEY = "liner_saved_claims_v1";
-export const SIGN_OUT_CHOICE_KEY = "liner_saved_sign_out_choice";
+export const SAVE_LIKED_ENABLED_KEY = "popmusic_save_liked_enabled";
+export const SAVED_LIMIT_KEY = "popmusic_saved_limit_bytes";
+export const SAVED_SYNC_MEMORY_KEY = "popmusic_saved_sync_v1";
+export const SAVED_CLAIMS_KEY = "popmusic_saved_claims_v1";
+export const SIGN_OUT_CHOICE_KEY = "popmusic_saved_sign_out_choice";
 
 export const DEFAULT_SAVED_LIMIT_BYTES = 5 * 1024 * 1024 * 1024;
 const RECONCILE_DEBOUNCE_MS = 4_000;
@@ -171,17 +171,17 @@ const sync = createSavedTrackSync({
   isEnabled: () => useSavedTracksStore.getState().enabled,
   limitBytes: () => useSavedTracksStore.getState().limitBytes,
   usage: async () => {
-    const usage = await window.linerElectron?.savedTracksUsage();
+    const usage = await window.popDesktop?.savedTracksUsage();
     return usage ?? { bytes: 0, freeBytes: null };
   },
   saveTrack: (track) =>
     saveTrackToDevice(track, AbortSignal.timeout(5 * 60_000)),
   saveLyrics: saveLyricsToDevice,
   remove: async (trackIds) => {
-    await window.linerElectron?.savedTracksRemove(trackIds);
+    await window.popDesktop?.savedTracksRemove(trackIds);
   },
   removeAll: async () => {
-    await window.linerElectron?.savedTracksRemoveAll();
+    await window.popDesktop?.savedTracksRemoveAll();
   },
   accountId: () => getAuthSession()?.user?.id ?? null,
   readClaims,
@@ -210,7 +210,7 @@ export const useSavedTracksStore = create<SavedTracksState>((set, get) => ({
   status: { phase: "starting", pending: 0 },
 
   load: async () => {
-    const bridge = window.linerElectron;
+    const bridge = window.popDesktop;
     if (!bridge?.savedTracksList) {
       set({ loadState: "unavailable" });
       return;
@@ -250,7 +250,7 @@ export const useSavedTracksStore = create<SavedTracksState>((set, get) => ({
   },
 
   removeAll: async () => {
-    const bridge = window.linerElectron;
+    const bridge = window.popDesktop;
     if (!bridge) return 0;
     const current = usePlayerStore.getState().currentTrack?.id;
     const removing = get().records.map((record) => record.trackId);
@@ -262,7 +262,7 @@ export const useSavedTracksStore = create<SavedTracksState>((set, get) => ({
   },
 
   removeShared: async () => {
-    if (!window.linerElectron) return 0;
+    if (!window.popDesktop) return 0;
     return sync.removeShared();
   },
 }));
@@ -288,7 +288,7 @@ let started = false;
 
 export function initSavedTracks() {
   if (started || typeof window === "undefined") return;
-  if (!window.linerElectron?.savedTracksList) return;
+  if (!window.popDesktop?.savedTracksList) return;
   started = true;
   registerSignOutTask(async () => {
     const { signOutChoice, signOutAnswer } = useSavedTracksStore.getState();

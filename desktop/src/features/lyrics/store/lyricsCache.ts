@@ -13,8 +13,8 @@ export interface CachedLyricsItem {
   timestamp: number;
 }
 
-const STORAGE_INDEX_KEY = "liner_lyrics_v2_index";
-const STORAGE_PREFIX = "liner_lyrics_v2_item_";
+const STORAGE_INDEX_KEY = "popmusic_lyrics_v2_index";
+const STORAGE_PREFIX = "popmusic_lyrics_v2_item_";
 const MAX_ENTRIES = 250;
 
 const SYNC_RANK: Record<LyricsSyncLevel, number> = {
@@ -139,17 +139,17 @@ class LyricsCache {
       if (typeof localStorage === "undefined") return;
 
       // purge legacy v1 cache keys on startup
-      const legacyIndexRaw = localStorage.getItem("liner_lyrics_lru_index");
+      const legacyIndexRaw = localStorage.getItem("popmusic_lyrics_lru_index");
       if (legacyIndexRaw) {
         try {
           const legacyIndex: string[] = JSON.parse(legacyIndexRaw);
           if (Array.isArray(legacyIndex)) {
             for (const id of legacyIndex) {
-              localStorage.removeItem("liner_lyrics_item_" + id);
+              localStorage.removeItem("popmusic_lyrics_item_" + id);
             }
           }
         } catch {}
-        localStorage.removeItem("liner_lyrics_lru_index");
+        localStorage.removeItem("popmusic_lyrics_lru_index");
       }
 
       const raw = localStorage.getItem(STORAGE_INDEX_KEY);

@@ -4,7 +4,7 @@ export interface ScreenCacheEntry<T = unknown> {
   sessionOnly?: boolean;
 }
 
-const DB_NAME = "liner_screen_cache_v1";
+const DB_NAME = "popmusic_screen_cache_v1";
 const STORE = "entries";
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const HYDRATE_TIMEOUT_MS = 250;

@@ -51,7 +51,7 @@ describe("playerEngine.stopAndClear", () => {
     await playerEngine.stopAndClear();
 
     const persisted = JSON.parse(
-      localStorage.getItem("liner_player_session_v2") ?? "{}",
+      localStorage.getItem("popmusic_player_session_v2") ?? "{}",
     );
     expect(persisted.state?.currentTrack ?? null).toBeNull();
     expect(persisted.state?.queue ?? []).toEqual([]);

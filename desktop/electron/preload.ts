@@ -63,7 +63,7 @@ export interface WindowState {
   isVisible?: boolean;
 }
 
-export interface LinerElectronApi {
+export interface PopDesktopApi {
   platform: string;
   isHyprland: boolean;
   minimize: () => Promise<void>;
@@ -242,7 +242,7 @@ const isHyprland = Boolean(
   process.env.XDG_SESSION_DESKTOP?.toLowerCase().includes("hyprland"),
 );
 
-const api: LinerElectronApi = {
+const api: PopDesktopApi = {
   platform: process.platform,
   isHyprland,
   minimize: () => ipcRenderer.invoke("window:minimize"),
@@ -523,5 +523,5 @@ const api: LinerElectronApi = {
 if (location.hostname === "www.youtube.com") {
   startPoTokenWorker();
 } else {
-  contextBridge.exposeInMainWorld("linerElectron", api);
+  contextBridge.exposeInMainWorld("popDesktop", api);
 }

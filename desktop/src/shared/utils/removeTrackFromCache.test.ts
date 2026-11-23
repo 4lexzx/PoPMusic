@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { linerDb } from "@/shared/storage/linerDb";
+import { popDb } from "@/shared/storage/popDb";
 import { audioCache } from "@/shared/storage/audioCache";
 import { lyricsCache } from "@/features/lyrics";
 import type { LyricsCandidate } from "@/shared/contracts/lyrics";
@@ -47,7 +47,7 @@ function waitForCachedIds(): Promise<void> {
 
 describe("removeTrackFromCache", () => {
   beforeEach(async () => {
-    await linerDb.clearAll();
+    await popDb.clearAll();
     audioCache.invalidate();
     lyricsCache.clear();
     useCachedTracksStore.setState({ items: [], loaded: false, loading: false });
@@ -66,9 +66,9 @@ describe("removeTrackFromCache", () => {
 
   it("drops only that track's audio and lyrics and refreshes the cached list and analytics", async () => {
     for (const item of [track, otherTrack]) {
-      await linerDb.putTrack(item);
+      await popDb.putTrack(item);
       await audioCache.saveAudioBlob(item.id, new Blob(["abc"]), "audio/ogg");
-      await linerDb.putLyrics({
+      await popDb.putLyrics({
         trackId: item.id,
         syncLevel: candidate.syncLevel,
         quality: candidate.quality.total,
@@ -98,12 +98,12 @@ describe("removeTrackFromCache", () => {
     await removeTrackFromCache(track.id);
     unsubscribe();
 
-    expect(await linerDb.hasAudio(track.id)).toBe(false);
-    expect(await linerDb.getLyrics(track.id)).toBeNull();
+    expect(await popDb.hasAudio(track.id)).toBe(false);
+    expect(await popDb.getLyrics(track.id)).toBeNull();
     expect(audioCache.isCached(track.id)).toBe(false);
-    expect(await linerDb.hasAudio(otherTrack.id)).toBe(true);
-    expect(await linerDb.getLyrics(otherTrack.id)).not.toBeNull();
-    expect(await linerDb.getTrack(track.id)).not.toBeNull();
+    expect(await popDb.hasAudio(otherTrack.id)).toBe(true);
+    expect(await popDb.getLyrics(otherTrack.id)).not.toBeNull();
+    expect(await popDb.getTrack(track.id)).not.toBeNull();
     expect(
       useCachedTracksStore.getState().items.map((item) => item.track.id),
     ).toEqual([otherTrack.id]);

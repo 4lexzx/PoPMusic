@@ -2,10 +2,10 @@ import { usePlayerStore } from "../store/playerStore";
 import { ApiError } from "@/shared/api";
 import { log } from "@/shared/utils/logger";
 import { telemetry } from "@/shared/telemetry";
-import { linerDb, audioCache } from "@/shared/storage";
+import { popDb, audioCache } from "@/shared/storage";
 import { isStandaloneAudioFile } from "@/shared/storage/audioFormat";
 import type { Track } from "@/shared/types";
-import { markLinerStreamFailed } from "@/shared/media/liner/linerPlayback";
+import { markLinerStreamFailed } from "@/shared/media/pop/popPlayback";
 import { isLocalTrackId } from "@/shared/media/local";
 import { isSavedTrack } from "@/shared/media/saved";
 import { pitchShifter } from "./pitchShifter";
@@ -63,7 +63,7 @@ export class PlayerRuntime {
 
   constructor() {
     const win = typeof window !== "undefined" ? (window as any) : null;
-    let audio = (win?.__liner_audio ||
+    let audio = (win?.__popmusic_audio ||
       (typeof document !== "undefined" &&
         document.getElementById("liner-audio"))) as HTMLAudioElement | null;
     if (!audio) {
@@ -76,7 +76,7 @@ export class PlayerRuntime {
       }
     }
     if (win) {
-      win.__liner_audio = audio;
+      win.__popmusic_audio = audio;
     }
     this.audio = audio;
     this.setupAudioListeners(this.audio);
@@ -426,7 +426,7 @@ export class PlayerRuntime {
       if (this.activeBlobUrl) {
         URL.revokeObjectURL(this.activeBlobUrl);
         this.activeBlobUrl = null;
-        void linerDb.deleteAudio(this.currentTrackId);
+        void popDb.deleteAudio(this.currentTrackId);
         audioCache.deleteAudio(this.currentTrackId);
       }
 
@@ -674,7 +674,7 @@ export class PlayerRuntime {
     if (this.currentTrackId === track.id) return;
     if (this.preloadingTrackId === track.id) return;
 
-    const cached = await linerDb.getAudio(track.id);
+    const cached = await popDb.getAudio(track.id);
     if (cached) return;
 
     this.preloadAbortController?.abort();
@@ -699,7 +699,7 @@ export class PlayerRuntime {
           ))
         )
           return;
-        await linerDb.putTrack(track);
+        await popDb.putTrack(track);
         log(
           "green",
           "preload",
@@ -801,7 +801,7 @@ export class PlayerRuntime {
       const cachedAudio =
         bypassCache || isSavedTrack(track.id)
           ? null
-          : await linerDb.getAudio(track.id);
+          : await popDb.getAudio(track.id);
       if (epoch !== this.loadEpoch || controller.signal.aborted) {
         return;
       }
@@ -813,13 +813,13 @@ export class PlayerRuntime {
           cachedAudio!.blob.type.startsWith("audio/"));
 
       if (cachedAudio && !isValidCachedBlob) {
-        void linerDb.deleteAudio(track.id);
+        void popDb.deleteAudio(track.id);
         audioCache.deleteAudio(track.id);
       }
 
       if (cachedAudio && isValidCachedBlob) {
         this.currentSessionExpiresAt = null;
-        void linerDb.putTrack(track);
+        void popDb.putTrack(track);
         const blobUrl = URL.createObjectURL(cachedAudio.blob);
         this.attachSource(blobUrl, true, track.id);
         this.audio.volume = 0;
@@ -1182,7 +1182,7 @@ export class PlayerRuntime {
           ))
         )
           return;
-        await linerDb.putTrack(track);
+        await popDb.putTrack(track);
         log(
           "green",
           "playback",

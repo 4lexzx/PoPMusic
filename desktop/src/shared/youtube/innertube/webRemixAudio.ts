@@ -71,7 +71,7 @@ async function mintContentPoToken(videoId: string): Promise<string> {
   const mint =
     typeof window === "undefined"
       ? undefined
-      : window.linerElectron?.mintPoToken;
+      : window.popDesktop?.mintPoToken;
   if (!mint)
     throw new InnertubeError(
       "PO tokens need a newer PoP Music app version.",

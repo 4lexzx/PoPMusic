@@ -26,7 +26,7 @@ describe("WindowControls", () => {
     mockIsMaximized = vi.fn().mockResolvedValue(false);
     stateListener = null;
 
-    (window as any).linerElectron = {
+    (window as any).popDesktop = {
       minimize: mockMinimize,
       toggleMaximize: mockToggleMaximize,
       close: mockClose,
@@ -45,7 +45,7 @@ describe("WindowControls", () => {
     await act(async () => {
       root.unmount();
     });
-    delete (window as any).linerElectron;
+    delete (window as any).popDesktop;
     if (container.parentNode) {
       container.parentNode.removeChild(container);
     }
@@ -153,7 +153,7 @@ describe("WindowControls", () => {
   });
 
   it("disables minimize button when running on Hyprland", async () => {
-    (window as any).linerElectron.isHyprland = true;
+    (window as any).popDesktop.isHyprland = true;
 
     await act(async () => {
       root.render(<WindowControls />);

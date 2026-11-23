@@ -4,7 +4,7 @@ import type {
   TvProgressiveAudioStream,
 } from "@/shared/youtube";
 import type { ResolvedSoundCloudStream } from "@/shared/media/soundcloud";
-import type { LinerAudioStream } from "@/shared/media/liner/linerPlayback";
+import type { LinerAudioStream } from "@/shared/media/pop/popPlayback";
 import type { Track } from "@/shared/types";
 
 export type PlaybackSource =

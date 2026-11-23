@@ -12,8 +12,8 @@ import {
   type YoutubeAuthTokens,
 } from "./tvTokens";
 
-const STORAGE_KEY = "liner_youtube_tv_session";
-const PAGE_ID_STORAGE_KEY = "liner_youtube_page_id";
+const STORAGE_KEY = "popmusic_youtube_tv_session";
+const PAGE_ID_STORAGE_KEY = "popmusic_youtube_page_id";
 const REVOKE_URL = "https://www.youtube.com/o/oauth2/revoke";
 const REFRESH_MARGIN_MS = 60_000;
 const REFRESH_TIMEOUT_MS = 30_000;
@@ -23,7 +23,7 @@ const TERMINAL_REFRESH_ERRORS = new Set([
 ]);
 
 type MainYoutubeAuthBridge = NonNullable<
-  NonNullable<Window["linerElectron"]>["youtubeAuthSession"]
+  NonNullable<Window["popDesktop"]>["youtubeAuthSession"]
 >;
 
 let session: YoutubeAuthTokens | null | undefined;
@@ -32,7 +32,7 @@ let pendingRefresh: Promise<YoutubeAuthTokens | null> | null = null;
 
 function mainBridge(): MainYoutubeAuthBridge | null {
   if (typeof window === "undefined") return null;
-  return window.linerElectron?.youtubeAuthSession ?? null;
+  return window.popDesktop?.youtubeAuthSession ?? null;
 }
 
 function readLocal(): YoutubeAuthTokens | null {

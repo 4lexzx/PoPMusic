@@ -157,7 +157,7 @@ function OnlineLibraryPage() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [viewMode, setViewMode] = useState<LibraryViewMode>(() => {
     if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("liner_library_view_mode");
+      const saved = localStorage.getItem("popmusic_library_view_mode");
       if (saved === "grid" || saved === "list") {
         return saved;
       }
@@ -167,7 +167,7 @@ function OnlineLibraryPage() {
 
   const handleViewModeChange = useCallback((newMode: LibraryViewMode) => {
     setViewMode(newMode);
-    localStorage.setItem("liner_library_view_mode", newMode);
+    localStorage.setItem("popmusic_library_view_mode", newMode);
   }, []);
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);

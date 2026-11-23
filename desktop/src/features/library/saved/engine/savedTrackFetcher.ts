@@ -1,6 +1,6 @@
 import { api, ApiError, getAuthSession } from "@/shared/api";
 import type { LyricsCandidate } from "@/shared/contracts/lyrics";
-import { audioCache, linerDb } from "@/shared/storage";
+import { audioCache, popDb } from "@/shared/storage";
 import { isStandaloneAudioFile } from "@/shared/storage/audioFormat";
 import type {
   SavedLyricsState,
@@ -31,7 +31,7 @@ function assertAudio(bytes: Uint8Array) {
 }
 
 async function fromAudioCache(trackId: string): Promise<FetchedAudio | null> {
-  const cached = await linerDb.getAudio(trackId).catch(() => null);
+  const cached = await popDb.getAudio(trackId).catch(() => null);
   if (!cached?.blob || cached.blob.size === 0) return null;
   const audio = new Uint8Array(await cached.blob.arrayBuffer());
   if (!isStandaloneAudioFile(audio.subarray(0, 16))) return null;
@@ -98,7 +98,7 @@ async function knownLyrics(trackId: string): Promise<LyricsCandidate | null> {
   const memory = lyricsCache.get(trackId)?.candidate;
   if (memory) return memory;
   return (
-    (await linerDb.getLyrics(trackId).catch(() => null))?.candidate ?? null
+    (await popDb.getLyrics(trackId).catch(() => null))?.candidate ?? null
   );
 }
 
@@ -132,7 +132,7 @@ export async function saveTrackToDevice(
   track: Track,
   signal: AbortSignal,
 ): Promise<{ record: SavedTrackRecord; source: SavedAudioSource } | null> {
-  const bridge = window.linerElectron;
+  const bridge = window.popDesktop;
   if (!bridge) return null;
   const fetched =
     (await fromAudioCache(track.id)) ?? (await fromNetwork(track, signal));
@@ -159,7 +159,7 @@ export async function saveTrackToDevice(
 export async function saveLyricsToDevice(
   record: SavedTrackRecord,
 ): Promise<SavedLyricsState | "later"> {
-  const bridge = window.linerElectron;
+  const bridge = window.popDesktop;
   if (!bridge) return "later";
   const found = await findLyrics({
     id: record.trackId,

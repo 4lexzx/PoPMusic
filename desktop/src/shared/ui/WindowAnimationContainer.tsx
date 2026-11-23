@@ -15,19 +15,19 @@ export const useWindowAnimationStore = create<WindowAnimationStore>(
     triggerMinimize: () => {
       // Native instant minimize: zero DOM opacity/scale manipulation.
       // Preserves the DWM taskbar preview thumbnail perfectly and restores with zero grey flash or lag.
-      void window.linerElectron?.minimize?.();
+      void window.popDesktop?.minimize?.();
     },
     triggerClose: () => {
       if (get().phase !== "idle") return;
 
       if (process.env.NODE_ENV === "test") {
-        void window.linerElectron?.close?.();
+        void window.popDesktop?.close?.();
         return;
       }
 
       set({ phase: "closing" });
       setTimeout(() => {
-        void window.linerElectron?.close?.();
+        void window.popDesktop?.close?.();
       }, 120);
     },
   }),

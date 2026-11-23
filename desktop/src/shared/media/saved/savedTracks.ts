@@ -73,7 +73,7 @@ export async function readSavedLyrics<T>(
   isValid: (value: unknown) => value is T,
 ): Promise<T | null> {
   if (!isSavedTrack(trackId)) return null;
-  const stored = await window.linerElectron
+  const stored = await window.popDesktop
     ?.savedTracksGetLyrics(trackId)
     .catch(() => null);
   return isValid(stored) ? stored : null;

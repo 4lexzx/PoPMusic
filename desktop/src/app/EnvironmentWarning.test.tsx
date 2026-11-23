@@ -41,7 +41,7 @@ describe("EnvironmentWarning", () => {
     mounts = [];
     vi.stubGlobal("localStorage", createStorage());
     vi.stubGlobal("sessionStorage", createStorage());
-    delete (window as unknown as Record<string, unknown>).linerElectron;
+    delete (window as unknown as Record<string, unknown>).popDesktop;
   });
 
   afterEach(() => {
@@ -49,7 +49,7 @@ describe("EnvironmentWarning", () => {
       act(() => root.unmount());
       host.remove();
     }
-    delete (window as unknown as Record<string, unknown>).linerElectron;
+    delete (window as unknown as Record<string, unknown>).popDesktop;
     vi.unstubAllGlobals();
   });
 
@@ -67,7 +67,7 @@ describe("EnvironmentWarning", () => {
   });
 
   it("stays silent inside electron", () => {
-    (window as unknown as Record<string, unknown>).linerElectron = {};
+    (window as unknown as Record<string, unknown>).popDesktop = {};
     const mounted = renderWarning();
     mounts.push(mounted);
     expect(mounted.host.textContent).toBe("");

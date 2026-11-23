@@ -52,7 +52,7 @@ function installNetwork(scenario: string, country = "DE") {
       country: sim?.country ?? (internet ? country : null),
     };
   });
-  Object.assign(window, { linerElectron: { probeNetwork } });
+  Object.assign(window, { popDesktop: { probeNetwork } });
   return probeNetwork;
 }
 
@@ -92,7 +92,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  Reflect.deleteProperty(window, "linerElectron");
+  Reflect.deleteProperty(window, "popDesktop");
 });
 
 describe("youtube not responding", () => {

@@ -20,8 +20,8 @@ export function syncServerTime(dateHeaderOrMs: string | number | Date): number {
   if (!Number.isNaN(serverMs) && serverMs > 0) {
     serverTimeOffsetMs = serverMs - Date.now();
     // notify electron main process to sync its native signer clock
-    if (typeof window !== "undefined" && window.linerElectron?.syncServerTime) {
-      window.linerElectron.syncServerTime(serverMs).catch(() => {});
+    if (typeof window !== "undefined" && window.popDesktop?.syncServerTime) {
+      window.popDesktop.syncServerTime(serverMs).catch(() => {});
     }
   }
   return serverTimeOffsetMs;
@@ -38,7 +38,7 @@ export function getAdjustedTimestamp(): number {
 function isElectron(): boolean {
   return (
     typeof window !== "undefined" &&
-    typeof window.linerElectron?.signRequest === "function"
+    typeof window.popDesktop?.signRequest === "function"
   );
 }
 
@@ -51,7 +51,7 @@ export async function signApiRequest(
   if (!isElectron()) {
     if (import.meta.env.DEV) {
       console.warn(
-        "[Signer] Not running in Electron environment (window.linerElectron is undefined). Outgoing requests will NOT have HMAC headers.",
+        "[Signer] Not running in Electron environment (window.popDesktop is undefined). Outgoing requests will NOT have HMAC headers.",
       );
     }
     return {};
@@ -61,7 +61,7 @@ export async function signApiRequest(
   const timestamp = customTimestamp ?? getAdjustedTimestamp();
 
   try {
-    const res = await window.linerElectron!.signRequest({
+    const res = await window.popDesktop!.signRequest({
       method: method.toUpperCase().trim(),
       path: cleanPath,
       body: body ?? undefined,

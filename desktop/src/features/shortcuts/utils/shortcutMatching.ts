@@ -77,8 +77,8 @@ export function matchesShortcut(
 }
 
 export function isMacPlatform(): boolean {
-  if (typeof window !== "undefined" && window.linerElectron?.platform) {
-    return window.linerElectron.platform === "darwin";
+  if (typeof window !== "undefined" && window.popDesktop?.platform) {
+    return window.popDesktop.platform === "darwin";
   }
   if (typeof navigator !== "undefined") {
     return (

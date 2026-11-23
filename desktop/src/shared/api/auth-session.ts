@@ -5,7 +5,7 @@ export type { AuthTokens, AuthUser };
 
 import { getApiBaseUrl } from "./baseUrl";
 
-const STORAGE_KEY = "liner_auth_session";
+const STORAGE_KEY = "popmusic_auth_session";
 const DEAD_REFRESH_CODES = new Set([
   "INVALID_REFRESH_TOKEN",
   "REFRESH_SESSION_EXPIRED",
@@ -13,7 +13,7 @@ const DEAD_REFRESH_CODES = new Set([
 const REFRESH_ATTEMPTS = 2;
 
 type MainAuthBridge = NonNullable<
-  NonNullable<Window["linerElectron"]>["authSession"]
+  NonNullable<Window["popDesktop"]>["authSession"]
 >;
 
 let session: AuthTokens | null = null;
@@ -23,7 +23,7 @@ let refreshPromise: Promise<AuthTokens | null> | null = null;
 
 function mainBridge(): MainAuthBridge | null {
   if (typeof window === "undefined") return null;
-  return window.linerElectron?.authSession ?? null;
+  return window.popDesktop?.authSession ?? null;
 }
 
 function readLocal(): AuthTokens | null {

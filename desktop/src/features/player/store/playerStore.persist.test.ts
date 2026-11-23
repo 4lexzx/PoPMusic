@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Track } from "@/shared/types";
 
-const SESSION_KEY = "liner_player_session_v2";
+const SESSION_KEY = "popmusic_player_session_v2";
 const TICK_MS = 250;
 const SIMULATED_MS = 10_000;
 

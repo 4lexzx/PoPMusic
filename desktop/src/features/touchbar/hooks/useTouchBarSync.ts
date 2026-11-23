@@ -131,7 +131,7 @@ function toTrackInfo(track: Track | null): TouchBarTrackInfo | null {
 export function useTouchBarSync() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isMac = window.linerElectron?.platform === "darwin";
+  const isMac = window.popDesktop?.platform === "darwin";
   const status = usePlayerStore((s) => s.status);
   const currentTrack = usePlayerStore((s) => s.currentTrack);
   const durationMs = usePlayerStore((s) => s.durationMs);
@@ -149,8 +149,8 @@ export function useTouchBarSync() {
   const [activeIndex, setActiveIndex] = useState(-1);
 
   useEffect(() => {
-    if (!window.linerElectron?.onTouchBarRequestSync) return;
-    const cleanup = window.linerElectron.onTouchBarRequestSync(() => {
+    if (!window.popDesktop?.onTouchBarRequestSync) return;
+    const cleanup = window.popDesktop.onTouchBarRequestSync(() => {
       lastStateSentRef.current = "";
       lastLinesSentRef.current = null;
       setSyncRequestTick((t) => t + 1);
@@ -159,9 +159,9 @@ export function useTouchBarSync() {
   }, []);
 
   useEffect(() => {
-    if (!window.linerElectron?.onTouchBarAction) return;
+    if (!window.popDesktop?.onTouchBarAction) return;
 
-    const cleanup = window.linerElectron.onTouchBarAction(
+    const cleanup = window.popDesktop.onTouchBarAction(
       (action: TouchBarAction) => {
         switch (action.type) {
           case "togglePlay":
@@ -260,16 +260,16 @@ export function useTouchBarSync() {
   }, [isMac, status, syncedLines]);
 
   useEffect(() => {
-    if (isMac || !window.linerElectron?.touchbarUpdateState) return;
+    if (isMac || !window.popDesktop?.touchbarUpdateState) return;
     const track = toTrackInfo(currentTrack);
     const key = JSON.stringify([status, track]);
     if (key === lastStateSentRef.current) return;
     lastStateSentRef.current = key;
-    window.linerElectron.touchbarUpdateState({ status, track });
+    window.popDesktop.touchbarUpdateState({ status, track });
   }, [isMac, status, currentTrack, syncRequestTick]);
 
   useEffect(() => {
-    if (!isMac || !window.linerElectron?.touchbarUpdateState) return;
+    if (!isMac || !window.popDesktop?.touchbarUpdateState) return;
 
     let activeLine: TouchBarActiveLine | null = null;
     let nextLyricText = "";
@@ -381,7 +381,7 @@ export function useTouchBarSync() {
         : [];
     }
 
-    window.linerElectron.touchbarUpdateState(payload);
+    window.popDesktop.touchbarUpdateState(payload);
   }, [
     isMac,
     status,

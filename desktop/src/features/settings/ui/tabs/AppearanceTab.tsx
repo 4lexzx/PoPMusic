@@ -10,7 +10,7 @@ export function AppearanceTab({ searchQuery }: { searchQuery?: string }) {
   const { t, locale, setLocale } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
-  const electron = typeof window !== "undefined" ? window.linerElectron : null;
+  const electron = typeof window !== "undefined" ? window.popDesktop : null;
   const [rememberWindowBounds, setRememberWindowBounds] = useState(false);
 
   useEffect(() => {

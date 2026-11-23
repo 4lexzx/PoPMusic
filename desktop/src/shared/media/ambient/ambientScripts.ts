@@ -1,7 +1,7 @@
 import { getApiBaseUrl } from "@/shared/api/baseUrl";
 import { isLocalTrackId } from "@/shared/media/local";
 
-const DEV_OVERRIDE_KEY = "liner_ambient_dev_script";
+const DEV_OVERRIDE_KEY = "popmusic_ambient_dev_script";
 const scripts = new Map<string, string | null>();
 const inFlight = new Map<string, Promise<string | null>>();
 

@@ -50,7 +50,7 @@ export function OverlayPlayer() {
   const [isInfoHovered, setIsInfoHovered] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [isShown, setIsShown] = useState(
-    () => !window.linerElectron?.onOverlayVisibility,
+    () => !window.popDesktop?.onOverlayVisibility,
   );
 
   const anchorPosRef = useRef(state.positionMs);
@@ -59,7 +59,7 @@ export function OverlayPlayer() {
   const lastTrackIdRef = useRef<string | null>(null);
 
   const pullLatestState = useCallback(() => {
-    window.linerElectron?.getOverlayInitialState?.().then((initial) => {
+    window.popDesktop?.getOverlayInitialState?.().then((initial) => {
       if (initial) {
         const pos = sampledPositionMs(initial);
         anchorPosRef.current = pos;
@@ -73,8 +73,8 @@ export function OverlayPlayer() {
   useEffect(() => {
     pullLatestState();
 
-    if (window.linerElectron?.onOverlayState) {
-      const cleanupState = window.linerElectron.onOverlayState((newState) => {
+    if (window.popDesktop?.onOverlayState) {
+      const cleanupState = window.popDesktop.onOverlayState((newState) => {
         setState(newState);
       });
       return cleanupState;
@@ -82,13 +82,13 @@ export function OverlayPlayer() {
   }, [pullLatestState]);
 
   useEffect(() => {
-    const signal = setTimeout(() => window.linerElectron?.overlayReady?.(), 0);
+    const signal = setTimeout(() => window.popDesktop?.overlayReady?.(), 0);
     return () => clearTimeout(signal);
   }, []);
 
   useEffect(() => {
-    if (!window.linerElectron?.onOverlayVisibility) return;
-    const cleanupVisibility = window.linerElectron.onOverlayVisibility(
+    if (!window.popDesktop?.onOverlayVisibility) return;
+    const cleanupVisibility = window.popDesktop.onOverlayVisibility(
       (visible) => {
         setIsVisible(visible);
         setIsShown(visible);
@@ -99,7 +99,7 @@ export function OverlayPlayer() {
   }, [pullLatestState]);
 
   const sendAction = useCallback((action: OverlayAction) => {
-    window.linerElectron?.sendOverlayAction?.(action);
+    window.popDesktop?.sendOverlayAction?.(action);
   }, []);
 
   const isPlaying = state.status === "playing";

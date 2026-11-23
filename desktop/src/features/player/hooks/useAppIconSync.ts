@@ -85,13 +85,13 @@ export function useAppIconSync() {
     let active = true;
 
     const layout =
-      window.linerElectron?.platform === "darwin" ? MAC_DOCK : FULL_BLEED;
+      window.popDesktop?.platform === "darwin" ? MAC_DOCK : FULL_BLEED;
 
     void renderIconDataUrl(isLight, layout).then((dataUrl) => {
       if (!active || !dataUrl) return;
 
-      if (window.linerElectron?.setAppIcon) {
-        window.linerElectron.setAppIcon(dataUrl, {
+      if (window.popDesktop?.setAppIcon) {
+        window.popDesktop.setAppIcon(dataUrl, {
           isDefault: true,
         });
       }

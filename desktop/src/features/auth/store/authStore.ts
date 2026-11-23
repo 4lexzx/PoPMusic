@@ -135,8 +135,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: async () => {
     await clearPlayback();
     try {
-      window.linerElectron?.closeOverlay?.();
-      window.linerElectron?.sendOverlayAction?.({ type: "closeOverlay" });
+      window.popDesktop?.closeOverlay?.();
+      window.popDesktop?.sendOverlayAction?.({ type: "closeOverlay" });
     } catch {}
     if (
       typeof window !== "undefined" &&

@@ -11,7 +11,7 @@ import {
   type YoutubeReach,
 } from "../lib/classify";
 
-export const OFFLINE_MODE_KEY = "liner_offline_mode";
+export const OFFLINE_MODE_KEY = "popmusic_offline_mode";
 export const OFFLINE_UNAVAILABLE_MESSAGE = "Not saved on this device";
 
 export type OfflineSource = "auto" | "manual";

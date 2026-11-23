@@ -247,9 +247,9 @@ describe("audio effects graph idle cost", () => {
     vi.useFakeTimers();
     FakeAudioContext.instances = [];
     const win = window as any;
-    delete win.__liner_audio_context;
-    delete win.__liner_media_source_node;
-    delete win.__liner_pitch_graph;
+    delete win.__popmusic_audio_context;
+    delete win.__popmusic_media_source_node;
+    delete win.__popmusic_pitch_graph;
     win.AudioContext = FakeAudioContext;
     audio = document.createElement("audio");
     paused = true;
@@ -371,7 +371,7 @@ describe("audio effects graph idle cost", () => {
       isEqEnabled: true,
       eqGains: bass.gains,
     });
-    const graph = (window as any).__liner_pitch_graph;
+    const graph = (window as any).__popmusic_pitch_graph;
     expect(graph.pitchDryGain.gain.value).toBe(0);
     expect(graph.pitchWetGain.gain.value).toBe(1);
     expect(graph.reverbSendGain.gain.value).toBe(1);

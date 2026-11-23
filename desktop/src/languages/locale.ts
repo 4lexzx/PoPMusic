@@ -14,7 +14,7 @@ export const SUPPORTED_LOCALES = [
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
-const LOCALE_STORAGE_KEY = "liner_locale";
+const LOCALE_STORAGE_KEY = "popmusic_locale";
 
 const LANGUAGE_ALIASES: Record<string, Locale> = { ua: "uk" };
 

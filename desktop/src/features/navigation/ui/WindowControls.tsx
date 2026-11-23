@@ -57,7 +57,7 @@ export default function WindowControls({
   const { isFullScreen: isWindowFullScreen, isMaximized: isWindowMaximized } =
     useWindowState();
 
-  const isHyprland = window.linerElectron?.isHyprland ?? false;
+  const isHyprland = window.popDesktop?.isHyprland ?? false;
   const isMinimizeDisabled = isWindowFullScreen || isHyprland;
 
   const handleMinimize = () => {
@@ -68,7 +68,7 @@ export default function WindowControls({
   };
 
   const handleMaximize = () => {
-    window.linerElectron?.toggleMaximize();
+    window.popDesktop?.toggleMaximize();
   };
 
   const handleClose = () => {

@@ -43,7 +43,7 @@ import {
 } from "@/features/lyrics";
 import { preloadCoverArt } from "@/features/covers";
 import { preloadArtistAvatars } from "@/features/artist/lib/artistAvatar";
-import { linerDb, type CachedLyricsRecord } from "@/shared/storage";
+import { popDb, type CachedLyricsRecord } from "@/shared/storage";
 import { debouncedStorage } from "@/shared/utils/storage";
 import { showToast } from "@/shared/ui";
 import { createTranslatorSync, getStoredLocale } from "@/languages";
@@ -1528,7 +1528,7 @@ class PlayerEngine {
     }
     void loadAmbientScript(nextTrack.id);
 
-    void linerDb.putTrack(nextTrack);
+    void popDb.putTrack(nextTrack);
 
     if (playerRuntime) {
       void playerRuntime.preloadTrack(nextTrack);
@@ -1548,7 +1548,7 @@ class PlayerEngine {
 
     const prefetchPromise = (async () => {
       try {
-        const existing = await linerDb.getLyrics(trackId);
+        const existing = await popDb.getLyrics(trackId);
         if (existing) {
           const lastChecked = existing.lastCheckedAt || 0;
           if (Date.now() - lastChecked < SEVEN_DAYS_MS) {
@@ -1596,7 +1596,7 @@ class PlayerEngine {
 
         if (bestCandidate && shouldCacheLyricsCandidate(bestCandidate)) {
           lyricsCache.set(trackId, bestCandidate, providers);
-          void linerDb.putLyrics({
+          void popDb.putLyrics({
             trackId,
             syncLevel: bestCandidate.syncLevel,
             quality: bestCandidate.quality.total,
@@ -1696,7 +1696,7 @@ class PlayerEngine {
       memoryCached || null;
     if (!cached) {
       try {
-        cached = await linerDb.getLyrics(trackId);
+        cached = await popDb.getLyrics(trackId);
       } catch {
         cached = null;
       }
@@ -1757,7 +1757,7 @@ class PlayerEngine {
         return;
       }
 
-      void linerDb.updateLyricsChecked(trackId);
+      void popDb.updateLyricsChecked(trackId);
     } else {
       lyricsStore.setLyricsState({
         lyricsLoading: true,
@@ -1779,7 +1779,7 @@ class PlayerEngine {
         await this.inFlightLyricsPrefetches.get(trackId);
         if (token !== this.lyricsLoadToken || controller.signal.aborted) return;
         const freshCached =
-          lyricsCache.get(trackId) || (await linerDb.getLyrics(trackId));
+          lyricsCache.get(trackId) || (await popDb.getLyrics(trackId));
         if (freshCached && freshCached.candidate) {
           const parsed = parseRawLyrics(
             freshCached.candidate.lyrics.content,
@@ -1860,7 +1860,7 @@ class PlayerEngine {
             });
             if (shouldCacheLyricsCandidate(candidate)) {
               lyricsCache.set(trackId, candidate, updatedProviders);
-              void linerDb.putLyrics({
+              void popDb.putLyrics({
                 trackId,
                 syncLevel: candidate.syncLevel,
                 quality: candidate.quality.total,
@@ -1899,7 +1899,7 @@ class PlayerEngine {
             const currentProviders =
               useLyricsStore.getState().availableProviders;
             lyricsCache.set(trackId, bestCandidate, currentProviders);
-            void linerDb.putLyrics({
+            void popDb.putLyrics({
               trackId,
               syncLevel: bestCandidate.syncLevel,
               quality: bestCandidate.quality.total,

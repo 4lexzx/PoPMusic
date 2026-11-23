@@ -23,7 +23,7 @@ export function AboutTabLinks() {
   const links: AboutLink[] = [
     {
       id: "telegram",
-      url: "https://t.me/liner_app",
+      url: "https://t.me/popmusic_app",
       label: t("settings.about.telegram"),
       icon: <TelegramFill size={17} />,
     },
