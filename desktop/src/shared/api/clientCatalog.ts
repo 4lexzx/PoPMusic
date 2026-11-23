@@ -42,6 +42,30 @@ async function preferClient<T>(
   }
 }
 
+/**
+ * PoP Music: el catálogo musical va primero. YouTube (InnerTube) queda como
+ * respaldo para cuando el catálogo no responde, porque sus resultados son
+ * videos y sus miniaturas acaban saliendo como carátulas.
+ */
+async function preferServer<T>(
+  label: string,
+  server: () => Promise<T>,
+  client: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await server();
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+    log(
+      "yellow",
+      "catalog",
+      `${label} failed on server, using client fallback`,
+      error,
+    );
+    return client();
+  }
+}
+
 const SNAPSHOT_TIMEOUT_MS = 4000;
 
 async function resolveSnapshot(id: string): Promise<Track | undefined> {
@@ -84,10 +108,10 @@ export const clientCatalog = {
     return withSoundCloudTracks(
       query,
       type,
-      preferClient(
+      preferServer(
         "search",
-        async () => ({ items: await innertubeCatalog.search(query, type) }),
         server,
+        async () => ({ items: await innertubeCatalog.search(query, type) }),
       ),
     );
   },
@@ -97,7 +121,7 @@ export const clientCatalog = {
     server: () => Promise<TrackDetails>,
   ): Promise<TrackDetails> {
     if (isSoundCloudCatalogId(id)) return soundcloudCatalog.getTrack(id);
-    return preferClient("track", () => innertubeCatalog.getTrack(id), server);
+    return preferServer("track", server, () => innertubeCatalog.getTrack(id));
   },
 
   getRadio(id: string, k: number | undefined): Promise<RadioResponse> {
@@ -110,7 +134,7 @@ export const clientCatalog = {
     server: () => Promise<AlbumDetails>,
   ): Promise<AlbumDetails> {
     if (isSoundCloudCatalogId(id)) return soundcloudCatalog.getAlbum(id);
-    return preferClient("album", () => innertubeCatalog.getAlbum(id), server);
+    return preferServer("album", server, () => innertubeCatalog.getAlbum(id));
   },
 
   async getArtistImage(id: string): Promise<string | undefined> {
@@ -124,7 +148,7 @@ export const clientCatalog = {
     server: () => Promise<ArtistDetails>,
   ): Promise<ArtistDetails> {
     if (isSoundCloudCatalogId(id)) return soundcloudCatalog.getArtist(id);
-    return preferClient("artist", () => innertubeCatalog.getArtist(id), server);
+    return preferServer("artist", server, () => innertubeCatalog.getArtist(id));
   },
 
   getPlaylist(
