@@ -45,7 +45,7 @@ function findActiveLineIndex(lines: LyricLine[], positionMs: number): number {
 function currentAudioPositionMs(): number {
   const audioEl =
     typeof document !== "undefined"
-      ? (document.getElementById("liner-audio") as HTMLAudioElement | null)
+      ? (document.getElementById("popmusic-audio") as HTMLAudioElement | null)
       : null;
   return audioEl && !Number.isNaN(audioEl.currentTime) && !audioEl.seeking
     ? Math.round(audioEl.currentTime * 1000)

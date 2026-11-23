@@ -9,7 +9,7 @@ interface YoutubePreferencesState {
   setAccountPlayback: (accountPlayback: boolean) => void;
   setPromptSignIn: (promptSignIn: boolean) => void;
   setSyncLibrary: (syncLibrary: boolean) => void;
-  setSignOutWithLiner: (signOutWithPopMusic: boolean) => void;
+  setSignOutWithPopMusic: (signOutWithPopMusic: boolean) => void;
 }
 
 export const useYoutubePreferences = create<YoutubePreferencesState>()(
@@ -22,7 +22,7 @@ export const useYoutubePreferences = create<YoutubePreferencesState>()(
       setAccountPlayback: (accountPlayback) => set({ accountPlayback }),
       setPromptSignIn: (promptSignIn) => set({ promptSignIn }),
       setSyncLibrary: (syncLibrary) => set({ syncLibrary }),
-      setSignOutWithLiner: (signOutWithPopMusic) => set({ signOutWithPopMusic }),
+      setSignOutWithPopMusic: (signOutWithPopMusic) => set({ signOutWithPopMusic }),
     }),
     {
       name: "popmusic_youtube_preferences",

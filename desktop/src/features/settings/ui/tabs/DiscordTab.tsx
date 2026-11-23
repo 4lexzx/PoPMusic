@@ -219,7 +219,7 @@ export function DiscordTab({ searchQuery }: { searchQuery?: string }) {
       <SettingSection
         label={t("settings.discord.section_buttons") || "Profile buttons"}
       >
-        {/* Listen on Liner button */}
+        {/* Listen on PoP Music button */}
         <SettingRow
           title={
             t("settings.discord.show_button.title") ||
@@ -241,7 +241,7 @@ export function DiscordTab({ searchQuery }: { searchQuery?: string }) {
           }
         />
 
-        {/* Download Liner button */}
+        {/* Download PoP Music button */}
         <SettingRow
           title={
             t("settings.discord.show_download_button.title") ||
@@ -249,7 +249,7 @@ export function DiscordTab({ searchQuery }: { searchQuery?: string }) {
           }
           description={
             t("settings.discord.show_download_button.description") ||
-            "Add an interactive button linking to tryliner.fun to download the app."
+            "Add an interactive button linking to the PoP Music download page."
           }
           titleKey="settings.discord.show_download_button.title"
           descKey="settings.discord.show_download_button.description"

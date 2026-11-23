@@ -267,7 +267,7 @@ const QueueList = memo(function QueueList({
               }`}
               imageShape="square"
               onPlay={() => {
-                if (typeof window !== "undefined" && window.__linerWasDragging)
+                if (typeof window !== "undefined" && window.__popWasDragging)
                   return;
                 void playerEngine.playTrack(
                   item,

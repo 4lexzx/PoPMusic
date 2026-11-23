@@ -709,7 +709,7 @@ class PlayerEngine {
       playerRuntime?.cancelPendingLoad();
     }
     const audioEl = document.getElementById(
-      "liner-audio",
+      "popmusic-audio",
     ) as HTMLAudioElement | null;
     if (audioEl && !Number.isNaN(audioEl.currentTime)) {
       store.setPosition(Math.round(audioEl.currentTime * 1000));

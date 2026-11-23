@@ -19,8 +19,8 @@ export function YoutubeTab({ searchQuery }: { searchQuery?: string }) {
   const syncLibrary = useYoutubePreferences((s) => s.syncLibrary);
   const setSyncLibrary = useYoutubePreferences((s) => s.setSyncLibrary);
   const signOutWithPopMusic = useYoutubePreferences((s) => s.signOutWithPopMusic);
-  const setSignOutWithLiner = useYoutubePreferences(
-    (s) => s.setSignOutWithLiner,
+  const setSignOutWithPopMusic = useYoutubePreferences(
+    (s) => s.setSignOutWithPopMusic,
   );
 
   return (
@@ -99,7 +99,7 @@ export function YoutubeTab({ searchQuery }: { searchQuery?: string }) {
           control={
             <ToggleSwitch
               checked={signOutWithPopMusic}
-              onChange={setSignOutWithLiner}
+              onChange={setSignOutWithPopMusic}
             />
           }
         />

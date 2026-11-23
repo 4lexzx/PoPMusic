@@ -91,7 +91,7 @@ const TrackItem = memo(function TrackItem({
   highlight,
 }: TrackItemProps) {
   const handlePlay = useCallback(() => {
-    if (typeof window !== "undefined" && window.__linerWasDragging) return;
+    if (typeof window !== "undefined" && window.__popWasDragging) return;
     const context = playlistId ? `playlist:${playlistId}` : playlistTitle;
     playerEngine.playTrack(track, allTracks, context, playlistCoverUrl);
   }, [track, allTracks, playlistId, playlistTitle, playlistCoverUrl]);

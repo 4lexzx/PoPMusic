@@ -101,14 +101,14 @@ export function SettingsSidebar<T extends string>({
             label={t("settings.docs")}
             onClick={() =>
               openExternal(
-                "https://github.com/tryliner/desktop/blob/main/README.md",
+                "https://github.com/4lexzx/PoPMusic/blob/main/desktop/README.md",
               )
             }
           />
           <NavItem
             icon={QuestionCircle}
             label={t("settings.support")}
-            onClick={() => openExternal("https://discord.gg/liner")}
+            onClick={() => openExternal("https://github.com/4lexzx/PoPMusic/issues")}
           />
         </div>
       </nav>

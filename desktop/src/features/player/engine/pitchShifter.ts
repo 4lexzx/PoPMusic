@@ -669,7 +669,7 @@ export class PitchShifterController {
         const audio =
           win.__popmusic_audio ||
           (typeof document !== "undefined" &&
-            document.getElementById("liner-audio"));
+            document.getElementById("popmusic-audio"));
         if (audio) {
           this.attach(audio);
         }

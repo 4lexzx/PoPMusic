@@ -16,7 +16,7 @@ export default function UpdateModal() {
   const releaseTag = updateInfo.version.startsWith("v")
     ? updateInfo.version
     : `v${updateInfo.version}`;
-  const changelogUrl = `https://github.com/tryliner/desktop/releases/tag/${releaseTag}`;
+  const changelogUrl = `https://github.com/4lexzx/PoPMusic/releases/tag/${releaseTag}`;
 
   return (
     <Dialog
