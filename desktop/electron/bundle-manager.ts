@@ -120,26 +120,19 @@ export class BundleManager {
   /**
    * Returns path to current effective index.html (active OTA bundle OR built-in fallback)
    */
+  // PoP Music: los bundles OTA proceden del servidor de Liner y sustituirían
+  // esta aplicación por el código original. La interfaz se ejecuta siempre
+  // desde el instalador; las actualizaciones se hacen con un EXE nuevo.
   public getEffectiveIndexPath(): string {
-    if (this.activeState) {
-      const activeHtml = path.join(
-        this.activeState.bundleDir,
-        "dist",
-        "index.html",
-      );
-      if (fs.existsSync(activeHtml)) {
-        return activeHtml;
-      }
-    }
     return path.join(this.defaultRendererDist, "index.html");
   }
 
   public getActiveVersion(): string {
-    return this.activeState ? this.activeState.bundleVersion : app.getVersion();
+    return app.getVersion();
   }
 
   public getActiveState(): ActiveBundleState | null {
-    return this.activeState;
+    return null;
   }
 
   /**
@@ -194,16 +187,9 @@ export class BundleManager {
     return !this.matches(state, manifest);
   }
 
-  private async fetchManifest(timeoutMs: number): Promise<BundleManifest> {
-    const res = await fetch(
-      `${this.updaterUrl}/updates/manifest.json?t=${Date.now()}`,
-      {
-        cache: "no-store",
-        signal: AbortSignal.timeout(timeoutMs),
-      },
-    );
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    return (await res.json()) as BundleManifest;
+  private async fetchManifest(_timeoutMs: number): Promise<BundleManifest> {
+    // PoP Music: no se consulta el servidor de actualizaciones de Liner.
+    throw new Error("Actualizaciones OTA desactivadas");
   }
 
   private pruneBundles(): void {
