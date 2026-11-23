@@ -34,6 +34,7 @@ import {
 } from './store'
 import LyricsPanel from './components/LyricsPanel'
 import SettingsView from './components/SettingsView'
+import HomeView from './components/HomeView'
 
 type View = 'home' | 'search' | 'library' | 'settings'
 type LibraryTab = 'favorites' | 'recent' | 'playlists'
@@ -276,6 +277,10 @@ export default function App() {
 
   return (
     <div className="app">
+      <div
+        className="ambient"
+        style={current?.coverUrl ? { backgroundImage: `url(${current.coverUrl})` } : undefined}
+      />
       <aside className="rail">
         <div className="mark">PM</div>
         <button className={`railBtn ${view === 'home' ? 'active' : ''}`} onClick={() => setView('home')} title="Inicio"><HomeIcon size={22} /></button>
@@ -315,7 +320,7 @@ export default function App() {
           <button className={`queueBtn ${showQueue ? 'on' : ''}`} onClick={() => setShowQueue(!showQueue)} title="Cola"><ListMusic size={18} /></button>
         </header>
 
-        <div className="content">
+        <div className="content" key={view}>
           {view === 'settings' ? (
             <SettingsView settings={settings} onChange={setSettings}
               onClearLibrary={() => setLibrary({ favorites: [], recent: [], playlists: [] })} />
@@ -340,7 +345,16 @@ export default function App() {
                   ))}
                 </div>
               )}
-              {(view !== 'library' || libraryTab !== 'playlists' || selected) && (
+              {view === 'home' ? (
+                <HomeView
+                  tracks={discover}
+                  current={current}
+                  playing={playing}
+                  onPlay={playTrack}
+                  isFavorite={isFavorite}
+                  onFavorite={fav}
+                />
+              ) : (view !== 'library' || libraryTab !== 'playlists' || selected) && (
                 <>
                   <div className="sectionHead">
                     <h1>{title}</h1>
