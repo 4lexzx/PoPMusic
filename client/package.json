@@ -12,7 +12,6 @@
     "dist:win": "npm run build && electron-builder --win --x64 --publish never"
   },
   "dependencies": {
-    "electron": "^45.4.1",
     "lucide-react": "^0.468.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -24,12 +23,13 @@
     "@vitejs/plugin-react": "^4.3.4",
     "electron-builder": "^26.18.0",
     "typescript": "^5.7.2",
-    "vite": "^6.0.5"
+    "vite": "^6.0.5",
+    "electron": "^45.4.1"
   },
   "main": "electron/main.cjs",
   "build": {
     "appId": "com.popmusic.client",
-    "productName": "PoP Music",
+    "productName": "PoP Music Client",
     "directories": {
       "output": "release"
     },
@@ -42,7 +42,11 @@
     },
     "nsis": {
       "oneClick": false,
-      "artifactName": "PoP Music Setup-${version}.${ext}"
+      "artifactName": "PoP Music Client Setup-${version}.${ext}"
     }
+  },
+  "description": "Reproductor de música PoP Music (cliente limpio)",
+  "author": {
+    "name": "4lexzx"
   }
 }
