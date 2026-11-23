@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { fallbackThumbnail } from '@/shared/utils/thumbnails'
 import { MusicIcon } from './Icons'
 
 interface ArtworkProps {
@@ -26,11 +27,24 @@ export function Artwork({
   }, [src])
 
   const handleError = () => {
-    if (source.includes('mqdefault')) {
-      setSource(source.replace('mqdefault', 'hqdefault'))
+    const fallback = fallbackThumbnail(source)
+    if (fallback) {
+      setSource(fallback)
       return
     }
     setFailed(true)
+  }
+
+  const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    const image = event.currentTarget
+    // YouTube devuelve una imagen gris de reserva cuando no hay HD:
+    // se detecta por su tamaño y se baja a una miniatura válida.
+    if (
+      (source.includes('hq720') || source.includes('maxresdefault')) &&
+      image.naturalWidth < 600
+    ) {
+      setSource(source.replace(/(hq720|maxresdefault)/, 'mqdefault'))
+    }
   }
 
   const showImage = source && !failed
@@ -48,6 +62,7 @@ export function Artwork({
           decoding="async"
           referrerPolicy="no-referrer"
           onError={handleError}
+          onLoad={handleLoad}
           className="h-full w-full object-cover"
         />
       ) : (

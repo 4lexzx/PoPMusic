@@ -6,6 +6,8 @@ import type {
   YouTubeSearchItem,
   YouTubeVideoItem,
 } from '@/shared/types/youtube'
+import { isMusicTrack } from '@/shared/utils/musicFilter'
+import { hdThumbnail, upgradeThumbnail } from '@/shared/utils/thumbnails'
 import { parseIsoDuration } from '@/shared/utils/time'
 import { guessArtistAndTitle } from '@/shared/utils/text'
 import { getJson } from './http'
@@ -19,7 +21,7 @@ function thumbnailsToUrl(
   const preferred = ['maxres', 'standard', 'high', 'medium', 'default']
   for (const key of preferred) {
     const candidate = thumbnails[key]?.url
-    if (candidate) return candidate
+    if (candidate) return upgradeThumbnail(candidate)
   }
   const first = Object.values(thumbnails)[0]?.url
   return first ?? ''
@@ -57,20 +59,22 @@ export async function searchTracks(query: string, maxResults = 25): Promise<Trac
 
   const byId = new Map((videoData.items ?? []).map((item) => [item.id, item]))
 
-  return ids.map((id) => {
-    const item = byId.get(id)
-    const snippet = item?.snippet
-    const guessed = guessArtistAndTitle(snippet?.title ?? 'Vídeo', snippet?.channelTitle ?? '')
-    return {
-      id,
-      videoId: id,
-      title: guessed.title,
-      artist: guessed.artist,
-      thumbnail: thumbnailsToUrl(snippet?.thumbnails) || `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
-      duration: parseIsoDuration(item?.contentDetails?.duration),
-      source: 'youtube' as const,
-    }
-  })
+  return ids
+    .map((id) => {
+      const item = byId.get(id)
+      const snippet = item?.snippet
+      const guessed = guessArtistAndTitle(snippet?.title ?? 'Vídeo', snippet?.channelTitle ?? '')
+      return {
+        id,
+        videoId: id,
+        title: guessed.title,
+        artist: guessed.artist,
+        thumbnail: thumbnailsToUrl(snippet?.thumbnails) || hdThumbnail(id),
+        duration: parseIsoDuration(item?.contentDetails?.duration),
+        source: 'youtube' as const,
+      }
+    })
+    .filter((track) => isMusicTrack(track.title, track.duration))
 }
 
 /** Extrae el ID de una playlist a partir de una URL o de un ID directo. */
@@ -168,21 +172,23 @@ export async function importYouTubePlaylist(
         videoId: id,
         title: guessed.title,
         artist: guessed.artist,
-        thumbnail:
-          thumbnailsToUrl(snippet.thumbnails) || `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,
+        thumbnail: thumbnailsToUrl(snippet.thumbnails) || hdThumbnail(id),
         duration: parseIsoDuration(item?.contentDetails?.duration),
         source: 'youtube',
       })
     }
   }
 
+  // Solo música: descarta videoclips, trailers y Shorts.
+  const musicOnly = tracks.filter((track) => isMusicTrack(track.title, track.duration))
+
   return {
     id: playlistId,
     name: meta.name,
     description: meta.description,
-    thumbnail: meta.thumbnail || tracks[0]?.thumbnail || '',
+    thumbnail: meta.thumbnail || musicOnly[0]?.thumbnail || '',
     source: 'youtube',
-    tracks,
+    tracks: musicOnly,
     importedAt: Date.now(),
   }
 }

@@ -49,6 +49,8 @@
     ]
   },
   "dependencies": {
+    "@mingcute/react": "^3.1.0",
+    "@solar-icons/react": "^2.7.0",
     "@supabase/supabase-js": "^2.118.0",
     "bgutils-js": "^4.0.3",
     "framer-motion": "^12.23.12",
