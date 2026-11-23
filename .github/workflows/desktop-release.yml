@@ -46,7 +46,7 @@ jobs:
 
       - name: Compilar aplicación
         working-directory: desktop
-        run: npm run build
+        run: npx vite build
 
       # Genera desktop/release/PoP Music Setup.exe
       - name: Generar instalador Windows
