@@ -6,6 +6,8 @@
  * vienen de iTunes Search y LrcLib.
  */
 
+import { resolveAudioUrl } from "./audio.mjs";
+
 const ITUNES_API = "https://itunes.apple.com";
 const LRCLIB_API = "https://api.lrclib.net";
 const TIMEOUT_MS = 6_000;
@@ -53,6 +55,7 @@ function mapSong(item) {
     coverUrl: image,
     cover: image ? { url: image, width: 600, height: 600 } : undefined,
     durationMs: item.trackTimeMillis ?? 0,
+    previewUrl: item.previewUrl ?? undefined,
     album: {
       id: String(item.collectionId ?? ""),
       title: item.collectionName ?? "",
@@ -197,7 +200,24 @@ export async function handleRequest(req, res) {
       });
     }
 
-    // El audio se resuelve en el cliente con su propio resolutor de YouTube.
+    // Audio resuelto en el backend (Node, sin los problemas de CORS del
+    // navegador). El cliente solo recibe una URL reproducible.
+    if (path === "/v1/audio" && req.method === "GET") {
+      const artist = url.searchParams.get("artist") ?? "";
+      const title = url.searchParams.get("title") ?? "";
+      if (!title) return send(res, 400, { code: "MISSING_TITLE" });
+      try {
+        const audioUrl = await resolveAudioUrl(artist, title);
+        if (!audioUrl) return send(res, 404, { code: "AUDIO_NOT_FOUND" });
+        return send(res, 200, { url: audioUrl });
+      } catch (error) {
+        return send(res, 502, {
+          code: "AUDIO_ERROR",
+          message: String(error),
+        });
+      }
+    }
+
     if (path.includes("/playback"))
       return send(res, 404, { code: "PLAYBACK_NOT_FOUND" });
 
