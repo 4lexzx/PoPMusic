@@ -46,8 +46,10 @@ function sampleBottomColor(img: HTMLImageElement): string | null {
       b += data[i + 2];
     }
     const n = data.length / 4;
-    const tone = (v: number) => Math.round((v / n) * FILL_DARKEN);
-    return `${tone(r)}, ${tone(g)}, ${tone(b)}`;
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / n;
+    const tone = Math.max(8, Math.min(26, Math.round(lum * 0.12)));
+    // Fondo neutro: la portada no tiñe la interfaz de color.
+    return `${tone}, ${tone}, ${tone}`;
   } catch {
     return null;
   }
@@ -69,7 +71,7 @@ function PageCoverBackdropComponent({
   coverCrossOrigin = "anonymous",
   isDark = true,
   blur = 56,
-  dim = 0.22,
+  dim = 0.45,
 }: PageCoverBackdropProps) {
   const [layers, setLayers] = useState<Layer[]>(() =>
     coverSrc ? [{ id: nextLayerId++, src: coverSrc }] : [],
@@ -88,7 +90,7 @@ function PageCoverBackdropComponent({
   layersRef.current = layers;
   const loadedIdsRef = useRef(loadedIds);
   loadedIdsRef.current = loadedIds;
-  const opacity = isDark ? 0.6 : 0.45;
+  const opacity = isDark ? 0.32 : 0.45;
 
   // a new cover pushes a layer on top; at most two layers live at once
   useEffect(() => {
@@ -187,7 +189,7 @@ function PageCoverBackdropComponent({
             }
             className="absolute inset-0 h-full w-full object-cover select-none ease-out"
             style={{
-              filter: `blur(${blur}px) saturate(130%)`,
+              filter: `blur(${blur}px) grayscale(1) brightness(0.55)`,
               transform: "scale(1.1)",
               opacity:
                 loadedIds.has(layer.id) &&

@@ -60,11 +60,11 @@ function AmbientCanvas({ script, visible }: AmbientCanvasProps) {
       style={{
         ...mask,
         transitionDuration: `${AMBIENT_FADE_MS}ms`,
-        filter: options?.blur ? `blur(${options.blur}px)` : undefined,
+        filter: `${options?.blur ? `blur(${options.blur}px) ` : ""}grayscale(1) brightness(0.5)`,
       }}
       className={cn(
         "pointer-events-none absolute inset-0 transition-opacity ease-out",
-        visible && options ? "opacity-80" : "opacity-0",
+        visible && options ? "opacity-30" : "opacity-0",
       )}
     />
   );
