@@ -34,6 +34,7 @@ import {
   type Library, type QueueState,
 } from './store'
 import LyricsPanel from './components/LyricsPanel'
+import LinerPlayer from './components/LinerPlayer'
 import SettingsView from './components/SettingsView'
 import HomeView from './components/HomeView'
 
