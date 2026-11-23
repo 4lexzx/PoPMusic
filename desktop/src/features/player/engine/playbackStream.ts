@@ -4,7 +4,7 @@ import type {
   TvProgressiveAudioStream,
 } from "@/shared/youtube";
 import type { ResolvedSoundCloudStream } from "@/shared/media/soundcloud";
-import type { LinerAudioStream } from "@/shared/media/pop/popPlayback";
+import type { PopAudioStream } from "@/shared/media/pop/popPlayback";
 import type { Track } from "@/shared/types";
 
 export type PlaybackSource =
@@ -121,7 +121,7 @@ export function fromSoundCloudStream(
 }
 
 export function fromLinerStream(
-  stream: LinerAudioStream,
+  stream: PopAudioStream,
   track: PlayableTrack,
 ): PlaybackStream {
   const seconds = track.durationMs ? track.durationMs / 1000 : 0;

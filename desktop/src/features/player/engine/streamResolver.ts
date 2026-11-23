@@ -14,7 +14,7 @@ import {
   resolveSoundCloudStream,
   toSoundCloudTrackId,
 } from "@/shared/media/soundcloud";
-import { resolveLinerStream } from "@/shared/media/pop/popPlayback";
+import { resolveAudioStream } from "@/shared/media/pop/popPlayback";
 import { isLocalTrackId, localTrackAudioUrl } from "@/shared/media/local";
 import { savedAudioUrl, savedTrackRecord } from "@/shared/media/saved";
 import { isAbortError } from "@/shared/utils/abort";
@@ -146,7 +146,7 @@ async function resolveYoutubeTrack(
       `album row ${rowVideoId} is a ${track.audioVariant}, playing the song ${songId}`,
     );
   const videoId = songId ?? rowVideoId;
-  const liner = await resolveLinerStream(videoId, signal);
+  const liner = await resolveAudioStream(videoId, signal);
   if (liner) {
     log("cyan", "playback", `resolved liner audio (r2) for "${track.title}"`);
     return fromLinerStream(liner, track);

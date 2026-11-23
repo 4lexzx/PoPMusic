@@ -108,7 +108,7 @@ export function showToast(
     maybeOptions,
   );
   window.dispatchEvent(
-    new CustomEvent("liner:toast", {
+    new CustomEvent("popmusic:toast", {
       detail: { message, variant, options },
     }),
   );
@@ -117,7 +117,7 @@ export function showToast(
 export function dismissToast(id: string | number) {
   if (typeof window === "undefined") return;
   window.dispatchEvent(
-    new CustomEvent("liner:toast-dismiss", {
+    new CustomEvent("popmusic:toast-dismiss", {
       detail: { id },
     }),
   );
@@ -568,8 +568,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         toastCore(detail.message, detail.variant, detail.options);
       }
     };
-    window.addEventListener("liner:toast", handleCustomToast);
-    return () => window.removeEventListener("liner:toast", handleCustomToast);
+    window.addEventListener("popmusic:toast", handleCustomToast);
+    return () => window.removeEventListener("popmusic:toast", handleCustomToast);
   }, [toastCore]);
 
   useEffect(() => {
@@ -579,9 +579,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         remove(detail.id);
       }
     };
-    window.addEventListener("liner:toast-dismiss", handleDismissToast);
+    window.addEventListener("popmusic:toast-dismiss", handleDismissToast);
     return () =>
-      window.removeEventListener("liner:toast-dismiss", handleDismissToast);
+      window.removeEventListener("popmusic:toast-dismiss", handleDismissToast);
   }, [remove]);
 
   const visibleToasts = toasts.slice(0, 3);
