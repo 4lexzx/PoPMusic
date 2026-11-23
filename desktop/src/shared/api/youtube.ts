@@ -6,6 +6,7 @@ import type {
   YouTubeSearchItem,
   YouTubeVideoItem,
 } from '@/shared/types/youtube'
+import { withAlbumArt } from './albumArt'
 import { isMusicTrack } from '@/shared/utils/musicFilter'
 import { hdThumbnail, upgradeThumbnail } from '@/shared/utils/thumbnails'
 import { parseIsoDuration } from '@/shared/utils/time'
@@ -59,7 +60,7 @@ export async function searchTracks(query: string, maxResults = 25): Promise<Trac
 
   const byId = new Map((videoData.items ?? []).map((item) => [item.id, item]))
 
-  return ids
+  const tracks = ids
     .map((id) => {
       const item = byId.get(id)
       const snippet = item?.snippet
@@ -75,6 +76,11 @@ export async function searchTracks(query: string, maxResults = 25): Promise<Trac
       }
     })
     .filter((track) => isMusicTrack(track.title, track.duration))
+
+  // Carátula de álbum en lugar de fotograma del vídeo.
+  return Promise.all(
+    tracks.map(async (track) => ({ ...track, thumbnail: await withAlbumArt(track) })),
+  )
 }
 
 /** Extrae el ID de una playlist a partir de una URL o de un ID directo. */
@@ -180,7 +186,11 @@ export async function importYouTubePlaylist(
   }
 
   // Solo música: descarta videoclips, trailers y Shorts.
-  const musicOnly = tracks.filter((track) => isMusicTrack(track.title, track.duration))
+  const musicOnly = await Promise.all(
+    tracks
+      .filter((track) => isMusicTrack(track.title, track.duration))
+      .map(async (track) => ({ ...track, thumbnail: await withAlbumArt(track) })),
+  )
 
   return {
     id: playlistId,
