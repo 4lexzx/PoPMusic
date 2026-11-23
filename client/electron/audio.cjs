@@ -1,13 +1,39 @@
+const path = require('node:path')
+const fs = require('node:fs')
 const { YtDlp } = require('ytdlp-nodejs')
+
+let binaryPath = null
+try {
+  const { app } = require('electron')
+  if (app && app.isPackaged) {
+    const candidate = path.join(
+      process.resourcesPath,
+      'app.asar.unpacked',
+      'node_modules', 'ytdlp-nodejs', 'bin', 'yt-dlp.exe',
+    )
+    if (fs.existsSync(candidate)) binaryPath = candidate
+  }
+} catch {}
 
 let ytdlp = null
 function getYtdlp() {
-  if (!ytdlp) ytdlp = new YtDlp()
+  if (!ytdlp) ytdlp = binaryPath ? new YtDlp({ binaryPath }) : new YtDlp()
   return ytdlp
 }
 
-/** Devuelve la mejor URL de audio HTTPS para una canción. */
-async function resolveAudio(artist, title) {
+// Las URLs de googlevideo caducan (~6 h), así que se guardan poco tiempo.
+const CACHE_TTL_MS = 90 * 60 * 1000
+const cache = new Map()
+const pending = new Map()
+
+function cached(key) {
+  const hit = cache.get(key)
+  if (!hit) return null
+  if (Date.now() - hit.at > CACHE_TTL_MS) { cache.delete(key); return null }
+  return hit.url
+}
+
+async function resolveOnce(artist, title) {
   const y = getYtdlp()
   const query = `ytsearch1:${artist} ${title} official audio`.trim()
   const search = await y.getInfoAsync(query)
@@ -29,4 +55,22 @@ async function resolveAudio(artist, title) {
   return formats[0].url
 }
 
-module.exports = { resolveAudio }
+/** Devuelve la mejor URL de audio HTTPS para una canción. */
+async function resolveAudio(artist, title) {
+  const key = `${artist}|${title}`.toLowerCase()
+  const hit = cached(key)
+  if (hit) return hit
+  if (pending.has(key)) return pending.get(key)
+
+  const job = resolveOnce(artist, title)
+    .then((url) => {
+      if (url) cache.set(key, { url, at: Date.now() })
+      return url
+    })
+    .finally(() => pending.delete(key))
+
+  pending.set(key, job)
+  return job
+}
+
+module.exports = { resolveAudio, binaryPath }

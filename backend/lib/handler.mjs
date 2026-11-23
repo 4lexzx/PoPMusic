@@ -103,9 +103,9 @@ async function explorePopular(country) {
   const entries = data?.feed?.entry || [];
   return entries.map((entry) => {
     const images = entry["im:image"] || [];
-    const cover = images.length
-      ? images[images.length - 1]?.label || ""
-      : "";
+    const raw = images.length ? images[images.length - 1]?.label || "" : "";
+    // El RSS entrega 170x170; se pide la versión grande de la misma portada.
+    const cover = raw.replace(/\/\d+x\d+bb\./, "/600x600bb.");
     return {
       type: "track",
       id: String(entry.id?.attributes?.["im:id"] || entry.id?.label || ""),
