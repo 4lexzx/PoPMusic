@@ -201,7 +201,7 @@ export const World2Line = (props: P) => { const C = map["World2Line"] || L.Circl
 export const YoutubeFill = (props: P) => { const C = map["YoutubeFill"] || L.Circle; return <C {...props} /> }
 export const YoutubeLine = (props: P) => { const C = map["YoutubeLine"] || L.Circle; return <C {...props} /> }
 
-// Alias de la antigua librería react-icons -> iconos propios.
+// Alias de la antigua libreria react-icons -> iconos propios.
 export const LuTrash2 = (props: P) => <L.Trash2 {...props} />
 export const LuFolderPlus = (props: P) => <L.FolderPlus {...props} />
 export const LuEraser = (props: P) => <L.Eraser {...props} />
