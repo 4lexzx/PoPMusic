@@ -27,6 +27,13 @@ El instalador se genera en `release/`. Usa iconos propios y tema oscuro por defe
 - `src/widgets` — marco de la ventana, barra del reproductor y paneles.
 - `electron` — proceso principal, preload, overlays y atajos.
 
+## Backend propio
+
+El buscador usa primero el catálogo configurado en `VITE_API_URL` y solo cae a
+YouTube si aquel falla. Hay un backend propio en `../backend` que devuelve solo
+música (iTunes) con carátulas de álbum reales. Ver su README para arrancarlo.
+
 ## Licencia
 
-MIT. Ver [LICENSE](./LICENSE).
+Este código deriva de Liner y solo está autorizado para uso personal.
+Ver [LICENSE](./LICENSE). El backend propio en `../backend` sí es MIT.
