@@ -61,8 +61,9 @@ export default function App() {
       <CoverSwRegistrar />
       <ThemeProvider
         attribute="data-theme"
-        defaultTheme="system"
-        enableSystem={true}
+        defaultTheme="dark"
+        enableSystem={false}
+        forcedTheme="dark"
         disableTransitionOnChange
       >
         <GlobalTooltip />
