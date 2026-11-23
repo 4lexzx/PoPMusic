@@ -145,7 +145,7 @@ describe("saved track sync", () => {
     expect(t.statuses.at(-1)).toMatchObject({ phase: "idle", pending: 0 });
   });
 
-  it("spaces out youtube downloads more than liner ones", async () => {
+  it("spaces out youtube downloads more than service ones", async () => {
     const t = setup();
     t.setSource("network");
     await t.sync.resume();

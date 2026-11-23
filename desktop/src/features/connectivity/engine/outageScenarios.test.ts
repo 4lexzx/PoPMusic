@@ -217,7 +217,7 @@ describe("youtube refuses the connection", () => {
   });
 });
 
-describe("liner servers unreachable", () => {
+describe("music servers unreachable", () => {
   for (const scenario of ["liner-down", "liner-timeout"]) {
     it(`${scenario}: failing api calls open the server modal`, async () => {
       installNetwork(scenario);
@@ -255,7 +255,7 @@ describe("liner servers unreachable", () => {
     expect(useOfflineModeStore.getState().issue).toBe("server");
   });
 
-  it("use offline mode leaves on its own once liner answers", async () => {
+  it("use offline mode leaves on its own once the service answers", async () => {
     installNetwork("liner-down");
     const { useOfflineModeStore, enterOfflineForIssue, goOnline } =
       await loadFeature();
@@ -321,7 +321,7 @@ describe("device offline", () => {
   });
 });
 
-describe("liner and youtube both down, internet fine", () => {
+describe("music servers and youtube both down, internet fine", () => {
   it("reports the server problem first", async () => {
     installNetwork("liner-down,youtube-blocked", "RU");
     const { useOfflineModeStore, presentDetectedIssue } = await loadFeature();

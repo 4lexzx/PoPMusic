@@ -176,7 +176,7 @@ describe("signing out runs the device cleanup", () => {
   });
 });
 
-describe("signing out of liner and the youtube account", () => {
+describe("signing out of the music service and the youtube account", () => {
   beforeEach(() => {
     setAuthSession(stored);
     useAuthStore.setState({ status: "authenticated", user: stored.user });

@@ -3,7 +3,7 @@ import { getApiBaseUrl } from "@/shared/api/baseUrl";
 import { isAbortError } from "@/shared/utils/abort";
 import { log } from "@/shared/utils/logger";
 
-export interface LinerAudioStream {
+export interface PopAudioStream {
   url: string;
   expiresAt: string;
   mimeType: string;
@@ -27,10 +27,10 @@ function pause(ms: number, reason: string): void {
 }
 
 // presigned r2 url, or null so the caller falls back to youtube
-export async function resolveLinerStream(
+export async function resolveAudioStream(
   videoId: string,
   signal?: AbortSignal,
-): Promise<LinerAudioStream | null> {
+): Promise<PopAudioStream | null> {
   if (Date.now() < pausedUntil || !getAuthSession()?.accessToken) return null;
   const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
   try {
@@ -53,7 +53,7 @@ export async function resolveLinerStream(
         signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
       },
     );
-    if (res.ok) return (await res.json()) as LinerAudioStream;
+    if (res.ok) return (await res.json()) as PopAudioStream;
 
     const body = (await res.json().catch(() => ({}))) as {
       code?: string;
@@ -74,10 +74,10 @@ export async function resolveLinerStream(
 
 // the api answered but r2 itself is unreachable for this client (tls mitm, blocked
 // cloudflare): stop handing out r2 urls for a while so retries go to youtube
-export function markLinerStreamFailed(reason: string): void {
+export function markStreamFailed(reason: string): void {
   pause(UNAVAILABLE_BACKOFF_MS, `r2 stream failed: ${reason}`);
 }
 
-export function resetLinerPlaybackPause(): void {
+export function resetPlaybackPause(): void {
   pausedUntil = 0;
 }

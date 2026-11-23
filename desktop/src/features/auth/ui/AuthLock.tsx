@@ -8,7 +8,7 @@ import { useWindowState } from "@/features/navigation/hooks/useWindowState";
 export function AuthLock({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  // PoP Music: acceso sin cuenta de Liner mientras se sustituye el backend.
+  // PoP Music: acceso sin cuenta externa mientras se sustituye el backend.
   const status: string = "authenticated";
   const initialize = useAuthStore((state) => state.initialize);
   // keeps the body's outer padding in step with maximize / fullscreen on every screen,

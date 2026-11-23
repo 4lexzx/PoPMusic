@@ -5,7 +5,7 @@ import { telemetry } from "@/shared/telemetry";
 import { popDb, audioCache } from "@/shared/storage";
 import { isStandaloneAudioFile } from "@/shared/storage/audioFormat";
 import type { Track } from "@/shared/types";
-import { markLinerStreamFailed } from "@/shared/media/pop/popPlayback";
+import { markStreamFailed } from "@/shared/media/pop/popPlayback";
 import { isLocalTrackId } from "@/shared/media/local";
 import { isSavedTrack } from "@/shared/media/saved";
 import { pitchShifter } from "./pitchShifter";
@@ -43,7 +43,7 @@ export class PlayerRuntime {
   // currentTrackId for a moment.
   private attachedTrackId: string | null = null;
   // the attached source is a presigned r2 url (not a blob, not youtube)
-  private attachedFromLiner = false;
+  private attachedFromApi = false;
   private preloadingTrackId: string | null = null;
   private preloadingPromise: Promise<void> | null = null;
   private preloadAbortController: AbortController | null = null;
@@ -418,9 +418,9 @@ export class PlayerRuntime {
         });
       }
 
-      if (this.attachedFromLiner) {
-        this.attachedFromLiner = false;
-        markLinerStreamFailed(`media error ${code}`);
+      if (this.attachedFromApi) {
+        this.attachedFromApi = false;
+        markStreamFailed(`media error ${code}`);
       }
 
       if (this.activeBlobUrl) {
@@ -593,7 +593,7 @@ export class PlayerRuntime {
     if (this.activeBlobUrl) URL.revokeObjectURL(this.activeBlobUrl);
     this.activeBlobUrl = url;
     this.audio.src = url;
-    this.attachedFromLiner = false;
+    this.attachedFromApi = false;
     this.applyPlaybackRateAndPitch();
     const settle = () => {
       this.isResetting = false;
@@ -650,7 +650,7 @@ export class PlayerRuntime {
     this.audio.src = url;
     this.activeBlobUrl = isBlob ? url : null;
     this.attachedTrackId = trackId;
-    this.attachedFromLiner = false;
+    this.attachedFromApi = false;
     if (previousBlob && previousBlob !== url) URL.revokeObjectURL(previousBlob);
   }
 
@@ -891,7 +891,7 @@ export class PlayerRuntime {
       this.releaseStream();
       const url = stream.blob ? URL.createObjectURL(stream.blob) : stream.url;
       this.attachSource(url, Boolean(stream.blob), track.id);
-      this.attachedFromLiner = Boolean(stream.fromLiner);
+      this.attachedFromApi = Boolean(stream.fromLiner);
       this.releaseActiveStream = stream.release ?? null;
       this.watchFullSource(track.id, stream);
       this.audio.volume = 0;
@@ -1138,7 +1138,7 @@ export class PlayerRuntime {
       });
     } catch (error) {
       if (stream.fromLiner && !signal.aborted)
-        markLinerStreamFailed(`download: ${String(error)}`);
+        markStreamFailed(`download: ${String(error)}`);
       throw error;
     }
     if (!bytes || signal.aborted) return null;
