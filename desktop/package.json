@@ -49,7 +49,7 @@
       "executableName": "PoP Music",
       "syncDesktopName": true,
       "maintainer": "hkamori <dev@tryliner.fun>",
-      "icon": "build/icons",
+      "icon": "icons/icon.png",
       "target": [
         "AppImage",
         "deb"
@@ -65,7 +65,7 @@
     },
     "win": {
       "executableName": "PoP Music",
-      "icon": "build/icon.ico",
+      "icon": "icons/icon.ico",
       "target": [
         "nsis"
       ]
