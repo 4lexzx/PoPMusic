@@ -40,21 +40,9 @@ jobs:
           cache: npm
           cache-dependency-path: desktop/package-lock.json
 
-      - name: Configurar Rust (wasm32)
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: wasm32-unknown-unknown
-
-      - name: Configurar wasm-pack
-        uses: jetli/wasm-pack-action@v0.4.0
-
       - name: Instalar dependencias
         working-directory: desktop
         run: npm ci
-
-      - name: Compilar módulo WebAssembly
-        working-directory: desktop
-        run: node scripts/build-wasm.mjs
 
       - name: Compilar aplicación
         working-directory: desktop
