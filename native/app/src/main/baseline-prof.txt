@@ -1,0 +1,41 @@
+# Perfil de arranque de PoP Music.
+# Reglas de clase completa: ART compila todos sus métodos con AOT.
+# ProfileInstaller entrega este perfil a ART al abrir la app, para que compile
+# estas rutas aunque el APK se haya instalado desde GitHub.
+
+# Arranque del proceso y de la actividad
+Lcom/popmusic/app/PoPMusicApplication;
+Lcom/popmusic/app/MainActivity;
+
+# Composables raíz y navegación
+Lcom/popmusic/app/PoPMusicAppKt;
+Lcom/popmusic/app/ui/navigation/BottomBarKt;
+Lcom/popmusic/app/ui/components/MiniPlayerKt;
+Lcom/popmusic/app/ui/screens/home/HomeScreenKt;
+Lcom/popmusic/app/ui/screens/player/NowPlayingScreenKt;
+Lcom/popmusic/app/ui/screens/library/LibraryScreenKt;
+Lcom/popmusic/app/ui/screens/search/SearchScreenKt;
+Lcom/popmusic/app/ui/screens/settings/SettingsScreenKt;
+
+# ViewModels y estado que se crean al abrir
+Lcom/popmusic/app/ui/screens/home/HomeViewModel;
+Lcom/popmusic/app/player/PlayerViewModel;
+Lcom/popmusic/app/ui/screens/library/LibraryViewModel;
+Lcom/popmusic/app/ui/screens/artist/ArtistViewModel;
+Lcom/popmusic/app/ui/updates/UpdateViewModel;
+Lcom/popmusic/app/data/updates/UpdateRepository;
+
+# Reproducción y recomendaciones
+Lcom/popmusic/app/player/PlaybackService;
+Lcom/popmusic/app/player/PlayerConnection;
+Lcom/popmusic/app/data/recommendations/RecommendationsRepository;
+Lcom/popmusic/app/data/recommendations/RecommendationText;
+Lcom/popmusic/app/data/library/LibraryRepository;
+
+# Tema, cristal y animaciones del primer frame
+Lcom/popmusic/app/ui/theme/ColorKt;
+Lcom/popmusic/app/ui/theme/GlassKt;
+Lcom/popmusic/app/ui/theme/WavyShapeKt;
+Lcom/popmusic/app/ui/components/EnterAnimationsKt;
+Lcom/popmusic/app/ui/components/GlassDialogKt;
+Lcom/popmusic/app/ui/updates/UpdateDialogKt;

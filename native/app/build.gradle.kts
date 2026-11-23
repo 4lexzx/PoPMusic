@@ -40,8 +40,8 @@ android {
         applicationId = "com.popmusic.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 8
-        versionName = "0.1.8"
+        versionCode = 9
+        versionName = "0.1.9"
 
         buildConfigField("String", "AUDD_API_KEY", "\"$auddApiKey\"")
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
@@ -139,6 +139,7 @@ dependencies {
     implementation(libs.haze)
     implementation(libs.haze.blur)
     implementation(libs.androidx.palette.ktx)
+    implementation(libs.androidx.profileinstaller)
     coreLibraryDesugaring(libs.desugar.jdk.libs.nio)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
