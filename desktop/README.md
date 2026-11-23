@@ -17,7 +17,7 @@ npm run build
 npx electron-builder --win --x64 --publish never
 ```
 
-El instalador se genera en `release/`.
+El instalador se genera en `release/`. Usa iconos propios y tema oscuro por defecto.
 
 ## Estructura
 
