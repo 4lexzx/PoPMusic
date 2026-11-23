@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckFill, Magic2Fill, WarningFill } from "@mingcute/react";
+import { CheckFill, Magic2Fill, WarningFill } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { cn, isWeakDevice } from "@/shared/lib";
 import { useFrameStrain } from "../hooks/useFrameStrain";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DownLine, User1Line } from "@mingcute/react";
+import { DownLine, User1Line } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { cn } from "@/shared/lib";
 import { DropdownMenu, type DropdownMenuItem } from "@/shared/ui";

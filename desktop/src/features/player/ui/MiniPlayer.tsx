@@ -14,8 +14,8 @@ import {
   Repeat,
   RepeatOne,
   Shuffle,
-} from "@solar-icons/react";
-import { HeartFill, HeartLine } from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
+import { HeartFill, HeartLine } from "@/shared/ui/PopIcons";
 
 import { PlayerMorphIcon, ICON_PLAY, ICON_PAUSE } from "./morphPlayerIcons";
 

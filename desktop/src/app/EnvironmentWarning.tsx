@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { WarningFill } from "@mingcute/react";
+import { WarningFill } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 
 const SKIP_KEY = "popmusic:env-warning-skipped";

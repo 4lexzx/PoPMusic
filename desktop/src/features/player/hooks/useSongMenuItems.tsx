@@ -8,8 +8,8 @@ import {
   LuTrash2,
   LuFolderPlus,
   LuEraser,
-} from "react-icons/lu";
-import { ShareForwardLine } from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
+import { ShareForwardLine } from "@/shared/ui/PopIcons";
 import type { DropdownMenuItem } from "@/shared/ui/DropdownMenu";
 import { playerEngine } from "../engine/playerEngine";
 import {

@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeftLine } from "@mingcute/react";
+import { ArrowLeftLine } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 
 export interface StickyHeaderProps {

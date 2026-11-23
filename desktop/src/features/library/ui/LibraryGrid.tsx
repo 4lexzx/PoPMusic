@@ -14,8 +14,8 @@ import type {
 } from "../types";
 import { useTranslation } from "@/languages";
 import { useModalStore } from "../store/modalStore";
-import { LuTrash2 } from "react-icons/lu";
-import { More2Fill, PlaylistFill, AddLine, Search3Fill } from "@mingcute/react";
+import { LuTrash2 } from "@/shared/ui/PopIcons";
+import { More2Fill, PlaylistFill, AddLine, Search3Fill } from "@/shared/ui/PopIcons";
 
 interface LibraryGridProps {
   items: LibraryItemViewModel[];

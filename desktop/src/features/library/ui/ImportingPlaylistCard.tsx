@@ -1,5 +1,5 @@
 import { useTranslation } from "@/languages";
-import { PlaylistFill } from "@mingcute/react";
+import { PlaylistFill } from "@/shared/ui/PopIcons";
 import { useTweenedNumber } from "@/shared/hooks";
 import { SegmentBar } from "@/shared/ui";
 import type { ImportJob } from "@/shared/contracts/imports";

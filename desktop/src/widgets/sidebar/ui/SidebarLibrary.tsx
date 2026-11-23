@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { PlaylistFill } from "@mingcute/react";
+import { PlaylistFill } from "@/shared/ui/PopIcons";
 import { CoverCollage, usePlaylistsList } from "@/features/library";
 import { useCachedTracksStore } from "@/features/library/cached";
 import { useLikesCover } from "@/features/library/hooks/useLikesCover";

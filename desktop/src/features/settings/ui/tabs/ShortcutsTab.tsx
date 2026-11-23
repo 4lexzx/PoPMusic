@@ -9,7 +9,7 @@ import {
   VolumeCross,
   Widget5,
   MaximizeSquare,
-} from "@solar-icons/react";
+} from "@/shared/ui/PopIcons";
 import {
   Search2Line,
   CloseLine,
@@ -19,7 +19,7 @@ import {
   FastForwardLine,
   FastRewindLine,
   ExternalLinkLine,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { ConfirmPill, useToast } from "@/shared/ui";
 import {

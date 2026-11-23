@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from "react";
 import { useTranslation } from "@/languages";
-import { CloseLine } from "@mingcute/react";
+import { CloseLine } from "@/shared/ui/PopIcons";
 import Dialog from "@/shared/ui/Dialog";
 import { DialogHeader, Panel, ScrollableText } from "@/shared/ui";
 import CoverImage from "../../covers/ui/CoverImage";

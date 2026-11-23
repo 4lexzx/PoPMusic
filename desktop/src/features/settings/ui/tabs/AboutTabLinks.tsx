@@ -4,7 +4,7 @@ import {
   GithubFill,
   World2Line,
   TelegramFill,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 
 interface AboutLink {

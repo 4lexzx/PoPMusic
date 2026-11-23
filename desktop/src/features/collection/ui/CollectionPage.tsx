@@ -17,8 +17,8 @@ import {
   PlaylistFill,
   CheckLine,
   More1Fill,
-} from "@mingcute/react";
-import { LuShuffle } from "react-icons/lu";
+} from "@/shared/ui/PopIcons";
+import { LuShuffle } from "@/shared/ui/PopIcons";
 import Button from "@/shared/ui/Button";
 import SongCardWithMenu from "@/features/player/ui/SongCardWithMenu";
 import CoverImage from "@/features/covers/ui/CoverImage";

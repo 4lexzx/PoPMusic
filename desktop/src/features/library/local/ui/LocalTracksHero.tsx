@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { AddLine, PlayFill } from "@mingcute/react";
-import { LuShuffle, LuTrash2 } from "react-icons/lu";
+import { AddLine, PlayFill } from "@/shared/ui/PopIcons";
+import { LuShuffle, LuTrash2 } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import {
   EntityHero,

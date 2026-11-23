@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FaUser } from "react-icons/fa";
+import { FaUser } from "@/shared/ui/PopIcons";
 
 export interface UserAvatarProps {
   user?: {

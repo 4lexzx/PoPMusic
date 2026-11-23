@@ -1,4 +1,4 @@
-import { DiscordFill } from "@mingcute/react";
+import { DiscordFill } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { AccountCard } from "@/shared/ui";
 import { AppImage } from "@/features/covers";

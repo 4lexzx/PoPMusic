@@ -1,12 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { SkipNext, SkipPrevious } from "@solar-icons/react";
+import { SkipNext, SkipPrevious } from "@/shared/ui/PopIcons";
 import {
   PlayerMorphIcon,
   ICON_PLAY,
   ICON_PAUSE,
 } from "@/features/player/ui/morphPlayerIcons";
-import { HeartFill, HeartLine } from "@mingcute/react";
+import { HeartFill, HeartLine } from "@/shared/ui/PopIcons";
 import CoverImage from "@/features/covers/ui/CoverImage";
 import { ScrollableText } from "@/shared/ui/ScrollableText";
 import { useDisableButtonFocus } from "@/features/navigation/hooks/useDisableButtonFocus";

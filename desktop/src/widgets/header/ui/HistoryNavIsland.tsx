@@ -1,4 +1,4 @@
-import { LeftLine, RightLine } from "@mingcute/react";
+import { LeftLine, RightLine } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { cn } from "@/shared/lib";
 import { useHistoryNavigation } from "../lib/useHistoryNavigation";

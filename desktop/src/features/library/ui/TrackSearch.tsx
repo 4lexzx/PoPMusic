@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CloseCircleFill, Search2Line } from "@mingcute/react";
+import { CloseCircleFill, Search2Line } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { isMacPlatform } from "@/features/shortcuts";
 import { isBlockingOverlayOpen } from "@/features/navigation/utils/shortcutGuards";

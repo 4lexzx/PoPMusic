@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, memo } from "react";
 import { motion } from "framer-motion";
-import { VolumeCross, VolumeSmall, VolumeLoud } from "@solar-icons/react";
+import { VolumeCross, VolumeSmall, VolumeLoud } from "@/shared/ui/PopIcons";
 import {
   PlayerMorphIcon,
   ICON_VOLUME_MUTE,

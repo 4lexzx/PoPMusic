@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { memo, useCallback, useState, type ReactNode } from "react";
-import { PlaylistFill } from "@mingcute/react";
+import { PlaylistFill } from "@/shared/ui/PopIcons";
 import DropdownMenu from "@/shared/ui/DropdownMenu";
 import type { DropdownMenuItem } from "@/shared/ui/DropdownMenu";
 import type { PlaylistVariant } from "../types";

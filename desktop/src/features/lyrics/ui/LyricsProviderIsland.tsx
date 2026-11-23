@@ -9,7 +9,7 @@ import {
   AddLine,
   MinimizeLine,
   Refresh1Line,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import { useLyricsStore } from "../store/lyricsStore";
 import { useTranslation } from "@/languages";
 import { cn } from "@/shared/lib";

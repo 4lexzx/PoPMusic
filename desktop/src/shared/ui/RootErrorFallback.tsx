@@ -8,7 +8,7 @@ import {
   LuCheck,
   LuChevronDown,
   LuChevronUp,
-} from "react-icons/lu";
+} from "@/shared/ui/PopIcons";
 import WindowControls from "@/features/navigation/ui/WindowControls";
 import Button from "./Button";
 import { createTranslatorSync, getStoredLocale } from "@/languages";

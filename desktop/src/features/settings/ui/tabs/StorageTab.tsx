@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import lottie, {
   type AnimationItem,
 } from "lottie-web/build/player/lottie_light";
-import { CheckCircle } from "@solar-icons/react";
+import { CheckCircle } from "@/shared/ui/PopIcons";
 import Button from "@/shared/ui/Button";
 import { ToggleSwitch, useToast } from "@/shared/ui";
 import { useCachedTracksStore } from "@/features/library/cached";

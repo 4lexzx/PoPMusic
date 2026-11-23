@@ -38,9 +38,9 @@ import {
   PlaylistFill,
   CheckLine,
   ShareForwardLine,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import { AnimatePresence, motion } from "framer-motion";
-import { LuPencil, LuTrash2, LuText, LuShuffle } from "react-icons/lu";
+import { LuPencil, LuTrash2, LuText, LuShuffle } from "@/shared/ui/PopIcons";
 import { buildShareUrl } from "@/shared/utils/share";
 import Button from "@/shared/ui/Button";
 import DropdownMenu from "@/shared/ui/DropdownMenu";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExitLine } from "@mingcute/react";
+import { ExitLine } from "@/shared/ui/PopIcons";
 import { UserAvatar } from "@/shared/ui";
 import { useTranslation } from "@/languages";
 import { useAuthStore, SignOutDialog } from "@/features/auth";

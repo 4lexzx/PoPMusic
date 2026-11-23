@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
 import { useReducedMotion } from "framer-motion";
-import { Back2Line } from "@mingcute/react";
+import { Back2Line } from "@/shared/ui/PopIcons";
 import {
   usePlayerState,
   usePlayerStore,

@@ -1,6 +1,6 @@
 import Dialog from "@/shared/ui/Dialog";
 import { DialogActions, DialogButton, DialogHeader } from "@/shared/ui";
-import { LinkLine } from "@mingcute/react";
+import { LinkLine } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { useUpdaterStore } from "../store/updaterStore";
 

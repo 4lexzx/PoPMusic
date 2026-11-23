@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { HeartFill, Download2Line } from "@mingcute/react";
+import { HeartFill, Download2Line } from "@/shared/ui/PopIcons";
 import { ToggleSwitch } from "@/shared/ui";
 import { PresetPills } from "@/shared/ui/PresetPills";
 import { useTranslation } from "@/languages";

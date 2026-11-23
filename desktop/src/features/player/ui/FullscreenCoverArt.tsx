@@ -1,4 +1,4 @@
-import { MusicNote } from "@solar-icons/react";
+import { MusicNote } from "@/shared/ui/PopIcons";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCoverReady, CoverImage } from "@/features/covers";
 import { cn } from "@/shared/lib";

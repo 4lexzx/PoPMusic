@@ -24,7 +24,7 @@ import ImportingPlaylistCard from "./ImportingPlaylistCard";
 import OfflineMixCard from "./OfflineMixCard";
 import { LocalFilesCard } from "../local";
 import { CachedSongsCard, useCachedTracksStore } from "../cached";
-import { WifiOffLine } from "@mingcute/react";
+import { WifiOffLine } from "@/shared/ui/PopIcons";
 import { useOfflineModeStore } from "@/features/connectivity";
 import { goOnline } from "@/features/connectivity/engine/offlineController";
 import { useSavedTracks } from "../saved/hooks/useSavedTracks";

@@ -22,7 +22,7 @@ import {
   User2Fill,
   AlbumFill,
   PlaylistFill,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
 import { cn } from "@/shared/lib";

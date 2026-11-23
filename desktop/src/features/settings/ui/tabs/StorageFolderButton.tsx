@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { FolderOpenLine } from "@mingcute/react";
+import { FolderOpenLine } from "@/shared/ui/PopIcons";
 import { cn } from "@/shared/lib";
 import { SMOOTH_EASE } from "./StorageOverview";
 

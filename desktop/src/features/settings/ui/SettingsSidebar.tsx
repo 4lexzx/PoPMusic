@@ -1,6 +1,6 @@
 import type { ComponentType } from "react";
-import { Search2Line, CloseCircleFill } from "@mingcute/react";
-import { Book2, QuestionCircle } from "@solar-icons/react";
+import { Search2Line, CloseCircleFill } from "@/shared/ui/PopIcons";
+import { Book2, QuestionCircle } from "@/shared/ui/PopIcons";
 import { useScrollFade } from "@/shared/hooks";
 import TextInput from "@/shared/ui/TextInput";
 import { useTranslation } from "@/languages";

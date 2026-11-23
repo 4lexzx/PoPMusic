@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { YoutubeFill } from "@mingcute/react";
+import { YoutubeFill } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { cn } from "@/shared/lib";
 import {

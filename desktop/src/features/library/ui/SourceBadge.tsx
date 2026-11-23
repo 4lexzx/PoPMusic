@@ -1,4 +1,4 @@
-import { YoutubeFill } from "@mingcute/react";
+import { YoutubeFill } from "@/shared/ui/PopIcons";
 import { IconBadge } from "@/shared/ui";
 import type { LibraryItemSource } from "../types";
 

@@ -1,4 +1,4 @@
-import { FileMusicLine } from "@mingcute/react";
+import { FileMusicLine } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { HERO_BUTTON_CLASS } from "@/shared/ui";
 import Button from "@/shared/ui/Button";
