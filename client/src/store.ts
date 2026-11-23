@@ -1,4 +1,5 @@
-import type { Track } from './types'
+import type { Settings, Track } from './types'
+import { DEFAULT_SETTINGS } from './api'
 
 export interface Playlist {
   id: string
@@ -13,36 +14,54 @@ export interface Library {
   playlists: Playlist[]
 }
 
-const KEY = 'popmusic-client-library-v1'
+export interface QueueState {
+  tracks: Track[]
+  index: number
+  shuffle: boolean
+  repeat: 'off' | 'all' | 'one'
+}
+
+const LIB_KEY = 'popmusic-client-library-v1'
+const SET_KEY = 'popmusic-client-settings-v1'
+const QUEUE_KEY = 'popmusic-client-queue-v1'
 
 const EMPTY: Library = { favorites: [], recent: [], playlists: [] }
+const EMPTY_QUEUE: QueueState = { tracks: [], index: 0, shuffle: false, repeat: 'off' }
 
-export function loadLibrary(): Library {
+function read<T>(key: string, fallback: T): T {
   try {
-    const raw = localStorage.getItem(KEY)
-    if (!raw) return EMPTY
-    const data = JSON.parse(raw)
-    return {
-      favorites: Array.isArray(data.favorites) ? data.favorites : [],
-      recent: Array.isArray(data.recent) ? data.recent : [],
-      playlists: Array.isArray(data.playlists) ? data.playlists : [],
-    }
+    const raw = localStorage.getItem(key)
+    return raw ? { ...fallback, ...JSON.parse(raw) } : fallback
   } catch {
-    return EMPTY
+    return fallback
   }
 }
 
-export function saveLibrary(library: Library): void {
+function write(key: string, value: unknown): void {
   try {
-    localStorage.setItem(KEY, JSON.stringify(library))
+    localStorage.setItem(key, JSON.stringify(value))
   } catch {
-    // Almacenamiento lleno o bloqueado: la sesión sigue funcionando en memoria.
+    // Sin espacio o bloqueado: la sesión continúa en memoria.
   }
 }
+
+export const loadLibrary = (): Library => read(LIB_KEY, EMPTY)
+export const saveLibrary = (l: Library) => write(LIB_KEY, l)
+
+export const loadSettings = (): Settings => read(SET_KEY, DEFAULT_SETTINGS)
+export const saveSettings = (s: Settings) => write(SET_KEY, s)
+
+export const loadQueue = (): QueueState => {
+  const q = read(QUEUE_KEY, EMPTY_QUEUE)
+  return { ...q, index: Math.min(q.index, Math.max(0, q.tracks.length - 1)) }
+}
+export const saveQueue = (q: QueueState) => write(QUEUE_KEY, q)
 
 export function upsertRecent(library: Library, track: Track): Library {
-  const recent = [track, ...library.recent.filter((t) => t.id !== track.id)].slice(0, 100)
-  return { ...library, recent }
+  return {
+    ...library,
+    recent: [track, ...library.recent.filter((t) => t.id !== track.id)].slice(0, 100),
+  }
 }
 
 export function toggleFavorite(library: Library, track: Track): Library {

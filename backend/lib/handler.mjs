@@ -94,6 +94,34 @@ async function itunesSearch(term, entity, country, limit) {
   return Array.isArray(data.results) ? data.results : [];
 }
 
+async function explorePopular(country) {
+  const region = String(country || "us").toLowerCase().slice(0, 2);
+  const url = new URL(
+    `https://itunes.apple.com/${region}/rss/topsongs/limit=50/json`,
+  );
+  const data = await fetchJson(url.toString());
+  const entries = data?.feed?.entry || [];
+  return entries.map((entry) => {
+    const images = entry["im:image"] || [];
+    const cover = images.length
+      ? images[images.length - 1]?.label || ""
+      : "";
+    return {
+      type: "track",
+      id: String(entry.id?.attributes?.["im:id"] || entry.id?.label || ""),
+      title: entry["im:name"]?.label || "",
+      artists: entry["im:artist"]?.label || "",
+      artistList: entry["im:artist"]?.label
+        ? [{ id: "", name: entry["im:artist"].label }]
+        : [],
+      coverUrl: cover,
+      cover: cover ? { url: cover, width: 170, height: 170 } : undefined,
+      durationMs: 0,
+      releaseDate: entry["im:releaseDate"]?.attributes?.label || undefined,
+    };
+  });
+}
+
 async function itunesLookup(id, entity = "song") {
   const url = new URL(`${ITUNES_API}/lookup`);
   url.searchParams.set("id", String(id));
@@ -200,6 +228,19 @@ export async function handleRequest(req, res) {
       });
     }
 
+    if (path === "/v1/preview" && req.method === "GET") {
+      const title = url.searchParams.get("track") ?? "";
+      const artist = url.searchParams.get("artist") ?? "";
+      if (!title) return send(res, 400, { code: "MISSING_TITLE" });
+      try {
+        const songs = await itunesSearch(`${artist} ${title}`.trim(), "song", "us", 5);
+        const found = songs.find((s) => s.previewUrl);
+        return send(res, 200, { url: found?.previewUrl ?? null });
+      } catch {
+        return send(res, 200, { url: null });
+      }
+    }
+
     // Audio resuelto en el backend (Node, sin los problemas de CORS del
     // navegador). El cliente solo recibe una URL reproducible.
     if (path === "/v1/audio" && req.method === "GET") {
@@ -233,6 +274,14 @@ export async function handleRequest(req, res) {
       return send(res, 200, { items: [] });
     if (path === "/v1/me")
       return send(res, 200, { id: "local", username: "local" });
+    if (path === "/v1/explore/popular" && req.method === "GET") {
+      const country = url.searchParams.get("country") ?? "US";
+      try {
+        return send(res, 200, { items: await explorePopular(country) });
+      } catch (error) {
+        return send(res, 502, { code: "EXPLORE_ERROR", message: String(error) });
+      }
+    }
     if (path.startsWith("/v1/explore/"))
       return send(res, 200, { items: [] });
 
