@@ -1,6 +1,7 @@
 package com.popmusic.app.ui.updates
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.popmusic.app.data.updates.UpdateInfo
@@ -37,19 +38,29 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
     private val _state = MutableStateFlow(UpdateUiState())
     val state: StateFlow<UpdateUiState> = _state.asStateFlow()
 
-    private var checked = false
     private var installLaunched = false
+    private var dismissedVersion: Long? = null
 
     init {
-        check()
+        refresh()
     }
 
-    private fun check() {
-        if (checked) return
-        checked = true
+    /**
+     * La app puede quedar abierta en segundo plano cuando se publica una
+     * versión nueva. En ese caso el init ya consultó y no se entera: hay que
+     * volver a mirar el manifiesto cada vez que se reanuda.
+     */
+    fun checkOnResume() {
+        if (_state.value.phase == UpdatePhase.Downloading) return
+        if (_state.value.info != null) return
+        refresh()
+    }
 
+    private fun refresh() {
+        Log.d("UpdateCheck", "consultando manifiesto")
         viewModelScope.launch {
             val info = repository.checkForUpdate() ?: return@launch
+            if (info.versionCode == dismissedVersion) return@launch
             val cached = runCatching { repository.cachedApk(info) }.getOrNull()
             _state.value = UpdateUiState(
                 info = info,
@@ -65,7 +76,6 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
             onResult(_state.value.info)
             return
         }
-        checked = true
         viewModelScope.launch {
             val info = repository.checkForUpdate()
             if (info == null) {
@@ -163,6 +173,7 @@ class UpdateViewModel(application: Application) : AndroidViewModel(application) 
 
     fun dismiss() {
         if (_state.value.phase == UpdatePhase.Downloading) return
+        dismissedVersion = _state.value.info?.versionCode
         _state.value = UpdateUiState()
     }
 }

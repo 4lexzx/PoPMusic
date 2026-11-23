@@ -350,6 +350,9 @@ fun PopMusicApp() {
     val resumedAt by HomeRefreshBus.resumedAt.collectAsState()
     LaunchedEffect(resumedAt) {
         if (resumedAt == 0L) return@LaunchedEffect
+        // La app pudo quedar abierta en segundo plano cuando se publicó la
+        // versión nueva: al volver se vuelve a consultar el manifiesto.
+        updateViewModel.checkOnResume()
         val now = System.currentTimeMillis()
         val openedFromNotification = (now - PlayerOpenBus.requestedAtMs) < 5_000L
         if (openedFromNotification) return@LaunchedEffect
