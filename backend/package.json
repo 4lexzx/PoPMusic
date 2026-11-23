@@ -1,0 +1,14 @@
+{
+  "name": "popmusic-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Backend propio de PoP Music: catálogo musical, carátulas y letras.",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
