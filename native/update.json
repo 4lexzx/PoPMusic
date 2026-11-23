@@ -1,12 +1,15 @@
 {
-    "mandatory":  false,
-    "published":  true,
-    "apkUrl":  "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.8/PoPMusic-v0.1.8.apk",
-    "sizeBytes":  19010357,
-    "versionName":  "0.1.9-prueba",
-    "versionCode":  9,
-    "changelog":  [
-                      "Prueba visual del dialogo de actualizacion"
-                  ],
-    "sha256":  "1c496e1bdced4a6efa4756ad41dade0fdf4b1e08b5f09e47762b62eb3fb56c10"
+  "published": true,
+  "versionCode": 8,
+  "versionName": "0.1.8",
+  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.8/PoPMusic-v0.1.8.apk",
+  "sha256": "1c496e1bdced4a6efa4756ad41dade0fdf4b1e08b5f09e47762b62eb3fb56c10",
+  "sizeBytes": 19010357,
+  "mandatory": false,
+  "changelog": [
+    "Correccion: el titulo 'Actualizacion disponible' se veia en negro sobre fondo oscuro. Ahora usa el color claro del tema.",
+    "Correccion: el aviso de actualizacion aparece aunque la app ya estuviera abierta en segundo plano cuando se publico la version nueva.",
+    "Correccion: el numero de version en Ajustes muestra la version instalada real (0.1.8) en el menu, en Acerca de y en el pie de pantalla.",
+    "La radio sigue el genero de la cancion o seccion de origen, sin videos oficiales ni karaoke y sin repetir temas."
+  ]
 }
