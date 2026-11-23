@@ -729,7 +729,7 @@
         "title": "Синхронизировать библиотеку",
         "description": "Показывать плейлисты из аккаунта YouTube в библиотеке рядом с плейлистами PoP Music."
       },
-      "sign_out_with_liner": {
+      "sign_out_with_popmusic": {
         "title": "Выходить вместе с PoP Music",
         "description": "Выходить из YouTube, когда вы выходите из аккаунта PoP Music."
       },

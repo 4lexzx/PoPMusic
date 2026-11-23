@@ -727,7 +727,7 @@
         "title": "Sync library",
         "description": "Show playlists from your YouTube account in the library next to PoP Music playlists."
       },
-      "sign_out_with_liner": {
+      "sign_out_with_popmusic": {
         "title": "Sign out with PoP Music",
         "description": "Also sign out of YouTube when you sign out of your PoP Music account."
       },

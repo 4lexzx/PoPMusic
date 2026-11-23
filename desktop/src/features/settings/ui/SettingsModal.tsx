@@ -205,8 +205,8 @@ const SETTING_ITEMS: { tabId: TabId; titleKey: string; descKey?: string }[] = [
   },
   {
     tabId: "Youtube",
-    titleKey: "settings.youtube.sign_out_with_liner.title",
-    descKey: "settings.youtube.sign_out_with_liner.description",
+    titleKey: "settings.youtube.sign_out_with_popmusic.title",
+    descKey: "settings.youtube.sign_out_with_popmusic.description",
   },
 
   // Appearance

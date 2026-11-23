@@ -188,7 +188,7 @@ describe("signing out of liner and the youtube account", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     youtube.signOut.mockClear();
-    useYoutubePreferences.setState({ signOutWithLiner: false });
+    useYoutubePreferences.setState({ signOutWithPopMusic: false });
     setAuthSession(null);
   });
 
@@ -200,7 +200,7 @@ describe("signing out of liner and the youtube account", () => {
   });
 
   it("signs out of youtube too when the setting asks for it", async () => {
-    useYoutubePreferences.setState({ signOutWithLiner: true });
+    useYoutubePreferences.setState({ signOutWithPopMusic: true });
 
     await useAuthStore.getState().logout();
 
