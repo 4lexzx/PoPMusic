@@ -88,7 +88,7 @@ button, input { font: inherit; }
 .list { display: flex; flex-direction: column; gap: 2px; }
 .row {
   display: grid;
-  grid-template-columns: 40px 52px minmax(140px, 1.6fr) minmax(80px, 1fr) 60px 40px;
+  grid-template-columns: 40px 52px minmax(140px, 1.6fr) minmax(80px, 1fr) 60px 40px 40px;
   align-items: center; gap: 12px;
   padding: 6px 10px; border-radius: 12px;
   transition: background .15s;
@@ -138,3 +138,68 @@ button, input { font: inherit; }
 .bar div { height: 100%; background: var(--accent); }
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.libraryTabs { display: flex; align-items: center; gap: 8px; }
+.libraryTabs button {
+  height: 36px; padding: 0 14px; border-radius: 18px;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--muted); font-size: 13px; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+}
+.libraryTabs button.on { color: var(--accent); border-color: rgba(52,211,153,.4); background: rgba(52,211,153,.1); }
+.libraryTabs .back { border: 0; background: none; }
+
+.playlistCreator { display: flex; gap: 10px; margin: 6px 0 18px; }
+.playlistCreator input {
+  flex: 1; max-width: 360px; height: 40px; padding: 0 14px;
+  border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); outline: none;
+}
+.playlistCreator button {
+  height: 40px; padding: 0 16px; border: 0; border-radius: 10px;
+  background: var(--accent); color: #04120c; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 8px;
+}
+.playlistGrid { display: grid; grid-template-columns: repeat(auto-fill,minmax(160px,1fr)); gap: 14px; }
+.playlistCard {
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start;
+  padding: 14px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--text); cursor: pointer; text-align: left;
+}
+.playlistCard:hover { background: var(--surface2); }
+.playlistArt {
+  width: 100%; aspect-ratio: 1; border-radius: 10px;
+  background: linear-gradient(135deg, rgba(52,211,153,.25), rgba(14,165,233,.15));
+  display: grid; place-items: center; color: var(--accent); margin-bottom: 6px;
+}
+.playlistName { font-weight: 600; font-size: 14px; }
+.playlistCount { color: var(--muted); font-size: 11px; }
+
+.menuWrap { position: relative; }
+.menu {
+  position: absolute; right: 0; top: 40px; z-index: 20;
+  min-width: 190px; padding: 6px;
+  background: var(--surface2); border: 1px solid var(--line);
+  border-radius: 12px; box-shadow: 0 16px 40px rgba(0,0,0,.5);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.menu button {
+  border: 0; background: none; color: var(--text); cursor: pointer;
+  text-align: left; padding: 9px 10px; border-radius: 8px; font-size: 13px;
+}
+.menu button:hover { background: rgba(255,255,255,.06); }
+.menu .danger { color: #fca5a5; display: flex; align-items: center; gap: 8px; }
+.menuEmpty { color: var(--muted); font-size: 12px; padding: 8px 10px; }
+
+.crash {
+  height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+  color: var(--text); text-align: center; padding: 30px;
+}
+.crash h1 { margin: 0; font-size: 22px; }
+.crash p { color: var(--muted); margin: 0; }
+.crash button {
+  margin-top: 10px; height: 40px; padding: 0 20px; border: 0;
+  border-radius: 20px; background: var(--accent); color: #04120c;
+  font-weight: 600; cursor: pointer;
+}
