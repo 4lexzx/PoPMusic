@@ -1,4 +1,4 @@
-// liner:// deeplink parsing, shared by main process (no electron imports here
+// popmusic:// deeplink parsing, shared by main process (no electron imports here
 // so vitest can cover it). same strict allowlist as the link server: fixed
 // entity types, opaque catalog tokens only.
 export const DEEP_LINK_SCHEME = "liner";

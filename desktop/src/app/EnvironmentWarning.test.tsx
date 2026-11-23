@@ -62,7 +62,7 @@ describe("EnvironmentWarning", () => {
     act(() => {
       banner!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
-    expect(sessionStorage.getItem("liner:env-warning-skipped")).toBe("1");
+    expect(sessionStorage.getItem("popmusic:env-warning-skipped")).toBe("1");
     expect(mounted.host.textContent).toBe("");
   });
 

@@ -200,3 +200,26 @@ export const WifiOffLine = (props: P) => { const C = map["WifiOffLine"] || L.Cir
 export const World2Line = (props: P) => { const C = map["World2Line"] || L.Circle; return <C {...props} /> }
 export const YoutubeFill = (props: P) => { const C = map["YoutubeFill"] || L.Circle; return <C {...props} /> }
 export const YoutubeLine = (props: P) => { const C = map["YoutubeLine"] || L.Circle; return <C {...props} /> }
+
+// Alias de la antigua librería react-icons -> iconos propios.
+export const LuTrash2 = (props: P) => <L.Trash2 {...props} />
+export const LuFolderPlus = (props: P) => <L.FolderPlus {...props} />
+export const LuEraser = (props: P) => <L.Eraser {...props} />
+export const LuCheck = (props: P) => <L.Check {...props} />
+export const LuChevronDown = (props: P) => <L.ChevronDown {...props} />
+export const LuChevronUp = (props: P) => <L.ChevronUp {...props} />
+export const LuPencil = (props: P) => <L.Pencil {...props} />
+export const LuText = (props: P) => <L.Type {...props} />
+export const LuShuffle = (props: P) => <L.Shuffle {...props} />
+export const LuArrowUpNarrowWide = (props: P) => <L.SortAsc {...props} />
+export const FaUser = (props: P) => <L.User {...props} />
+export const LuRadio = (props: P) => <L.Radio {...props} />
+export const LuStepForward = (props: P) => <L.SkipForward {...props} />
+export const LuListPlus = (props: P) => <L.ListPlus {...props} />
+export const LuHeart = (props: P) => <L.Heart {...props} />
+export const LuPlus = (props: P) => <L.Plus {...props} />
+export const LuTriangleAlert = (props: P) => <L.TriangleAlert {...props} />
+export const LuRefreshCw = (props: P) => <L.RefreshCw {...props} />
+export const LuRotateCcw = (props: P) => <L.RotateCcw {...props} />
+export const LuHouse = (props: P) => <L.House {...props} />
+export const LuCopy = (props: P) => <L.Copy {...props} />

@@ -253,7 +253,7 @@ const shutdown = createShutdown({
   watchdogMs: 4000,
 });
 
-// liner:// deeplink support (share links bounce here from link.tryliner.fun)
+// popmusic:// deeplink support (share links bounce here from link.tryliner.fun)
 
 // cold-start url arrives before the window exists, stash it until renderer is ready
 let pendingDeeplink: DeeplinkTarget | null = findDeeplinkArg(process.argv)
@@ -547,7 +547,7 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on("second-instance", (_event, argv) => {
-    // running instance gets here when xdg-open / os launches liner:// again
+    // running instance gets here when xdg-open / os launches popmusic:// again
     const raw = findDeeplinkArg(argv);
     if (shutdown.isQuitting()) {
       // this process is on its way out and can no longer show a window; the new
@@ -583,7 +583,7 @@ if (!gotTheLock) {
       );
     }
 
-    // register liner:// so browsers / xdg-open route share links to us
+    // register popmusic:// so browsers / xdg-open route share links to us
     // (on linux the packaged .desktop carries the mime handler too)
     if (process.defaultApp && process.argv.length >= 2) {
       app.setAsDefaultProtocolClient(DEEP_LINK_SCHEME, process.execPath, [

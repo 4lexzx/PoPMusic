@@ -18,7 +18,7 @@ export function YoutubeTab({ searchQuery }: { searchQuery?: string }) {
   const setPromptSignIn = useYoutubePreferences((s) => s.setPromptSignIn);
   const syncLibrary = useYoutubePreferences((s) => s.syncLibrary);
   const setSyncLibrary = useYoutubePreferences((s) => s.setSyncLibrary);
-  const signOutWithLiner = useYoutubePreferences((s) => s.signOutWithLiner);
+  const signOutWithPopMusic = useYoutubePreferences((s) => s.signOutWithPopMusic);
   const setSignOutWithLiner = useYoutubePreferences(
     (s) => s.setSignOutWithLiner,
   );
@@ -85,20 +85,20 @@ export function YoutubeTab({ searchQuery }: { searchQuery?: string }) {
       >
         <SettingRow
           title={
-            t("settings.youtube.sign_out_with_liner.title") ||
+            t("settings.youtube.sign_out_with_popmusic.title") ||
             "Sign out with PoP Music"
           }
           description={
-            t("settings.youtube.sign_out_with_liner.description") ||
+            t("settings.youtube.sign_out_with_popmusic.description") ||
             "Also sign out of YouTube when you sign out of your PoP Music account."
           }
           icon={<ExitFill size={20} />}
-          titleKey="settings.youtube.sign_out_with_liner.title"
-          descKey="settings.youtube.sign_out_with_liner.description"
+          titleKey="settings.youtube.sign_out_with_popmusic.title"
+          descKey="settings.youtube.sign_out_with_popmusic.description"
           searchQuery={searchQuery}
           control={
             <ToggleSwitch
-              checked={signOutWithLiner}
+              checked={signOutWithPopMusic}
               onChange={setSignOutWithLiner}
             />
           }

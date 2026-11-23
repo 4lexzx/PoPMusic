@@ -5,11 +5,11 @@ interface YoutubePreferencesState {
   accountPlayback: boolean;
   promptSignIn: boolean;
   syncLibrary: boolean;
-  signOutWithLiner: boolean;
+  signOutWithPopMusic: boolean;
   setAccountPlayback: (accountPlayback: boolean) => void;
   setPromptSignIn: (promptSignIn: boolean) => void;
   setSyncLibrary: (syncLibrary: boolean) => void;
-  setSignOutWithLiner: (signOutWithLiner: boolean) => void;
+  setSignOutWithLiner: (signOutWithPopMusic: boolean) => void;
 }
 
 export const useYoutubePreferences = create<YoutubePreferencesState>()(
@@ -18,11 +18,11 @@ export const useYoutubePreferences = create<YoutubePreferencesState>()(
       accountPlayback: true,
       promptSignIn: true,
       syncLibrary: true,
-      signOutWithLiner: false,
+      signOutWithPopMusic: false,
       setAccountPlayback: (accountPlayback) => set({ accountPlayback }),
       setPromptSignIn: (promptSignIn) => set({ promptSignIn }),
       setSyncLibrary: (syncLibrary) => set({ syncLibrary }),
-      setSignOutWithLiner: (signOutWithLiner) => set({ signOutWithLiner }),
+      setSignOutWithLiner: (signOutWithPopMusic) => set({ signOutWithPopMusic }),
     }),
     {
       name: "popmusic_youtube_preferences",
@@ -39,6 +39,6 @@ export function prefersSignInPrompt(): boolean {
   return useYoutubePreferences.getState().promptSignIn;
 }
 
-export function prefersSignOutWithLiner(): boolean {
-  return useYoutubePreferences.getState().signOutWithLiner;
+export function prefersSignOutWithPopMusic(): boolean {
+  return useYoutubePreferences.getState().signOutWithPopMusic;
 }

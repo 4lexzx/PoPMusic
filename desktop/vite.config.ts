@@ -65,6 +65,14 @@ export default defineConfig(({ command, mode }) => {
           import.meta.dirname,
           "./src/shared/ui/PopIcons.tsx",
         ),
+        "react-icons/lu": path.resolve(
+          import.meta.dirname,
+          "./src/shared/ui/PopIcons.tsx",
+        ),
+        "react-icons/fa": path.resolve(
+          import.meta.dirname,
+          "./src/shared/ui/PopIcons.tsx",
+        ),
         "next/navigation": path.resolve(
           import.meta.dirname,
           "./src/lib/navigation.tsx",
