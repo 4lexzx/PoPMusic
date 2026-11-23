@@ -496,8 +496,17 @@ fun PopMusicApp() {
                                     playerViewModel.play(songs, startIndex, autoExtend)
                                     openPlayer()
                                 },
-                                onPlayRadio = { song ->
-                                    playerViewModel.playRadio(song)
+                                onPlayRadio = { song, genre ->
+                                    val artist = genre
+                                        ?.takeIf { it.startsWith("Tu artista:") }
+                                        ?.removePrefix("Tu artista:")
+                                        ?.trim()
+                                        ?.takeIf { it.isNotBlank() }
+                                    playerViewModel.playRadio(
+                                        seed = song,
+                                        genreHint = if (artist == null) genre else null,
+                                        artistOnly = artist,
+                                    )
                                     openPlayer()
                                 },
                             )
@@ -523,7 +532,11 @@ fun PopMusicApp() {
                             ArtistScreen(
                                 viewModel = artistViewModel,
                                 onPlay = { songs, startIndex ->
-                                    playerViewModel.play(songs, startIndex, autoExtend = true)
+                                    playerViewModel.playArtist(
+                                        artist = artistViewModel.artist,
+                                        songs = songs,
+                                        startIndex = startIndex,
+                                    )
                                     openPlayer()
                                 },
                                 onBack = { navController.popBackStack() },

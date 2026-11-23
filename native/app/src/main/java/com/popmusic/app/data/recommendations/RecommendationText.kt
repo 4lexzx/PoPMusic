@@ -29,6 +29,29 @@ internal object RecommendationText {
             (candidate.contains(key) || key.contains(candidate))
     }
 
+    /**
+     * Comparación estricta para la radio de un artista. `artistMatches` acepta
+     * cualquier coincidencia parcial, y eso metía canales como "Paz Nirvana"
+     * (música zen) en la radio de Nirvana. Solo vale el nombre exacto o un
+     * prefijo de canal que sube canciones del artista ("Todo Maná", "Oficial...").
+     */
+    fun artistMatchesStrict(songArtist: String, key: String): Boolean {
+        if (key.isBlank()) return false
+        val candidate = key(songArtist)
+        if (candidate == key) return true
+        // "Oficial<Artista>" suele ser el canal de VIDEOS, no el de las
+        // canciones (ese es "<Artista> - Topic"). No lo aceptamos aquí.
+        val channelWords = setOf(
+            "todo", "letras", "lyrics", "vevo",
+            "topic", "audio", "music", "musica", "canal", "hits",
+        )
+        if (candidate.endsWith(key) && candidate.length > key.length) {
+            val prefix = candidate.removeSuffix(key).trim()
+            if (prefix.isEmpty() || prefix.split(' ').any { it in channelWords }) return true
+        }
+        return candidate.startsWith(key) && candidate.removePrefix(key).trim().isEmpty()
+    }
+
     /** Artistas conocidos del ámbito latino, para inferir el idioma de la radio. */
     private val LATIN_ARTISTS = listOf(
         "karol g", "karol", "bad bunny", "j balvin", "ozuna", "daddy yankee",

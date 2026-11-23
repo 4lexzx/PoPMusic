@@ -13,6 +13,7 @@ import com.popmusic.app.data.filter.ContentFilters
 import com.popmusic.app.data.recommendations.DiscoverTheme
 import com.popmusic.app.data.recommendations.Mood
 import com.popmusic.app.data.recommendations.PODCAST_TOPICS
+import com.popmusic.app.data.recommendations.RecommendationText
 import com.popmusic.app.data.recommendations.RecommendationsRepository
 import com.popmusic.app.data.recommendations.TASTE_GENRES
 import com.popmusic.app.data.recommendations.TasteRecommendations
@@ -231,7 +232,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                                         repository.search(editorialQuery.query)
                                     }
                                 }.getOrDefault(emptyList())
-                                editorialQuery.title to songs.take(CARDS_PER_SECTION)
+                                editorialQuery.title to filterArtistSection(
+                                    editorialQuery.title,
+                                    songs,
+                                ).take(CARDS_PER_SECTION)
                             }
                         }.awaitAll()
                     }
@@ -294,6 +298,20 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Las secciones "Tu artista: X" solo deben contener canciones de X. Se
+     * aplica al cargar y al restaurar la caché, porque ahí se guardaron búsquedas
+     * antiguas con canciones de otros intérpretes.
+     */
+    private fun filterArtistSection(title: String, songs: List<Song>): List<Song> {
+        if (!title.startsWith("Tu artista:")) return songs
+        val artistKey = RecommendationText.key(title.removePrefix("Tu artista:"))
+        return songs.filter { song ->
+            RecommendationText.artistMatchesStrict(song.artist, artistKey) ||
+                RecommendationText.key(song.title).startsWith("$artistKey - ")
+        }
+    }
+
     private fun restoreCache() {
         val start = android.os.SystemClock.uptimeMillis()
         val raw = cache.getString(CACHE_KEY, null) ?: return
@@ -305,7 +323,10 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
                 for (i in 0 until sectionsJson.length()) {
                     val section = sectionsJson.optJSONObject(i) ?: continue
                     val title = section.optString("title")
-                    val songs = decodeSongs(section.optJSONArray("songs") ?: JSONArray())
+                    val songs = filterArtistSection(
+                        title,
+                        decodeSongs(section.optJSONArray("songs") ?: JSONArray()),
+                    )
                     if (title.isNotBlank() && songs.isNotEmpty()) {
                         add(HomeSection(title, songs))
                     }

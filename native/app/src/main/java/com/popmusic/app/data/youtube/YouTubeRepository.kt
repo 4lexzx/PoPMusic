@@ -1,5 +1,6 @@
 package com.popmusic.app.data.youtube
 
+import android.util.Log
 import com.popmusic.app.domain.Playlist
 import com.popmusic.app.domain.Song
 import com.popmusic.app.util.cleanForDisplay
@@ -8,6 +9,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.schabi.newpipe.extractor.NewPipe
 import org.schabi.newpipe.extractor.ServiceList
+import org.schabi.newpipe.extractor.playlist.PlaylistInfo
 import org.schabi.newpipe.extractor.search.SearchExtractor
 import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import org.schabi.newpipe.extractor.stream.StreamInfo
@@ -226,6 +228,61 @@ class YouTubeRepository {
         }.getOrDefault(emptyList())
     }
 
+    /**
+     * Radio real de YouTube, el equivalente a lo que hace Echo con
+     * `YouTubeQueue.radio()` + el endpoint `next`: YouTube genera una playlist
+     * "RDAMVM{videoId}" con las canciones que encajan con la semilla. Es la
+     * fuente principal de la radio, en vez de adivinar géneros con búsquedas.
+     * Devuelve también la página siguiente para seguir paginando como Echo.
+     */
+    suspend fun radioPlaylist(videoId: String, limit: Int = 100): List<Song> =
+        withContext(Dispatchers.IO) {
+            NewPipeInitializer.ensureInitialized()
+            val playlistId = if (videoId.startsWith("RD")) videoId else "RDAMVM$videoId"
+            val url = "https://www.youtube.com/playlist?list=$playlistId"
+            val songs = runCatching {
+                val info = PlaylistInfo.getInfo(url)
+                val all = ArrayList(info.relatedItems.mapNotNull { item ->
+                    val stream = item as? StreamInfoItem ?: return@mapNotNull null
+                    val id = videoIdFrom(stream.url) ?: return@mapNotNull null
+                    Song(
+                        id = id,
+                        title = stream.name.cleanForDisplay(),
+                        artist = stream.uploaderName.orEmpty().cleanForDisplay(),
+                        durationSeconds = stream.duration.coerceAtLeast(0L),
+                        thumbnailUrl = bestThumbnail(stream, id),
+                    )
+                })
+                // La primera página de un mix suele traer ~100 canciones. Si la
+                // radio sigue, se pide la siguiente igual que el continuation
+                // de Echo (solo una página extra para no disparar la red).
+                if (all.size < limit && info.hasNextPage()) {
+                    runCatching {
+                        val more = PlaylistInfo.getMoreItems(
+                            ServiceList.YouTube, url, info.nextPage,
+                        )
+                        all += more.items.mapNotNull { item ->
+                            val stream = item as? StreamInfoItem ?: return@mapNotNull null
+                            val id = videoIdFrom(stream.url) ?: return@mapNotNull null
+                            Song(
+                                id = id,
+                                title = stream.name.cleanForDisplay(),
+                                artist = stream.uploaderName.orEmpty().cleanForDisplay(),
+                                durationSeconds = stream.duration.coerceAtLeast(0L),
+                                thumbnailUrl = bestThumbnail(stream, id),
+                            )
+                        }
+                    }
+                }
+                all
+            }.onFailure {
+                Log.w(TAG, "No se pudo leer la radio de $videoId", it)
+            }.getOrDefault(emptyList())
+            val result = songs.distinctBy { it.id }.take(limit)
+            Log.d(TAG, "Radio YouTube $playlistId: ${result.size} canciones")
+            result
+        }
+
     suspend fun videoDetails(videoId: String): VideoDetails? = withContext(Dispatchers.IO) {
         NewPipeInitializer.ensureInitialized()
         runCatching {
@@ -263,6 +320,7 @@ class YouTubeRepository {
     }
 
     private companion object {
+        const val TAG = "YouTubeRadio"
         const val MIN_RELATED_VIEWS = 25_000L
         const val ATTEMPTS = 2
         const val RETRY_DELAY_MS = 300L

@@ -217,18 +217,27 @@ class PartySession(private val app: PoPMusicApplication) {
     }
 
     fun next() {
+        // Saltar pone isPlaying en false mientras la pista entra en buffering.
+        // Publicar ese false convertía el botón de la sala en "Reproducir"
+        // aunque la canción sonaba (y se arreglaba recién en el salto siguiente).
+        // Se conserva el estado anterior: el watcher ya compartirá el real
+        // cuando el player se estabilice.
+        val wasPlaying = connection.state.value.isPlaying ||
+            (_state.value.snapshot?.playing == true)
         connection.next()
         scope.launch {
             delay(150)
-            sendCurrent(connection.state.value.isPlaying)
+            sendCurrent(wasPlaying)
         }
     }
 
     fun previous() {
+        val wasPlaying = connection.state.value.isPlaying ||
+            (_state.value.snapshot?.playing == true)
         connection.previous()
         scope.launch {
             delay(150)
-            sendCurrent(connection.state.value.isPlaying)
+            sendCurrent(wasPlaying)
         }
     }
 

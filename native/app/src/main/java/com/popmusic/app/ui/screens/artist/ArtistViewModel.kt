@@ -50,15 +50,15 @@ class ArtistViewModel(application: Application) : AndroidViewModel(application) 
                 )
             }.onFailure { Log.w(TAG, "No se pudo cargar los exitos de $clean", it) }
                 .getOrDefault(emptyList())
-                .filter {
-                    RecommendationText.artistMatches(it.artist, key) ||
-                        RecommendationText.key(it.title).contains(key)
+                .filter { song ->
+                    RecommendationText.artistMatchesStrict(song.artist, key) ||
+                        RecommendationText.key(song.title).startsWith("$key - ")
                 }
 
             val library = app.libraryRepository.state.value
             val local = (library.favorites + library.downloads +
                 library.playlists.flatMap { it.songs })
-                .filter { RecommendationText.artistMatches(it.artist, key) }
+                .filter { RecommendationText.artistMatchesStrict(it.artist, key) }
 
             songs = (local + found).distinctBy { it.id }
             DiscoveryPool.add(songs, listOf(clean))

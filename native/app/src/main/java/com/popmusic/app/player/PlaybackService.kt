@@ -25,6 +25,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -123,6 +124,7 @@ class PlaybackService : MediaSessionService() {
     private val resolving = ConcurrentHashMap.newKeySet<String>()
     private val prefetchPermits = kotlinx.coroutines.sync.Semaphore(6)
     private val errorRetries = ConcurrentHashMap<String, Int>()
+    private var lastTimelineCount = 0
     private var equalizer: Equalizer? = null
     private var loudnessEnhancer: LoudnessEnhancer? = null
     private var fadeAnimator: android.animation.ValueAnimator? = null
@@ -197,6 +199,15 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    /**
+     * La precarga masiva (20 pistas) usa NewPipe y compite por la red con la
+     * canción que acaba de entrar: por eso el audio tardaba ~0,8 s en arrancar.
+     * Se retrasa unos segundos, cuando la pista ya está sonando.
+     */
+    private val deferredPrefetch = Runnable {
+        mediaSession?.player?.let { prefetchUpcoming(it, prefetchAhead) }
+    }
+
     override fun onCreate() {
         super.onCreate()
         // Tras un cierre a los 8 min (AppCloseReceiver puso la bandera para
@@ -239,6 +250,13 @@ class PlaybackService : MediaSessionService() {
             .build()
 
         player.setSeekParameters(SeekParameters.CLOSEST_SYNC)
+        // Media3 precarga la pista siguiente con su propio pipeline: al saltar,
+        // el audio ya está en buffering y entra sin el hueco de ~0,8 s.
+        runCatching {
+            player.setPreloadConfiguration(ExoPlayer.PreloadConfiguration(10_000_000L))
+        }.onFailure {
+            Log.w(TAG, "Precarga nativa no disponible", it)
+        }
 
         player.addListener(object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
@@ -251,7 +269,8 @@ class PlaybackService : MediaSessionService() {
                     Log.d("SkipPerf", "ready ${player.currentMediaItem?.mediaId} @${android.os.SystemClock.elapsedRealtime()}")
                     // Si se saltó a una pista aún sin resolver, cargarla ya.
                     resolveCurrentIfNeeded(player)
-                    prefetchUpcoming(player, prefetchAhead)
+                    main.removeCallbacks(deferredPrefetch)
+                    main.postDelayed(deferredPrefetch, 3_000L)
                     // Con aleatorio activo la siguiente pista es impredecible: mantener
                     // resuelta toda la cola evita saltos y esperas.
                     if (player.shuffleModeEnabled) prefetchAllQueue()
@@ -283,6 +302,19 @@ class PlaybackService : MediaSessionService() {
                 } else {
                     main.removeCallbacks(positionSyncRunnable)
                     scheduleSnapshotSave()
+                }
+            }
+
+            override fun onTimelineChanged(timeline: Timeline, reason: Int) {
+                val count = player.mediaItemCount
+                val grew = count > lastTimelineCount
+                lastTimelineCount = count
+                if (!grew) return
+                // La radio acaba de añadir canciones: resolver ya las primeras
+                // de la cola evita que el primer "siguiente" espere a YouTube.
+                if (count > 0 && player.playbackState != Player.STATE_IDLE) {
+                    prefetchNextImmediate(player)
+                    prefetchUpcoming(player, prefetchAhead)
                 }
             }
 
@@ -966,7 +998,7 @@ private suspend fun resolveItem(item: MediaItem): MediaItem? {
     }
 
     /** Cuantas canciones precargar por adelantado (instant-play, más). */
-    private val prefetchAhead: Int get() = if (instantPlay) 20 else 8
+    private val prefetchAhead: Int get() = 20
 
     /** Precarga TODAS las canciones no resueltas de la cola actual. Útil al activar aleatorio. */
     fun prefetchAllQueue() {
@@ -1173,8 +1205,8 @@ private fun handlePlaybackError(player: Player) {
         const val COMMAND_CYCLE_REPEAT = "popmusic.CYCLE_REPEAT"
         const val MIN_BUFFER_MS = 15_000
         const val MAX_BUFFER_MS = 50_000
-        const val BUFFER_FOR_PLAYBACK_MS = 800
-        const val BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 1_500
+        const val BUFFER_FOR_PLAYBACK_MS = 200
+        const val BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS = 1_000
         const val SNAPSHOT_KEY = "playback_snapshot"
         const val SNAPSHOT_MAX_ITEMS = 100
         const val SNAPSHOT_TTL_MS = 6L * 60L * 60L * 1000L

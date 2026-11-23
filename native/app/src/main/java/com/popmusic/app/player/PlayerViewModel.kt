@@ -11,8 +11,10 @@ import com.popmusic.app.domain.Song
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 class PlayerViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -25,6 +27,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private var prefetchedKey: String? = null
     /** Semilla original de la radio: el género no cambia al avanzar la cola. */
     private var radioSeed: Song? = null
+    /** Sección o chip de origen, que identifica el género mejor que el vídeo. */
+    private var radioGenreHint: String? = null
+    /** Artista de "Grandes éxitos": la radio solo debe sonar ese artista. */
+    private var radioArtistOnly: String? = null
 
     val state: StateFlow<PlayerUiState> = connection.state
     val positionMs: StateFlow<Long> = connection.positionMs
@@ -68,9 +74,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
      * construye con canciones parecidas a la elegida, no con el resto de la
      * lista ordenada que viniera de detrás.
      */
-    fun playRadio(seed: Song) {
+    fun playRadio(
+        seed: Song,
+        genreHint: String? = null,
+        artistOnly: String? = null,
+    ) {
         autoExtend = true
         radioSeed = seed
+        radioGenreHint = genreHint
+        radioArtistOnly = artistOnly
         queueIds = setOf(seed.id)
         radioJob?.cancel()
         recommendations.resetRadio()
@@ -78,15 +90,40 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         extendRadio(seed)
     }
 
+    /**
+     * "Grandes éxitos" de un artista: se reproducen sus canciones y la cola
+     * sigue alimentándose solo con ese artista, nunca con otros grupos.
+     */
+    fun playArtist(artist: String, songs: List<Song>, startIndex: Int) {
+        val seed = songs.getOrNull(startIndex)
+        autoExtend = seed != null
+        radioSeed = seed
+        radioGenreHint = null
+        radioArtistOnly = artist
+        queueIds = songs.mapTo(HashSet()) { it.id }
+        radioJob?.cancel()
+        recommendations.resetRadio()
+        connection.play(songs, startIndex)
+        if (seed != null) extendRadio(seed)
+    }
+
     private fun extendRadio(seed: Song) {
         if (radioJob?.isActive == true) return
         radioJob = viewModelScope.launch {
+            // La resolución de la primera URL tarda unos cientos de ms. Si las
+            // búsquedas de la radio arrancan a la vez compiten por la red y la
+            // canción elegida tarda el doble en empezar a sonar.
+            withTimeoutOrNull(2_000L) {
+                state.first { it.isPlaying && it.mediaId == seed.id }
+            }
             val batch = runCatching {
                 recommendations.radio(
                     library = app.libraryRepository.state.value,
                     excludeIds = queueIds,
                     seedSong = seed,
                     discovered = DiscoveryPool.snapshot(),
+                    genreHint = radioGenreHint,
+                    artistOnly = radioArtistOnly,
                 )
             }.onFailure {
                 Log.w(TAG, "No se pudo crear la radio de ${seed.title}", it)

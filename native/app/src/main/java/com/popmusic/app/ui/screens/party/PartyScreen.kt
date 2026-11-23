@@ -539,8 +539,11 @@ private fun QueueTab(
     val queue = snapshot?.queue ?: emptyList()
     val currentIndex = snapshot?.index ?: -1
     val currentSong = queue.getOrNull(currentIndex)
-    val playing = snapshot?.playing == true
     val playerState by viewModel.playerState.collectAsState()
+    // El botón reflecting el estado REAL del reproductor, no snapshot.playing:
+    // al saltar, isPlaying pasa por false durante el buffering y el snapshot
+    // publicaba ese false, dejando el icono en "Reproducir" mientras sonaba.
+    val playing = playerState.isPlaying
 
     // La canción que YA suena no se lista (está en la tarjeta "Ahora suena");
     // se conserva el índice original de cada fila para que `jumpTo` siga

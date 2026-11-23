@@ -363,7 +363,7 @@ class PlayerConnection(private val context: Context) {
             nearEndNotified = false
             return
         }
-        val threshold = (player.mediaItemCount - 3).coerceAtLeast(0)
+        val threshold = (player.mediaItemCount - 5).coerceAtLeast(0)
         val nearEnd = player.currentMediaItemIndex >= threshold
         if (nearEnd && !nearEndNotified) {
             nearEndNotified = true

@@ -113,8 +113,8 @@ fun HomeScreen(
     onOpenParty: () -> Unit,
     onOpenAccount: () -> Unit,
     onPlay: (List<Song>, Int, Boolean) -> Unit,
-    /** Arranca una radio de la canción elegida (búsqueda, tendencias, descubrimiento). */
-    onPlayRadio: (Song) -> Unit = {},
+    /** Arranca una radio de la canción elegida. El segundo valor es el género de la sección. */
+    onPlayRadio: (Song, String?) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
 ) {
@@ -369,7 +369,7 @@ fun HomeScreen(
                         ) {
                             DailyDiscoveryCard(
                                 song = hero,
-                                onPlay = { onPlayRadio(hero) },
+                                onPlay = { onPlayRadio(hero, null) },
                             )
                         }
                     }
@@ -418,7 +418,7 @@ fun HomeScreen(
                             modifier = Modifier.width(132.dp),
                             onClick = {
                                 if (randomPool.isNotEmpty()) {
-                                    onPlayRadio(randomPool[Random.nextInt(randomPool.size)])
+                                    onPlayRadio(randomPool[Random.nextInt(randomPool.size)], null)
                                 }
                             },
                         )
@@ -461,7 +461,7 @@ fun HomeScreen(
                                     val filtered =
                                         ContentFilters.apply(songs, hideVideos, hideShorts)
                                     if (filtered.isNotEmpty()) {
-                                        onPlayRadio(filtered[0])
+                                        onPlayRadio(filtered[0], mood.query)
                                     }
                                 }
                             },
@@ -489,7 +489,7 @@ fun HomeScreen(
                             ChartTile(
                                 rank = index + 1,
                                 song = song,
-                                onClick = { onPlayRadio(song) },
+                                onClick = { onPlayRadio(song, null) },
                             )
                         }
                     }
@@ -508,7 +508,7 @@ fun HomeScreen(
                         SectionHeader(
                             title = "Para ti",
                             playAll = true,
-                            onPlayAll = { if (songs.isNotEmpty()) onPlayRadio(songs[0]) },
+                            onPlayAll = { if (songs.isNotEmpty()) onPlayRadio(songs[0], null) },
                             action = if (tab == HomeTab.ALL && tasteSongs.size > 6) {
                                 "Ver todo"
                             } else {
@@ -534,7 +534,7 @@ fun HomeScreen(
                         GroupedSongList(
                             songs = songs,
                             favoriteIds = favoriteIds,
-                            onPlay = { index -> onPlayRadio(songs[index]) },
+                            onPlay = { index -> onPlayRadio(songs[index], null) },
                         )
                     }
                 }
@@ -1062,15 +1062,16 @@ private fun QuickTile(
 private fun SongShelf(
     title: String,
     songs: List<Song>,
-    onPlayRadio: (Song) -> Unit,
+    onPlayRadio: (Song, String?) -> Unit,
     favoriteIds: Set<String> = emptySet(),
 ) {
     if (songs.isEmpty()) return
     fun play(song: Song) {
         // El título de la estantería ("Metal", "Reggaetón"...) se guarda como
-        // etiqueta para que la radio explore todo el género, no solo la canción.
+        // etiqueta y se pasa como género explícito: es lo que fija el estilo de
+        // toda la radio, por muy genéricas que sean las etiquetas del vídeo.
         DiscoveryPool.add(listOf(song), listOf(title))
-        onPlayRadio(song)
+        onPlayRadio(song, title)
     }
     Spacer(Modifier.height(24.dp))
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
