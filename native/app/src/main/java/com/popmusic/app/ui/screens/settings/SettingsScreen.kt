@@ -3,6 +3,7 @@ package com.popmusic.app.ui.screens.settings
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import com.popmusic.app.BuildConfig
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -319,7 +320,7 @@ fun SettingsScreen(
                 ),
                 RootItem(
                     label = "Acerca de PoP Music",
-                    subtitle = "Versión 0.1.0",
+                    subtitle = "Versión ${BuildConfig.VERSION_NAME}",
                     icon = Icons.Rounded.Info,
                     onClick = { setView(SettingsView.ABOUT) },
                 ),
@@ -530,7 +531,7 @@ private fun SettingsRoot(
 
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "PoP Music 0.1.0 · Música, letras y podcasts",
+            text = "PoP Music ${BuildConfig.VERSION_NAME} · Música, letras y podcasts",
             style = MaterialTheme.typography.labelMedium,
             color = Faint,
             modifier = Modifier
@@ -1148,7 +1149,7 @@ private fun AboutDetail(
                 )
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    text = "Versión 0.1.0 · GPLv3",
+                    text = "Versión ${BuildConfig.VERSION_NAME} · GPLv3",
                     style = MaterialTheme.typography.bodyMedium,
                     color = Faint,
                 )
