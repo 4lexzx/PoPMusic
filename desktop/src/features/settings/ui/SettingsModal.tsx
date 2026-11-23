@@ -258,7 +258,7 @@ const SETTING_ITEMS: { tabId: TabId; titleKey: string; descKey?: string }[] = [
   // About
   {
     tabId: "About",
-    titleKey: "settings.about.liner",
+    titleKey: "settings.about.popmusic",
     descKey: "common.app.version",
   },
   { tabId: "About", titleKey: "settings.notifications.test_button" },

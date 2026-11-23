@@ -65,10 +65,10 @@ export class PlayerRuntime {
     const win = typeof window !== "undefined" ? (window as any) : null;
     let audio = (win?.__popmusic_audio ||
       (typeof document !== "undefined" &&
-        document.getElementById("liner-audio"))) as HTMLAudioElement | null;
+        document.getElementById("popmusic-audio"))) as HTMLAudioElement | null;
     if (!audio) {
       audio = new Audio();
-      audio.id = "liner-audio";
+      audio.id = "popmusic-audio";
       audio.crossOrigin = "anonymous";
       audio.preload = "auto";
       if (typeof document !== "undefined") {

@@ -10,7 +10,7 @@ interface ClockAnchor {
 }
 
 export function audioElement(): HTMLAudioElement | null {
-  return document.getElementById("liner-audio") as HTMLAudioElement | null;
+  return document.getElementById("popmusic-audio") as HTMLAudioElement | null;
 }
 
 function isRunning(audio: HTMLAudioElement): boolean {

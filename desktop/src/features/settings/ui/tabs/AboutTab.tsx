@@ -20,7 +20,7 @@ export function AboutTab({ searchQuery }: { searchQuery?: string }) {
     if (!searchQuery?.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     const searchableKeys = [
-      "settings.about.liner",
+      "settings.about.popmusic",
       "settings.about.tagline",
       "settings.about.updates_title",
       "settings.about.build_info",
@@ -48,7 +48,7 @@ export function AboutTab({ searchQuery }: { searchQuery?: string }) {
             draggable={false}
           />
           <span className="font-montserrat text-[22px] font-[700] leading-none text-text-primary">
-            {t("settings.about.liner")}
+            {t("settings.about.popmusic")}
           </span>
         </div>
         <span className="inline-flex h-[34px] items-center gap-[8px] rounded-full bg-fill-hover px-[14px] text-label font-[600] text-text-primary select-none">

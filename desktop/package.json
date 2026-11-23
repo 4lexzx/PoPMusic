@@ -48,7 +48,7 @@
     "linux": {
       "executableName": "PoP Music",
       "syncDesktopName": true,
-      "maintainer": "hkamori <dev@tryliner.fun>",
+      "maintainer": "4lexzx <4lexzx@users.noreply.github.com>",
       "icon": "icons/icon.png",
       "target": [
         "AppImage",
