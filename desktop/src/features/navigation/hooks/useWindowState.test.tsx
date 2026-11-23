@@ -43,7 +43,7 @@ describe("useWindowState", () => {
       "h-full w-full bg-transparent overflow-hidden p-1";
     document.body.removeAttribute("data-edge-to-edge");
 
-    (window as any).linerElectron = {
+    (window as any).popDesktop = {
       platform: "win32",
       isFullScreen: mockIsFullScreen,
       isMaximized: mockIsMaximized,
@@ -67,7 +67,7 @@ describe("useWindowState", () => {
     root = null;
     container = null;
     latestState = null;
-    delete (window as any).linerElectron;
+    delete (window as any).popDesktop;
     vi.restoreAllMocks();
   });
 
@@ -193,8 +193,8 @@ describe("useWindowState", () => {
     );
   });
 
-  it("works safely when window.linerElectron is undefined (browser mode)", async () => {
-    delete (window as any).linerElectron;
+  it("works safely when window.popDesktop is undefined (browser mode)", async () => {
+    delete (window as any).popDesktop;
 
     await mount();
 
@@ -206,7 +206,7 @@ describe("useWindowState", () => {
   });
 
   it("enters and exits fullscreen via fullscreenchange in browser mode", async () => {
-    delete (window as any).linerElectron;
+    delete (window as any).popDesktop;
 
     await mount();
 
@@ -308,7 +308,7 @@ describe("useWindowState", () => {
   });
 
   it("toggles native fullscreen on F11 when running on Linux", async () => {
-    (window as any).linerElectron.platform = "linux";
+    (window as any).popDesktop.platform = "linux";
     await mount();
 
     const event = new KeyboardEvent("keydown", {
@@ -335,7 +335,7 @@ describe("useWindowState", () => {
   });
 
   it("does not toggle again while F11 auto-repeats", async () => {
-    (window as any).linerElectron.platform = "linux";
+    (window as any).popDesktop.platform = "linux";
     await mount();
 
     const event = new KeyboardEvent("keydown", {

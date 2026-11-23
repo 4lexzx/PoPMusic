@@ -44,7 +44,7 @@ export function useLocalImport() {
 
   const importFiles = useCallback(
     async (files: File[]) => {
-      const bridge = window.linerElectron;
+      const bridge = window.popDesktop;
       if (!bridge) return;
       const paths = files
         .map((file) => bridge.pathForFile(file))

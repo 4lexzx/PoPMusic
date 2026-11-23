@@ -1,8 +1,8 @@
-import type { LinerElectronApi } from "../electron/preload";
+import type { PopDesktopApi } from "../electron/preload";
 
 declare global {
   interface Window {
-    linerElectron?: LinerElectronApi;
+    popDesktop?: PopDesktopApi;
   }
 }
 

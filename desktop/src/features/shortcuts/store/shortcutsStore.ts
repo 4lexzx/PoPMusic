@@ -81,7 +81,7 @@ function pickKnownShortcuts<T extends object>(
   return result;
 }
 
-const SHORTCUTS_STORAGE_KEY = "liner_shortcuts_settings_v1";
+const SHORTCUTS_STORAGE_KEY = "popmusic_shortcuts_settings_v1";
 
 let pendingGlobalEdit: PendingGlobalEdit | null = null;
 
@@ -91,9 +91,9 @@ function notifyElectronGlobalShortcuts(
 ) {
   if (
     typeof window !== "undefined" &&
-    window.linerElectron?.updateOverlaySettings
+    window.popDesktop?.updateOverlaySettings
   ) {
-    window.linerElectron.updateOverlaySettings({
+    window.popDesktop.updateOverlaySettings({
       shortcut: global.toggleOverlay,
       likeShortcut: global.quickLikeSong,
       mediaShortcuts: Object.fromEntries(
@@ -176,9 +176,9 @@ export const useShortcutsStore = create<ShortcutsStoreState>()(
         set({ isRecording: recording });
         if (
           typeof window !== "undefined" &&
-          window.linerElectron?.pauseOverlayShortcuts
+          window.popDesktop?.pauseOverlayShortcuts
         ) {
-          window.linerElectron.pauseOverlayShortcuts(recording);
+          window.popDesktop.pauseOverlayShortcuts(recording);
         }
       },
 
@@ -328,7 +328,7 @@ export const useShortcutsStore = create<ShortcutsStoreState>()(
 );
 
 export function subscribeToGlobalShortcutStatus(): () => void {
-  const api = typeof window !== "undefined" ? window.linerElectron : undefined;
+  const api = typeof window !== "undefined" ? window.popDesktop : undefined;
   if (!api?.onShortcutStatus) return () => {};
   const apply = (status: Record<string, string>) =>
     useShortcutsStore

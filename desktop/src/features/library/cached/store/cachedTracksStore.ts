@@ -1,8 +1,8 @@
 import { create } from "zustand";
-import { audioCache, linerDb } from "@/shared/storage";
+import { audioCache, popDb } from "@/shared/storage";
 import type { Track } from "@/shared/types";
 
-export const CACHED_VISIBLE_ONLINE_KEY = "liner_cached_songs_online";
+export const CACHED_VISIBLE_ONLINE_KEY = "popmusic_cached_songs_online";
 
 function readVisibleOnline(): boolean {
   try {
@@ -35,10 +35,10 @@ function hasArtistIds(track: Track): boolean {
 }
 
 async function readCachedTracks(): Promise<CachedTrack[]> {
-  const entries = await linerDb.listAudioEntries();
+  const entries = await popDb.listAudioEntries();
   const items = await Promise.all(
     entries.map(async (entry): Promise<CachedTrack | null> => {
-      const record = await linerDb.getTrack(entry.trackId);
+      const record = await popDb.getTrack(entry.trackId);
       if (!record) return null;
       return {
         track: {

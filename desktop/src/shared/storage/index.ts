@@ -1,10 +1,10 @@
 export {
-  linerDb,
+  popDb,
   type CachedTrackRecord,
   type CachedAudioRecord,
   type CachedLyricsRecord,
   type CachedArtistRecord,
-} from "./linerDb";
+} from "./popDb";
 export {
   audioCache,
   AUDIO_CACHE_LIMIT_STORAGE_KEY,

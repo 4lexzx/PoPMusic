@@ -24,7 +24,7 @@ describe("shortcutsStore", () => {
 
   it("updates global shortcuts and normalizes them", () => {
     const updateOverlaySettings = vi.fn();
-    (window as any).linerElectron = { updateOverlaySettings };
+    (window as any).popDesktop = { updateOverlaySettings };
 
     useShortcutsStore
       .getState()
@@ -87,7 +87,7 @@ describe("shortcutsStore", () => {
 
   it("toggles isRecording and notifies Electron to pause global shortcuts", () => {
     const pauseOverlayShortcuts = vi.fn();
-    (window as any).linerElectron = { pauseOverlayShortcuts };
+    (window as any).popDesktop = { pauseOverlayShortcuts };
 
     useShortcutsStore.getState().setIsRecording(true);
     expect(useShortcutsStore.getState().isRecording).toBe(true);
@@ -100,7 +100,7 @@ describe("shortcutsStore", () => {
 
   it("binds and clears optional global shortcuts and sends them to electron", () => {
     const updateOverlaySettings = vi.fn();
-    (window as any).linerElectron = { updateOverlaySettings };
+    (window as any).popDesktop = { updateOverlaySettings };
 
     expect(useShortcutsStore.getState().global.playPause).toBe("");
 
@@ -126,13 +126,13 @@ describe("shortcutsStore", () => {
 
   it("picks up shortcuts another window saved", async () => {
     const saved = JSON.parse(
-      localStorage.getItem("liner_shortcuts_settings_v1") ?? "{}",
+      localStorage.getItem("popmusic_shortcuts_settings_v1") ?? "{}",
     );
     saved.state.miniplayer.nextTrack = "N";
-    localStorage.setItem("liner_shortcuts_settings_v1", JSON.stringify(saved));
+    localStorage.setItem("popmusic_shortcuts_settings_v1", JSON.stringify(saved));
 
     window.dispatchEvent(
-      new StorageEvent("storage", { key: "liner_shortcuts_settings_v1" }),
+      new StorageEvent("storage", { key: "popmusic_shortcuts_settings_v1" }),
     );
     await vi.waitFor(() =>
       expect(useShortcutsStore.getState().miniplayer.nextTrack).toBe("N"),
@@ -141,7 +141,7 @@ describe("shortcutsStore", () => {
 
   describe("global shortcut registration verdicts", () => {
     beforeEach(() => {
-      (window as any).linerElectron = { updateOverlaySettings: vi.fn() };
+      (window as any).popDesktop = { updateOverlaySettings: vi.fn() };
       useShortcutsStore.setState({ globalStatus: {}, rejectedGlobal: null });
     });
 
@@ -223,7 +223,7 @@ describe("shortcutsStore", () => {
 
     it("sends the hold behaviour to the main process", () => {
       const updateOverlaySettings = vi.fn();
-      (window as any).linerElectron = { updateOverlaySettings };
+      (window as any).popDesktop = { updateOverlaySettings };
       useShortcutsStore.getState().setVolumeHoldRepeats(false);
       expect(updateOverlaySettings).toHaveBeenCalledWith(
         expect.objectContaining({ volumeHoldRepeats: false }),

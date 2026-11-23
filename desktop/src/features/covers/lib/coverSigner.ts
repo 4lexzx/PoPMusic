@@ -25,7 +25,7 @@ const inflight = new Map<string, Promise<string | undefined>>();
 function isElectron(): boolean {
   return (
     typeof window !== "undefined" &&
-    typeof window.linerElectron?.signCoverUrl === "function"
+    typeof window.popDesktop?.signCoverUrl === "function"
   );
 }
 
@@ -54,7 +54,7 @@ export async function signCoverUrl(payload: string): Promise<string> {
   // Web build / a dev browser tab has no native layer; leave the token unsigned.
   if (!isElectron()) return payload;
   try {
-    const signature = await window.linerElectron!.signCoverUrl(payload);
+    const signature = await window.popDesktop!.signCoverUrl(payload);
     return signature ? `${payload}.${signature}` : payload;
   } catch {
     // IPC unavailable/failed: fall back to unsigned so a Worker with

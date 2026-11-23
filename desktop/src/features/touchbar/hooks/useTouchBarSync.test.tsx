@@ -82,7 +82,7 @@ describe("useTouchBarSync ipc volume", () => {
   let rafCalls: number;
 
   function mount(platform: string) {
-    window.linerElectron = {
+    window.popDesktop = {
       platform,
       touchbarUpdateState: (state: Record<string, unknown>) => {
         sent.push(state);
@@ -147,7 +147,7 @@ describe("useTouchBarSync ipc volume", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
-    delete window.linerElectron;
+    delete window.popDesktop;
     vi.unstubAllGlobals();
     vi.useRealTimers();
   });

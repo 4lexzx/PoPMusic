@@ -17,8 +17,8 @@ const handlePreventF11 = (e: KeyboardEvent) => {
   // behavior wired back through the same IPC the window controls use.
   e.preventDefault();
   if (e.repeat) return;
-  if (window.linerElectron?.platform === "linux") {
-    void window.linerElectron.toggleFullScreen?.();
+  if (window.popDesktop?.platform === "linux") {
+    void window.popDesktop.toggleFullScreen?.();
   }
 };
 
@@ -77,7 +77,7 @@ export function useWindowState(): WindowStateHookResult {
       }
     };
 
-    if (!window.linerElectron) {
+    if (!window.popDesktop) {
       checkBrowserFullscreen();
       const handleFullscreenChange = () => checkBrowserFullscreen();
       document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -101,7 +101,7 @@ export function useWindowState(): WindowStateHookResult {
 
     // Hydrate initial os window state from electron
     const initialQuerySeq = pushSeq;
-    window.linerElectron
+    window.popDesktop
       .isFullScreen?.()
       .then((fs) => {
         if (mounted && pushSeq === initialQuerySeq && typeof fs === "boolean") {
@@ -110,7 +110,7 @@ export function useWindowState(): WindowStateHookResult {
       })
       .catch(() => {});
 
-    window.linerElectron
+    window.popDesktop
       .isMaximized?.()
       .then((max) => {
         if (
@@ -124,7 +124,7 @@ export function useWindowState(): WindowStateHookResult {
       .catch(() => {});
 
     // Live sync across os fullscreen transitions & maximize toggles
-    const unsubscribe = window.linerElectron.onWindowStateChange?.(
+    const unsubscribe = window.popDesktop.onWindowStateChange?.(
       (state: WindowState) => {
         if (mounted && state) {
           pushSeq++;
@@ -142,7 +142,7 @@ export function useWindowState(): WindowStateHookResult {
         setIsFullScreen(true);
       }
       const resizeSeq = pushSeq;
-      window.linerElectron
+      window.popDesktop
         ?.isMaximized?.()
         .then((max) => {
           if (mounted && pushSeq === resizeSeq && typeof max === "boolean") {
@@ -150,7 +150,7 @@ export function useWindowState(): WindowStateHookResult {
           }
         })
         .catch(() => {});
-      window.linerElectron
+      window.popDesktop
         ?.isFullScreen?.()
         .then((fs) => {
           if (mounted && pushSeq === resizeSeq && typeof fs === "boolean") {
@@ -167,7 +167,7 @@ export function useWindowState(): WindowStateHookResult {
         setIsFullScreen(true);
       } else {
         const querySeq = pushSeq;
-        window.linerElectron
+        window.popDesktop
           ?.isFullScreen?.()
           .then((fs) => {
             if (mounted && pushSeq === querySeq && typeof fs === "boolean") {

@@ -32,7 +32,7 @@ function installBridge(stored: AuthTokens | null) {
       for (const cb of listeners) cb(next);
     },
   };
-  (window as unknown as { linerElectron: unknown }).linerElectron = {
+  (window as unknown as { popDesktop: unknown }).popDesktop = {
     authSession: bridge,
   };
   return bridge;
@@ -49,7 +49,7 @@ describe("auth-session backed by the main process", () => {
   });
 
   afterEach(() => {
-    delete (window as unknown as { linerElectron?: unknown }).linerElectron;
+    delete (window as unknown as { popDesktop?: unknown }).popDesktop;
     vi.restoreAllMocks();
   });
 
@@ -63,7 +63,7 @@ describe("auth-session backed by the main process", () => {
 
   it("moves a legacy localStorage session into main and wipes the plain copy", async () => {
     localStorage.setItem(
-      "liner_auth_session",
+      "popmusic_auth_session",
       JSON.stringify(session("rt_legacy")),
     );
     const bridge = installBridge(null);
@@ -72,19 +72,19 @@ describe("auth-session backed by the main process", () => {
     expect(bridge.set).toHaveBeenCalledWith(
       expect.objectContaining({ refreshToken: "rt_legacy" }),
     );
-    expect(localStorage.getItem("liner_auth_session")).toBeNull();
+    expect(localStorage.getItem("popmusic_auth_session")).toBeNull();
   });
 
   it("prefers main over a stale legacy copy", async () => {
     localStorage.setItem(
-      "liner_auth_session",
+      "popmusic_auth_session",
       JSON.stringify(session("rt_stale")),
     );
     const bridge = installBridge(session("rt_main"));
     const auth = await loadModule();
     expect(auth.getAuthSession()?.refreshToken).toBe("rt_main");
     expect(bridge.set).not.toHaveBeenCalled();
-    expect(localStorage.getItem("liner_auth_session")).toBeNull();
+    expect(localStorage.getItem("popmusic_auth_session")).toBeNull();
   });
 
   it("saves through main and never writes the token to localStorage", async () => {
@@ -94,7 +94,7 @@ describe("auth-session backed by the main process", () => {
     expect(bridge.set).toHaveBeenCalledWith(
       expect.objectContaining({ refreshToken: "rt_login" }),
     );
-    expect(localStorage.getItem("liner_auth_session")).toBeNull();
+    expect(localStorage.getItem("popmusic_auth_session")).toBeNull();
   });
 
   it("delegates refresh to main and adopts the result", async () => {

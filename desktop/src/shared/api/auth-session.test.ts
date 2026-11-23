@@ -310,7 +310,7 @@ describe("auth-session token system", () => {
       };
       globalThis.fetch = vi.fn().mockImplementation(async () => {
         // another window finished a refresh meanwhile
-        storageMap.set("liner_auth_session", JSON.stringify(rotated));
+        storageMap.set("popmusic_auth_session", JSON.stringify(rotated));
         return reject(401, "TOKEN_REUSED");
       }) as any;
       const res = await refreshAuthSession();

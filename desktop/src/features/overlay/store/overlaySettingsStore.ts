@@ -22,9 +22,9 @@ const DEFAULT_SETTINGS: OverlaySettings = {
 function notifyElectron(patch: Partial<OverlaySettings>) {
   if (
     typeof window !== "undefined" &&
-    window.linerElectron?.updateOverlaySettings
+    window.popDesktop?.updateOverlaySettings
   ) {
-    window.linerElectron.updateOverlaySettings(patch);
+    window.popDesktop.updateOverlaySettings(patch);
   }
 }
 
@@ -56,7 +56,7 @@ export const useOverlaySettingsStore = create<OverlaySettingsState>()(
       },
     }),
     {
-      name: "liner_overlay_settings_v1",
+      name: "popmusic_overlay_settings_v1",
       storage: createJSONStorage(() => localStorage),
       onRehydrateStorage: () => (state) => {
         if (state?.shortcut) {

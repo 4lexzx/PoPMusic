@@ -505,32 +505,32 @@ export class PitchShifterController {
         return;
       }
 
-      if (!win.__liner_audio_context) {
-        win.__liner_audio_context = new AudioCtx();
+      if (!win.__popmusic_audio_context) {
+        win.__popmusic_audio_context = new AudioCtx();
       }
-      const ctx = win.__liner_audio_context as AudioContext;
+      const ctx = win.__popmusic_audio_context as AudioContext;
       this.context = ctx;
 
       const audioObj = audio as any;
-      let sourceNode = audioObj.__liner_source_node as
+      let sourceNode = audioObj.__popmusic_source_node as
         MediaElementAudioSourceNode | undefined;
 
       if (!sourceNode) {
         if (
-          win.__liner_media_source_node &&
-          win.__liner_media_source_node.mediaElement === audio
+          win.__popmusic_media_source_node &&
+          win.__popmusic_media_source_node.mediaElement === audio
         ) {
-          sourceNode = win.__liner_media_source_node;
-          audioObj.__liner_source_node = sourceNode;
+          sourceNode = win.__popmusic_media_source_node;
+          audioObj.__popmusic_source_node = sourceNode;
         } else {
           try {
             sourceNode = ctx.createMediaElementSource(audio);
-            audioObj.__liner_source_node = sourceNode;
-            win.__liner_media_source_node = sourceNode;
+            audioObj.__popmusic_source_node = sourceNode;
+            win.__popmusic_media_source_node = sourceNode;
           } catch (sourceErr: any) {
-            if (win.__liner_media_source_node) {
-              sourceNode = win.__liner_media_source_node;
-              audioObj.__liner_source_node = sourceNode;
+            if (win.__popmusic_media_source_node) {
+              sourceNode = win.__popmusic_media_source_node;
+              audioObj.__popmusic_source_node = sourceNode;
             } else {
               throw sourceErr;
             }
@@ -560,21 +560,21 @@ export class PitchShifterController {
         );
       };
 
-      let graph = (audioObj.__liner_pitch_graph || win.__liner_pitch_graph) as
+      let graph = (audioObj.__popmusic_pitch_graph || win.__popmusic_pitch_graph) as
         AudioEffectsGraph | undefined;
 
       if (!isCompleteGraph(graph)) {
         if (graph) disposeStaleGraph(graph);
-        delete audioObj.__liner_pitch_graph;
-        delete win.__liner_pitch_graph;
+        delete audioObj.__popmusic_pitch_graph;
+        delete win.__popmusic_pitch_graph;
 
         try {
           sourceNode.disconnect();
         } catch {}
 
         graph = buildGraph(ctx, sourceNode);
-        audioObj.__liner_pitch_graph = graph;
-        win.__liner_pitch_graph = graph;
+        audioObj.__popmusic_pitch_graph = graph;
+        win.__popmusic_pitch_graph = graph;
       }
 
       this.context = graph.ctx;
@@ -606,8 +606,8 @@ export class PitchShifterController {
 
   private bindPlaybackState(audio: HTMLAudioElement): void {
     const audioObj = audio as any;
-    if (audioObj.__liner_effects_owner === this) return;
-    const previous = audioObj.__liner_effects_listeners as
+    if (audioObj.__popmusic_effects_owner === this) return;
+    const previous = audioObj.__popmusic_effects_listeners as
       [string, EventListener][] | undefined;
     for (const [type, listener] of previous ?? []) {
       audio.removeEventListener(type, listener);
@@ -623,8 +623,8 @@ export class PitchShifterController {
     for (const [type, listener] of listeners) {
       audio.addEventListener(type, listener);
     }
-    audioObj.__liner_effects_listeners = listeners;
-    audioObj.__liner_effects_owner = this;
+    audioObj.__popmusic_effects_listeners = listeners;
+    audioObj.__popmusic_effects_owner = this;
   }
 
   private wakeContext(): void {
@@ -667,7 +667,7 @@ export class PitchShifterController {
       if (typeof window !== "undefined") {
         const win = window as any;
         const audio =
-          win.__liner_audio ||
+          win.__popmusic_audio ||
           (typeof document !== "undefined" &&
             document.getElementById("liner-audio"));
         if (audio) {

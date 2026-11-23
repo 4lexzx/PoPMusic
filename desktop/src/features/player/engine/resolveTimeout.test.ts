@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/shared/youtube", () => ({}));
 vi.mock("@/shared/media/soundcloud", () => ({}));
-vi.mock("@/shared/media/liner/linerPlayback", () => ({}));
+vi.mock("@/shared/media/pop/popPlayback", () => ({}));
 vi.mock("@/shared/media/local", () => ({}));
 vi.mock("@/shared/media/saved", () => ({}));
 vi.mock("./youtubeStandIn", () => ({}));

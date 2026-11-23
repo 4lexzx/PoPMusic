@@ -32,8 +32,8 @@ export default defineConfig(({ command, mode }) => {
           entry: "electron/main.ts",
           vite: {
             define: {
-              __LINER_CHANNEL__: JSON.stringify(
-                process.env.LINER_CHANNEL ?? "production",
+              __POP_CHANNEL__: JSON.stringify(
+                process.env.POP_CHANNEL ?? "production",
               ),
             },
           },
@@ -57,6 +57,14 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(import.meta.dirname, "./src"),
+        "@mingcute/react": path.resolve(
+          import.meta.dirname,
+          "./src/shared/ui/PopIcons.tsx",
+        ),
+        "@solar-icons/react": path.resolve(
+          import.meta.dirname,
+          "./src/shared/ui/PopIcons.tsx",
+        ),
         "next/navigation": path.resolve(
           import.meta.dirname,
           "./src/lib/navigation.tsx",

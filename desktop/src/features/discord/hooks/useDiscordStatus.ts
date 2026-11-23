@@ -13,7 +13,7 @@ export function useDiscordStatus() {
     let cancelled = false;
 
     const checkStatus = () => {
-      const getStatus = window.linerElectron?.getDiscordStatus;
+      const getStatus = window.popDesktop?.getDiscordStatus;
       if (!getStatus) {
         setLoading(false);
         return;

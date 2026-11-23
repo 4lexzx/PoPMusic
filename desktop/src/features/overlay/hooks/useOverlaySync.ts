@@ -44,16 +44,16 @@ export function useOverlaySync() {
 
   // Sync auth status to Electron overlay manager
   useEffect(() => {
-    window.linerElectron?.setOverlayAuthenticated?.(isAuthenticated);
+    window.popDesktop?.setOverlayAuthenticated?.(isAuthenticated);
     if (!isAuthenticated) {
-      window.linerElectron?.closeOverlay?.();
+      window.popDesktop?.closeOverlay?.();
     }
   }, [isAuthenticated]);
 
   // Sync settings on mount
   useEffect(() => {
     const s = useOverlaySettingsStore.getState();
-    window.linerElectron?.updateOverlaySettings?.({
+    window.popDesktop?.updateOverlaySettings?.({
       enabled: s.enabled,
       position: s.position,
       shortcut: s.shortcut,
@@ -67,10 +67,10 @@ export function useOverlaySync() {
     const handleAuthChange = () => {
       const session = getAuthSession();
       const authed = Boolean(session);
-      window.linerElectron?.setOverlayAuthenticated?.(authed);
+      window.popDesktop?.setOverlayAuthenticated?.(authed);
       if (!authed) {
-        window.linerElectron?.closeOverlay?.();
-        window.linerElectron?.sendOverlayAction?.({ type: "closeOverlay" });
+        window.popDesktop?.closeOverlay?.();
+        window.popDesktop?.sendOverlayAction?.({ type: "closeOverlay" });
       }
     };
     window.addEventListener("auth:changed", handleAuthChange);
@@ -81,9 +81,9 @@ export function useOverlaySync() {
 
   // Listen for actions from overlay
   useEffect(() => {
-    if (!window.linerElectron?.onOverlayAction) return;
+    if (!window.popDesktop?.onOverlayAction) return;
 
-    const cleanup = window.linerElectron.onOverlayAction(
+    const cleanup = window.popDesktop.onOverlayAction(
       (action: OverlayAction) => {
         switch (action.type) {
           case "togglePlay":
@@ -199,7 +199,7 @@ export function useOverlaySync() {
   }, []);
 
   useEffect(() => {
-    if (!window.linerElectron?.overlayUpdateState) return;
+    if (!window.popDesktop?.overlayUpdateState) return;
     if (!isAuthenticated) return;
 
     const artistName =
@@ -253,7 +253,7 @@ export function useOverlaySync() {
       rate,
       playing: status === "playing",
     };
-    window.linerElectron.overlayUpdateState(payload);
+    window.popDesktop.overlayUpdateState(payload);
   }, [
     isAuthenticated,
     status,

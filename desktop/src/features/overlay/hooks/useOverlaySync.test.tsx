@@ -68,7 +68,7 @@ describe("useOverlaySync ipc volume", () => {
   let sent: Array<Record<string, unknown>>;
 
   function mount() {
-    window.linerElectron = {
+    window.popDesktop = {
       platform: "win32",
       overlayUpdateState: (state: Record<string, unknown>) => {
         sent.push(state);
@@ -111,7 +111,7 @@ describe("useOverlaySync ipc volume", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
-    delete window.linerElectron;
+    delete window.popDesktop;
     vi.useRealTimers();
   });
 

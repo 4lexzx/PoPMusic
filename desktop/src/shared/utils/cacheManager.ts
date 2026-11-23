@@ -1,4 +1,4 @@
-import { linerDb } from "@/shared/storage/linerDb";
+import { popDb } from "@/shared/storage/popDb";
 import { useLocalLibraryStore } from "@/features/library/local/store/localLibraryStore";
 import { useSavedTracksStore } from "@/features/library/saved/store/savedTracksStore";
 import { useCachedTracksStore } from "@/features/library/cached/store/cachedTracksStore";
@@ -28,10 +28,10 @@ export async function setAudioCacheLimitBytes(bytes: number): Promise<void> {
 }
 
 const PRESERVED_STORAGE_KEYS = new Set([
-  "liner_access_token",
-  "liner_refresh_token",
-  "liner_auth_session",
-  "liner_locale",
+  "popmusic_access_token",
+  "popmusic_refresh_token",
+  "popmusic_auth_session",
+  "popmusic_locale",
   "theme",
 ]);
 
@@ -112,7 +112,7 @@ export async function clearSearchAndQueryCache(): Promise<void> {
   clearScreenCache();
   try {
     useSearchHistoryStore.getState().clearHistory();
-    debouncedStorage.removeItem("liner_search_history");
+    debouncedStorage.removeItem("popmusic_search_history");
     debouncedStorage.flush();
   } catch {
     // Best-effort in non-store environments
@@ -126,9 +126,9 @@ export async function clearSearchAndQueryCache(): Promise<void> {
         key &&
         (key.startsWith("liner:search:") ||
           key.startsWith("liner:query:") ||
-          key.startsWith("liner_search_") ||
+          key.startsWith("popmusic_search_") ||
           key.startsWith("search-cache") ||
-          key === "liner_search_history")
+          key === "popmusic_search_history")
       ) {
         keysToRemove.push(key);
       }
@@ -146,7 +146,7 @@ export async function clearApplicationCacheSafely(): Promise<void> {
   clearCoverRegistry();
   try {
     useSearchHistoryStore.getState().clearHistory();
-    debouncedStorage.removeItem("liner_search_history");
+    debouncedStorage.removeItem("popmusic_search_history");
     debouncedStorage.flush();
   } catch {}
 
@@ -229,19 +229,19 @@ export async function getStorageAnalytics(): Promise<StorageAnalytics> {
     cachePath: string;
   } | null = null;
 
-  if (typeof window !== "undefined" && window.linerElectron?.getCacheStats) {
+  if (typeof window !== "undefined" && window.popDesktop?.getCacheStats) {
     try {
-      electronStats = await window.linerElectron.getCacheStats();
+      electronStats = await window.popDesktop.getCacheStats();
       if (electronStats.cachePath) {
         cachePath = electronStats.cachePath;
       }
     } catch {}
   }
 
-  // 2. indexeddb audio tracks & metadata added in linerDb
+  // 2. indexeddb audio tracks & metadata added in popDb
   try {
-    const audioTrackBytes = await linerDb.getTotalTrackBytes();
-    const audioBlobBytes = await linerDb.getTotalAudioBytes();
+    const audioTrackBytes = await popDb.getTotalTrackBytes();
+    const audioBlobBytes = await popDb.getTotalAudioBytes();
     audioBytes = audioTrackBytes + audioBlobBytes;
   } catch {}
 
@@ -277,16 +277,16 @@ export async function getStorageAnalytics(): Promise<StorageAnalytics> {
     }
   }
 
-  // 4. lyrics cache added in lyricsCache.ts + linerDb lyrics
+  // 4. lyrics cache added in lyricsCache.ts + popDb lyrics
   try {
-    const lBytes = await linerDb.getTotalLyricsBytes();
+    const lBytes = await popDb.getTotalLyricsBytes();
     const lStats = lyricsCache.getStats();
     lyricsBytes = lBytes + lStats.bytes;
   } catch {}
 
-  // 5. in-memory catalog cache added in queryCache.ts + linerDb artists
+  // 5. in-memory catalog cache added in queryCache.ts + popDb artists
   try {
-    metadataBytes += await linerDb.getTotalArtistBytes();
+    metadataBytes += await popDb.getTotalArtistBytes();
   } catch {}
 
   // 6. localstorage inspection for covers, search and metadata
@@ -304,22 +304,22 @@ export async function getStorageAnalytics(): Promise<StorageAnalytics> {
       } else if (
         k.startsWith("liner:search:") ||
         k.startsWith("liner:query:") ||
-        k.startsWith("liner_search_") ||
+        k.startsWith("popmusic_search_") ||
         k.startsWith("search-cache") ||
-        k === "liner_search_history"
+        k === "popmusic_search_history"
       ) {
         metadataBytes += size;
       } else if (k.startsWith("liner:artist:")) {
         metadataBytes += size;
       } else if (
-        k.startsWith("liner_lyrics_") ||
+        k.startsWith("popmusic_lyrics_") ||
         k.startsWith("lyrics-storage")
       ) {
         if (
-          !k.startsWith("liner_lyrics_v2_item_") &&
-          k !== "liner_lyrics_v2_index" &&
-          !k.startsWith("liner_lyrics_item_") &&
-          k !== "liner_lyrics_lru_index"
+          !k.startsWith("popmusic_lyrics_v2_item_") &&
+          k !== "popmusic_lyrics_v2_index" &&
+          !k.startsWith("popmusic_lyrics_item_") &&
+          k !== "popmusic_lyrics_lru_index"
         ) {
           lyricsBytes += size;
         }
@@ -329,9 +329,9 @@ export async function getStorageAnalytics(): Promise<StorageAnalytics> {
 
   let localBytes = 0;
   let localCount = 0;
-  if (typeof window !== "undefined" && window.linerElectron?.localTracksUsage) {
+  if (typeof window !== "undefined" && window.popDesktop?.localTracksUsage) {
     try {
-      const usage = await window.linerElectron.localTracksUsage();
+      const usage = await window.popDesktop.localTracksUsage();
       localBytes = usage.bytes;
       localCount = usage.count;
     } catch {}
@@ -342,15 +342,15 @@ export async function getStorageAnalytics(): Promise<StorageAnalytics> {
   let sharedBytes = 0;
   let sharedCount = 0;
   let freeBytes: number | undefined;
-  if (typeof window !== "undefined" && window.linerElectron?.savedTracksUsage) {
+  if (typeof window !== "undefined" && window.popDesktop?.savedTracksUsage) {
     try {
       const claimedIds = useSavedTracksStore
         .getState()
         .records.map((record) => record.trackId);
       const [usage, claimed] = await Promise.all([
-        window.linerElectron.savedTracksUsage(),
-        claimedIds.length > 0 && window.linerElectron.savedTracksUsageOf
-          ? window.linerElectron.savedTracksUsageOf(claimedIds)
+        window.popDesktop.savedTracksUsage(),
+        claimedIds.length > 0 && window.popDesktop.savedTracksUsageOf
+          ? window.popDesktop.savedTracksUsageOf(claimedIds)
           : Promise.resolve({ count: 0, bytes: 0 }),
       ]);
       likedBytes = claimed.bytes;
@@ -477,16 +477,16 @@ export async function clearStorageCategories(
 
   if (set.has("audio")) {
     audioCache.invalidate();
-    await linerDb.clearStore("audio");
-    await linerDb.clearStore("tracks");
+    await popDb.clearStore("audio");
+    await popDb.clearStore("tracks");
     if (isAllCategories) {
-      await linerDb.close();
+      await popDb.close();
     }
     if (
       typeof window !== "undefined" &&
-      window.linerElectron?.clearAudioCache
+      window.popDesktop?.clearAudioCache
     ) {
-      await window.linerElectron.clearAudioCache(isAllCategories);
+      await window.popDesktop.clearAudioCache(isAllCategories);
     }
   }
 
@@ -494,32 +494,32 @@ export async function clearStorageCategories(
     await clearStoredCovers();
     if (
       typeof window !== "undefined" &&
-      window.linerElectron?.clearCoversCache
+      window.popDesktop?.clearCoversCache
     ) {
-      await window.linerElectron.clearCoversCache();
+      await window.popDesktop.clearCoversCache();
     }
   }
 
   if (set.has("lyrics")) {
     lyricsCache.clear();
-    await linerDb.clearStore("lyrics");
+    await popDb.clearStore("lyrics");
     if (typeof window !== "undefined" && window.localStorage) {
       localStorage.removeItem("lyrics-storage");
       const toRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
-        if (k && k.startsWith("liner_lyrics_")) toRemove.push(k);
+        if (k && k.startsWith("popmusic_lyrics_")) toRemove.push(k);
       }
       toRemove.forEach((k) => localStorage.removeItem(k));
     }
   }
 
   if (set.has("metadata")) {
-    await linerDb.clearStore("artists");
+    await popDb.clearStore("artists");
     clearPersistedScreenCache();
     try {
       useSearchHistoryStore.getState().clearHistory();
-      debouncedStorage.removeItem("liner_search_history");
+      debouncedStorage.removeItem("popmusic_search_history");
       debouncedStorage.flush();
     } catch {}
     if (typeof window !== "undefined" && window.localStorage) {
@@ -531,9 +531,9 @@ export async function clearStorageCategories(
           (k.startsWith("liner:artist:") ||
             k.startsWith("liner:search:") ||
             k.startsWith("liner:query:") ||
-            k.startsWith("liner_search_") ||
+            k.startsWith("popmusic_search_") ||
             k.startsWith("search-cache") ||
-            k === "liner_search_history")
+            k === "popmusic_search_history")
         ) {
           toRemove.push(k);
         }
@@ -542,21 +542,21 @@ export async function clearStorageCategories(
     }
   }
 
-  if (typeof window !== "undefined" && window.linerElectron?.clearHttpCache) {
-    await window.linerElectron.clearHttpCache();
+  if (typeof window !== "undefined" && window.popDesktop?.clearHttpCache) {
+    await window.popDesktop.clearHttpCache();
   }
 }
 
 export async function removeTrackFromCache(trackId: string): Promise<void> {
   await useCachedTracksStore.getState().remove(trackId);
   lyricsCache.delete(trackId);
-  await linerDb.deleteLyrics(trackId);
+  await popDb.deleteLyrics(trackId);
   await refreshStorageAnalytics(true).catch(() => null);
 }
 
 export async function openCacheFolder(): Promise<boolean> {
-  if (typeof window !== "undefined" && window.linerElectron?.openCacheFolder) {
-    return window.linerElectron.openCacheFolder();
+  if (typeof window !== "undefined" && window.popDesktop?.openCacheFolder) {
+    return window.popDesktop.openCacheFolder();
   }
   return false;
 }
@@ -564,9 +564,9 @@ export async function openCacheFolder(): Promise<boolean> {
 export async function openDownloadsFolder(): Promise<boolean> {
   if (
     typeof window !== "undefined" &&
-    window.linerElectron?.savedTracksOpenFolder
+    window.popDesktop?.savedTracksOpenFolder
   ) {
-    return window.linerElectron.savedTracksOpenFolder();
+    return window.popDesktop.savedTracksOpenFolder();
   }
   return false;
 }
@@ -583,7 +583,7 @@ export function formatStorageBytes(bytes: number): string {
   return `${gb.toFixed(2)} GB`;
 }
 
-const CACHE_ANALYTICS_STORAGE_KEY = "liner_cached_storage_analytics";
+const CACHE_ANALYTICS_STORAGE_KEY = "popmusic_cached_storage_analytics";
 
 function readPersistedAnalytics(): StorageAnalytics | null {
   if (typeof window === "undefined" || !window.sessionStorage) return null;

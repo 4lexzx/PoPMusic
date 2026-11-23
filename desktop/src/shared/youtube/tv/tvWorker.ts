@@ -14,7 +14,7 @@ export interface TvSolveResult {
 }
 
 function electronApi() {
-  const api = typeof window === "undefined" ? undefined : window.linerElectron;
+  const api = typeof window === "undefined" ? undefined : window.popDesktop;
   if (!api?.youtubeTvSession || !api.youtubeSolveN)
     throw new InnertubeError("YouTube TV playback needs the desktop app.", 501);
   return api;

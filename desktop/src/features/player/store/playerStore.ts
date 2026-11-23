@@ -137,8 +137,8 @@ export interface PlayerStore extends PlayerState {
   resetPlayback: () => void;
 }
 
-const PLAYER_SESSION_STORAGE_KEY = "liner_player_session_v2";
-const PLAYER_RESUME_STORAGE_KEY = "liner_player_resume_v1";
+const PLAYER_SESSION_STORAGE_KEY = "popmusic_player_session_v2";
+const PLAYER_RESUME_STORAGE_KEY = "popmusic_player_resume_v1";
 const RESUME_SAVE_INTERVAL_MS = 10_000;
 
 interface ResumePosition {

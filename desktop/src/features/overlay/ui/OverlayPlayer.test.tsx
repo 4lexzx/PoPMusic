@@ -24,7 +24,7 @@ describe("OverlayPlayer animation loop", () => {
   let initialState: Record<string, unknown>;
 
   async function mount() {
-    window.linerElectron = {
+    window.popDesktop = {
       platform: "win32",
       getOverlayInitialState: () => Promise.resolve(initialState),
       onOverlayState: (cb: (state: unknown) => void) => {
@@ -78,7 +78,7 @@ describe("OverlayPlayer animation loop", () => {
   afterEach(() => {
     act(() => root.unmount());
     container.remove();
-    delete window.linerElectron;
+    delete window.popDesktop;
     vi.unstubAllGlobals();
     vi.useRealTimers();
   });

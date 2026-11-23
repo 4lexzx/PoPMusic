@@ -19,7 +19,7 @@ export async function probeConnection(): Promise<ConnectionProbe> {
   const deviceOnline =
     typeof navigator === "undefined" ? true : navigator.onLine;
   const bridge =
-    typeof window !== "undefined" ? window.linerElectron?.probeNetwork : null;
+    typeof window !== "undefined" ? window.popDesktop?.probeNetwork : null;
   const [api, net] = await Promise.all([
     probeApi(),
     bridge ? bridge().catch(() => null) : Promise.resolve(null),

@@ -27,7 +27,7 @@ export default function LocalDropZone() {
 
   const { dragging, fileCount } = useAudioFileDrop(handleDrop);
 
-  if (!window.linerElectron) return null;
+  if (!window.popDesktop) return null;
 
   return (
     <AnimatePresence>

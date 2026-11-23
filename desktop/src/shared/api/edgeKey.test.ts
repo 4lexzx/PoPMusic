@@ -19,7 +19,7 @@ describe("edge key", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     handed.length = 0;
-    (window as unknown as { linerElectron: object }).linerElectron = {
+    (window as unknown as { popDesktop: object }).popDesktop = {
       setEdgeKey: (key: string | null) => handed.push(key),
     };
   });

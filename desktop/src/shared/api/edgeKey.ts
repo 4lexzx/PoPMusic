@@ -19,7 +19,7 @@ let held: string | null = null;
 
 function hand(key: string | null): void {
   held = key;
-  if (typeof window !== "undefined") window.linerElectron?.setEdgeKey?.(key);
+  if (typeof window !== "undefined") window.popDesktop?.setEdgeKey?.(key);
 }
 
 function schedule(delayMs: number): void {

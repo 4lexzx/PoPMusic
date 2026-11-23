@@ -25,7 +25,7 @@ export const useYoutubePreferences = create<YoutubePreferencesState>()(
       setSignOutWithLiner: (signOutWithLiner) => set({ signOutWithLiner }),
     }),
     {
-      name: "liner_youtube_preferences",
+      name: "popmusic_youtube_preferences",
       storage: createJSONStorage(() => localStorage),
     },
   ),

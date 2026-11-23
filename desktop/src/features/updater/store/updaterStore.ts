@@ -36,7 +36,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
   isTestMode: false,
 
   checkForUpdates: async () => {
-    const electron = window.linerElectron;
+    const electron = window.popDesktop;
     if (!electron?.checkForUpdates) return;
 
     set({ status: "checking", error: null });
@@ -122,7 +122,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
       return;
     }
 
-    const electron = window.linerElectron;
+    const electron = window.popDesktop;
     if (!electron?.downloadUpdate) return;
 
     set({ isDialogOpen: false, status: "downloading", error: null });
@@ -137,7 +137,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
   },
 
   installUpdate: async () => {
-    const electron = window.linerElectron;
+    const electron = window.popDesktop;
     if (!electron?.quitAndInstall) {
       if (get().isTestMode) {
         get().reset();
@@ -168,7 +168,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
   },
 
   initUpdaterListeners: () => {
-    const electron = window.linerElectron;
+    const electron = window.popDesktop;
     if (!electron) return () => {};
 
     const unsubAvailable = electron.onUpdateAvailable?.((info) => {

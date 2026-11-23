@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { YoutubeAuthTokens } from "./tvTokens";
 
-const STORAGE_KEY = "liner_youtube_tv_session";
+const STORAGE_KEY = "popmusic_youtube_tv_session";
 
 const tokens = (refreshToken: string): YoutubeAuthTokens => ({
   accessToken: `access_${refreshToken}`,
@@ -19,7 +19,7 @@ function installBridge(stored: YoutubeAuthTokens | null) {
       return next;
     }),
   };
-  (window as unknown as { linerElectron: unknown }).linerElectron = {
+  (window as unknown as { popDesktop: unknown }).popDesktop = {
     youtubeAuthSession: bridge,
   };
   return bridge;
@@ -36,7 +36,7 @@ describe("youtube auth session backed by the main process", () => {
   });
 
   afterEach(() => {
-    delete (window as unknown as { linerElectron?: unknown }).linerElectron;
+    delete (window as unknown as { popDesktop?: unknown }).popDesktop;
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });

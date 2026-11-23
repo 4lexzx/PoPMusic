@@ -18,15 +18,15 @@ export function useAboutAppVersion() {
   const [lastCheckedTime, setLastCheckedTime] = useState<string | null>(null);
 
   useEffect(() => {
-    if (window.linerElectron) {
-      window.linerElectron
+    if (window.popDesktop) {
+      window.popDesktop
         .getAppVersion?.()
         .then((ver) => {
           if (ver) setAppVersion(ver);
         })
         .catch(() => {});
 
-      window.linerElectron
+      window.popDesktop
         .bundleGetStatus?.()
         .then((status) => {
           if (status) {

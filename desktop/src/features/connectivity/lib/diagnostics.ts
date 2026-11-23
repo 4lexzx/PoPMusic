@@ -119,7 +119,7 @@ export async function runAllChecks(): Promise<DiagnosticsResult> {
       clearTimeout(timer);
     }
   };
-  if (typeof window !== "undefined" && window.linerElectron?.diagnoseNetwork) {
+  if (typeof window !== "undefined" && window.popDesktop?.diagnoseNetwork) {
     checks.push({ id: "covers", status: "ok" });
   } else {
     checks.push(await ping("covers", COVERS_BASE));
@@ -131,7 +131,7 @@ export async function runAllChecks(): Promise<DiagnosticsResult> {
   try {
     const bridge =
       typeof window !== "undefined"
-        ? window.linerElectron?.diagnoseNetwork
+        ? window.popDesktop?.diagnoseNetwork
         : undefined;
     if (bridge) {
       main = await bridge(hosts);

@@ -4,7 +4,7 @@ const PRESENCE_THROTTLE_MS = 2_000;
 
 export function useWindowPresence(): void {
   useEffect(() => {
-    const notePresence = window.linerElectron?.notePresence;
+    const notePresence = window.popDesktop?.notePresence;
     if (!notePresence) return;
     let lastSentAt = 0;
     const onPointerMove = () => {

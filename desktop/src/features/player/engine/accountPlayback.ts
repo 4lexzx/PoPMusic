@@ -4,7 +4,7 @@ let accountPlaybackWorks: Promise<boolean> | null = null;
 
 export function appAllowsAccountPlayback(): Promise<boolean> {
   accountPlaybackWorks ??= (
-    window.linerElectron?.getAppVersion() ?? Promise.resolve("")
+    window.popDesktop?.getAppVersion() ?? Promise.resolve("")
   )
     .then((version) => !BROKEN_SABR_CORS_APP_VERSIONS.has(version))
     .catch(() => true);

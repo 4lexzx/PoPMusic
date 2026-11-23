@@ -62,7 +62,7 @@ export const useLocalLibraryStore = create<LocalLibraryState>((set, get) => {
     importing: false,
 
     load: async () => {
-      const bridge = window.linerElectron;
+      const bridge = window.popDesktop;
       if (!bridge) {
         set({ loadState: "unavailable" });
         return;
@@ -78,19 +78,19 @@ export const useLocalLibraryStore = create<LocalLibraryState>((set, get) => {
     },
 
     importPaths: (paths) => {
-      const bridge = window.linerElectron;
+      const bridge = window.popDesktop;
       if (!bridge || paths.length === 0) return Promise.resolve(null);
       return runImport(() => bridge.localTracksImport(paths));
     },
 
     pickFiles: () => {
-      const bridge = window.linerElectron;
+      const bridge = window.popDesktop;
       if (!bridge) return Promise.resolve(null);
       return runImport(() => bridge.localTracksPick());
     },
 
     remove: async (fileIds) => {
-      const bridge = window.linerElectron;
+      const bridge = window.popDesktop;
       if (!bridge || fileIds.length === 0) return;
       const removing = new Set(fileIds);
       set(
@@ -101,7 +101,7 @@ export const useLocalLibraryStore = create<LocalLibraryState>((set, get) => {
     },
 
     removeAll: async () => {
-      const bridge = window.linerElectron;
+      const bridge = window.popDesktop;
       if (!bridge) return 0;
       set(withTracks([]));
       await releasePlayingTrack("all");

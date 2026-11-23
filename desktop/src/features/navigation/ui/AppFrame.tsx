@@ -83,10 +83,10 @@ const SIDEBAR_WIDTH = 52;
 const SHELL_EDGE_GAP = 6;
 const SEARCH_QUERY_CACHE_TTL_MS = 60_000;
 const LEGACY_LAYOUT_STORAGE_KEYS = [
-  "liner_right_sidebar",
-  "liner_sidebar_position",
-  "liner_sidebar_width",
-  "liner_queue_popup_open",
+  "popmusic_right_sidebar",
+  "popmusic_sidebar_position",
+  "popmusic_sidebar_width",
+  "popmusic_queue_popup_open",
 ] as const;
 
 const AppOverlays = memo(function AppOverlays() {

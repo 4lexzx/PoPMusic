@@ -24,7 +24,7 @@ const DEFAULT_ERROR_URL =
   (import.meta.env.VITE_MONITOR_ERROR_URL as string | undefined) ||
   "https://monitor.tryliner.fun/v1/client/error";
 
-const STORAGE_KEY = "liner_telemetry_opt_in";
+const STORAGE_KEY = "popmusic_telemetry_opt_in";
 
 let isEnabled = false;
 

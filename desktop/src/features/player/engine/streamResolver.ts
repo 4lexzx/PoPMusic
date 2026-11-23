@@ -14,7 +14,7 @@ import {
   resolveSoundCloudStream,
   toSoundCloudTrackId,
 } from "@/shared/media/soundcloud";
-import { resolveLinerStream } from "@/shared/media/liner/linerPlayback";
+import { resolveLinerStream } from "@/shared/media/pop/popPlayback";
 import { isLocalTrackId, localTrackAudioUrl } from "@/shared/media/local";
 import { savedAudioUrl, savedTrackRecord } from "@/shared/media/saved";
 import { isAbortError } from "@/shared/utils/abort";

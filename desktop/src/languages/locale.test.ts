@@ -48,13 +48,13 @@ describe("locale", () => {
   });
 
   it("migrates legacy 'ua' stored value to 'uk'", () => {
-    localStorage.setItem("liner_locale", "ua");
+    localStorage.setItem("popmusic_locale", "ua");
     expect(getStoredLocale()).toBe("uk");
-    expect(localStorage.getItem("liner_locale")).toBe("uk");
+    expect(localStorage.getItem("popmusic_locale")).toBe("uk");
   });
 
   it("falls back to browser locale on invalid stored value", () => {
-    localStorage.setItem("liner_locale", "nl");
+    localStorage.setItem("popmusic_locale", "nl");
     expect(getStoredLocale()).toBe("en");
   });
 });

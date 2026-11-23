@@ -59,7 +59,7 @@ export interface CachedArtistRecord {
   lastCheckedAt: number;
 }
 
-const DB_NAME = "liner_db_v1";
+const DB_NAME = "popmusic_db_v1";
 const DB_VERSION = 4;
 
 const MEM_AUDIO_LIMIT = 3;
@@ -84,7 +84,7 @@ function rememberLimited<T>(
   }
 }
 
-class LinerDb {
+class PopDb {
   private dbPromise: Promise<IDBDatabase> | null = null;
   private isSupported = typeof indexedDB !== "undefined";
 
@@ -765,4 +765,4 @@ class LinerDb {
   }
 }
 
-export const linerDb = new LinerDb();
+export const popDb = new PopDb();

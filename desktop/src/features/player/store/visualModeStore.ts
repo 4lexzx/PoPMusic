@@ -21,7 +21,7 @@ export const useVisualModeStore = create<VisualModeState>()(
       setAmbientAvailable: (ambientAvailable) => set({ ambientAvailable }),
     }),
     {
-      name: "liner_visual_mode",
+      name: "popmusic_visual_mode",
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ mode: state.mode }),
     },
