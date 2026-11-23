@@ -46,7 +46,13 @@ jobs:
 
       - name: Compilar aplicación
         working-directory: desktop
-        run: npx vite build
+        shell: bash
+        run: |
+          set -o pipefail
+          npx vite build 2>&1 | tee build.log || {
+            grep -iE "error|failed|cannot|cannot find" build.log | head -12 | while IFS= read -r line; do echo "::error::$line"; done
+            exit 1
+          }
 
       # Genera desktop/release/PoP Music Setup.exe
       - name: Generar instalador Windows
