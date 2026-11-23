@@ -22,6 +22,7 @@ jobs:
   build:
     runs-on: windows-latest
     env:
+      VITE_API_URL: https://backend-theta-one-73.vercel.app
       VITE_YT_API_KEY: ${{ secrets.VITE_YT_API_KEY }}
       VITE_SPOTIFY_CLIENT_ID: ${{ secrets.VITE_SPOTIFY_CLIENT_ID }}
       VITE_AUDD_API_KEY: ${{ secrets.VITE_AUDD_API_KEY }}
