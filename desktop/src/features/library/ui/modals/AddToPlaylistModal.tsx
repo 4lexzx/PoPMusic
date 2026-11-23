@@ -4,7 +4,7 @@ import {
   Search2Line,
   CloseCircleFill,
   AddLine,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import { useToast } from "@/shared/ui";
 import { ApiError } from "@/shared/api";
 import TextInput from "@/shared/ui/TextInput";

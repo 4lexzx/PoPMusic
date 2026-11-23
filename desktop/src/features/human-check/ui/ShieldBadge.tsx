@@ -1,4 +1,4 @@
-import { SafeShieldLine } from "@mingcute/react";
+import { SafeShieldLine } from "@/shared/ui/PopIcons";
 import logo from "@/assets/logo.svg";
 
 export default function ShieldBadge() {

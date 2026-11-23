@@ -5,14 +5,14 @@ import {
   DiscordFill,
   KeyboardFill,
   YoutubeFill,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import {
   Play,
   Palette,
   InfoCircle,
   Database,
   Widget5,
-} from "@solar-icons/react";
+} from "@/shared/ui/PopIcons";
 import Dialog from "@/shared/ui/Dialog";
 import { DialogHeader } from "@/shared/ui";
 import { useScrollFade } from "@/shared/hooks";

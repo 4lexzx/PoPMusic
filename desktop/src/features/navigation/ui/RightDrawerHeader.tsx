@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { LeftLine } from "@mingcute/react";
-import { Repeat, RepeatOne, Shuffle, TrashBin2 } from "@solar-icons/react";
+import { LeftLine } from "@/shared/ui/PopIcons";
+import { Repeat, RepeatOne, Shuffle, TrashBin2 } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { Tooltip } from "@/shared/ui";
 import { cn } from "@/shared/lib";

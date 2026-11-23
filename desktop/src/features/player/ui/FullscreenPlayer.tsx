@@ -10,7 +10,7 @@ import { FullscreenFrameGlass } from "./FullscreenFrameGlass";
 import { useLyricsStore, LyricsProviderIsland } from "@/features/lyrics";
 import { AnimatePresence, motion } from "framer-motion";
 import { PlayerUiElements } from "./PlayerUiElements";
-import { DownLine } from "@mingcute/react";
+import { DownLine } from "@/shared/ui/PopIcons";
 import { preloadCoverArt, useCoverSrc } from "@/features/covers";
 import KawarpWrapper from "./KawarpWrapper";
 import AmbientLayer from "./AmbientLayer";

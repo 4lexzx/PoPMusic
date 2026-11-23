@@ -4,7 +4,7 @@ import {
   Search3Fill,
   BookmarksFill,
   Settings4Fill,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 
 export interface NavItem {
   id: string;

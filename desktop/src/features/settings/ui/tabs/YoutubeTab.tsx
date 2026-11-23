@@ -3,7 +3,7 @@ import {
   PlayCircleFill,
   Playlist2Fill,
   UserQuestionFill,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { ToggleSwitch } from "@/shared/ui";
 import { useYoutubePreferences } from "@/shared/youtube";

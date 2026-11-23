@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Button from "@/shared/ui/Button";
 import TextInput from "@/shared/ui/TextInput";
-import { EyeLine, EyeCloseLine, ArrowLeftLine } from "@mingcute/react";
+import { EyeLine, EyeCloseLine, ArrowLeftLine } from "@/shared/ui/PopIcons";
 import WindowControls from "@/features/navigation/ui/WindowControls";
 import LoginBrandPanel from "./LoginBrandPanel";
 import LoginBackdrop from "./LoginBackdrop";

@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { LuArrowUpNarrowWide } from "react-icons/lu";
+import { LuArrowUpNarrowWide } from "@/shared/ui/PopIcons";
 import Button from "@/shared/ui/Button";
 import {
   DropdownMenu,

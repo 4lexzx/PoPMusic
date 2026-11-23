@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import TextInput from "@/shared/ui/TextInput";
 import Tooltip from "@/shared/ui/Tooltip";
-import { CheckLine, InformationLine, LinkLine } from "@mingcute/react";
+import { CheckLine, InformationLine, LinkLine } from "@/shared/ui/PopIcons";
 import { useAddPlaylistTracks, useCreatePlaylist } from "../../hooks";
 import { notifyLibraryChanged } from "../../hooks/usePlaylists";
 import Dialog from "@/shared/ui/Dialog";

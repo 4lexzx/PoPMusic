@@ -4,7 +4,7 @@ import {
   Repeat,
   RepeatOne,
   Shuffle,
-} from "@solar-icons/react";
+} from "@/shared/ui/PopIcons";
 import { PlayerMorphIcon, ICON_PLAY, ICON_PAUSE } from "./morphPlayerIcons";
 import { usePlayerState } from "../hooks/usePlayerState";
 import { playerEngine } from "../engine/playerEngine";

@@ -1,4 +1,4 @@
-import { AddLine, MinimizeLine } from "@mingcute/react";
+import { AddLine, MinimizeLine } from "@/shared/ui/PopIcons";
 import { cn } from "@/shared/lib";
 
 export interface StepperRowProps {

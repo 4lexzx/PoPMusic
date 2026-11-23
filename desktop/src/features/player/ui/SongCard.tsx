@@ -1,5 +1,5 @@
 import { memo, useEffect, useRef, useState } from "react";
-import { More2Fill, RepeatFill } from "@mingcute/react";
+import { More2Fill, RepeatFill } from "@/shared/ui/PopIcons";
 import DropdownMenu from "@/shared/ui/DropdownMenu";
 import type { DropdownMenuItem } from "@/shared/ui/DropdownMenu";
 import { useTranslation } from "@/languages";

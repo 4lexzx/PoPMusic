@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { SparklesFill } from "@mingcute/react";
+import { SparklesFill } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { cn } from "@/shared/lib";
 import { usePlayerState } from "../hooks/usePlayerState";

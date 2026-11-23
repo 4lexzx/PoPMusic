@@ -9,8 +9,8 @@ import {
   type RefObject,
 } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { HeartLine, PlayFill } from "@mingcute/react";
-import { LuShuffle } from "react-icons/lu";
+import { HeartLine, PlayFill } from "@/shared/ui/PopIcons";
+import { LuShuffle } from "@/shared/ui/PopIcons";
 import { playerEngine, SongCardWithMenu } from "@/features/player";
 import { useTranslation } from "@/languages";
 import { usePageBackdrop } from "@/shared/lib";

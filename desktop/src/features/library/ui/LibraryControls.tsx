@@ -6,7 +6,7 @@ import {
   GridFill,
   ListCheckLine,
   ListCheckFill,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import Button from "@/shared/ui/Button";
 import {
   HERO_BUTTON_CLASS,

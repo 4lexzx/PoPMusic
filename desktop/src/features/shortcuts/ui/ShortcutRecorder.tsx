@@ -6,7 +6,7 @@ import {
   useCallback,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CloseCircleFill } from "@mingcute/react";
+import { CloseCircleFill } from "@/shared/ui/PopIcons";
 
 import { useTranslation } from "@/languages";
 import {

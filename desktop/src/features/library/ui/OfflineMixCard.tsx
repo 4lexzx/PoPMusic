@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { LuShuffle } from "react-icons/lu";
+import { LuShuffle } from "@/shared/ui/PopIcons";
 import allOfflineCover from "@/assets/all-offline-cover.svg";
 import { playerEngine } from "@/features/player";
 import { useTranslation } from "@/languages";

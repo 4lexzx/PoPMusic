@@ -1,6 +1,6 @@
 import { memo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { AddLine, CheckLine, CloseLine } from "@mingcute/react";
+import { AddLine, CheckLine, CloseLine } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { cn } from "@/shared/lib";
 import { usePlayerState } from "../hooks/usePlayerState";

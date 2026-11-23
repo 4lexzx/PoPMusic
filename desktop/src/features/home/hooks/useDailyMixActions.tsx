@@ -6,7 +6,7 @@ import { useToast } from "@/shared/ui";
 import { useTranslation } from "@/languages";
 import type { DropdownMenuItem } from "@/shared/ui/DropdownMenu";
 import type { DailyMix } from "./useDailyMixes";
-import { PlayFill, AddFill } from "@mingcute/react";
+import { PlayFill, AddFill } from "@/shared/ui/PopIcons";
 
 export function useDailyMixActions(mix: DailyMix) {
   const { t } = useTranslation();

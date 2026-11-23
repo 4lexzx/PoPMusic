@@ -57,22 +57,6 @@ export default defineConfig(({ command, mode }) => {
     resolve: {
       alias: {
         "@": path.resolve(import.meta.dirname, "./src"),
-        "@mingcute/react": path.resolve(
-          import.meta.dirname,
-          "./src/shared/ui/PopIcons.tsx",
-        ),
-        "@solar-icons/react": path.resolve(
-          import.meta.dirname,
-          "./src/shared/ui/PopIcons.tsx",
-        ),
-        "react-icons/lu": path.resolve(
-          import.meta.dirname,
-          "./src/shared/ui/PopIcons.tsx",
-        ),
-        "react-icons/fa": path.resolve(
-          import.meta.dirname,
-          "./src/shared/ui/PopIcons.tsx",
-        ),
         "next/navigation": path.resolve(
           import.meta.dirname,
           "./src/lib/navigation.tsx",

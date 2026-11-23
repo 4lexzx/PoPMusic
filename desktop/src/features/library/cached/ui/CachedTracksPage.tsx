@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PlayFill, Refresh2Line } from "@mingcute/react";
-import { LuShuffle, LuTrash2 } from "react-icons/lu";
+import { PlayFill, Refresh2Line } from "@/shared/ui/PopIcons";
+import { LuShuffle, LuTrash2 } from "@/shared/ui/PopIcons";
 import { playerEngine } from "@/features/player";
 import { useTranslation } from "@/languages";
 import { usePageBackdrop } from "@/shared/lib";

@@ -1,5 +1,5 @@
 import { memo, useRef } from "react";
-import { CloseLine, Search3Line } from "@mingcute/react";
+import { CloseLine, Search3Line } from "@/shared/ui/PopIcons";
 import SongCardWithMenu from "@/features/player/ui/SongCardWithMenu";
 import { useTranslation } from "@/languages";
 import { useSearchHistoryStore } from "../store/searchHistoryStore";

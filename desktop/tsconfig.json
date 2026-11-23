@@ -16,11 +16,7 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@mingcute/react": ["./src/shared/ui/PopIcons.tsx"],
-      "@solar-icons/react": ["./src/shared/ui/PopIcons.tsx"],
-      "react-icons/lu": ["./src/shared/ui/PopIcons.tsx"],
-      "react-icons/fa": ["./src/shared/ui/PopIcons.tsx"]
+      "@/*": ["./src/*"]
     }
   },
   "include": [

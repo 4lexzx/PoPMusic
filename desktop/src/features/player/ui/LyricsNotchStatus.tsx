@@ -1,4 +1,4 @@
-import { MusicFill } from "@mingcute/react";
+import { MusicFill } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 
 interface LyricsNotchStatusProps {

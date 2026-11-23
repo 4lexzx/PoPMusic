@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ServerLine, WifiOffLine, YoutubeLine } from "@mingcute/react";
+import { ServerLine, WifiOffLine, YoutubeLine } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { DialogActions, DialogButton } from "@/shared/ui";
 import Dialog from "@/shared/ui/Dialog";

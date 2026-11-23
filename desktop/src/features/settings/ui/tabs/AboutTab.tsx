@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Refresh1Line } from "@mingcute/react";
+import { Refresh1Line } from "@/shared/ui/PopIcons";
 import { useTranslation, getTranslationsForAllLocales } from "@/languages";
 import logo from "@/assets/logo.svg";
 import { AboutTabLinks } from "./AboutTabLinks";

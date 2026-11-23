@@ -1,5 +1,5 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { VolumeCross, VolumeLoud, VolumeSmall } from "@solar-icons/react";
+import { VolumeCross, VolumeLoud, VolumeSmall } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import { cn } from "@/shared/lib";
 import { usePlayerState } from "../hooks/usePlayerState";

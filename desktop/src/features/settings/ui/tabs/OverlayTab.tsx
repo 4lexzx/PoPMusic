@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Refresh1Line } from "@mingcute/react";
+import { Refresh1Line } from "@/shared/ui/PopIcons";
 import { useTranslation } from "@/languages";
 import {
   useOverlaySettingsStore,

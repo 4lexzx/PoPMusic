@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DownLine } from "@mingcute/react";
+import { DownLine } from "@/shared/ui/PopIcons";
 import { cn } from "@/shared/lib/utils";
 import DropdownMenu from "./DropdownMenu";
 import type { SelectOption } from "./Select";

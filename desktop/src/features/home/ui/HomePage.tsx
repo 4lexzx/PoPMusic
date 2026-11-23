@@ -18,7 +18,7 @@ import {
   FireFill,
   TrophyFill,
   TimeFill,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 
 export default function HomePage() {
   const [attempt, setAttempt] = useState(0);

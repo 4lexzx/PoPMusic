@@ -9,7 +9,7 @@ import {
   PlayFill,
   PlaylistFill,
   TimeLine,
-} from "@mingcute/react";
+} from "@/shared/ui/PopIcons";
 import Dialog from "@/shared/ui/Dialog";
 import CoverImage from "@/features/covers/ui/CoverImage";
 import { useTranslation } from "@/languages";
