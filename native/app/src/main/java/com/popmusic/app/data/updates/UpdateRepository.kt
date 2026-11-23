@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import com.popmusic.app.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -77,13 +78,28 @@ class UpdateRepository(private val context: Context) {
                 .build()
 
             client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@use null
-                val manifest = UpdateManifest.parse(response.body.string()) ?: return@use null
+                if (!response.isSuccessful) {
+                    Log.w("UpdateCheck", "manifiesto HTTP ${response.code}")
+                    return@use null
+                }
+                val raw = response.body.string()
+                val manifest = UpdateManifest.parse(raw)
+                if (manifest == null) {
+                    Log.w("UpdateCheck", "manifiesto no valido: ${raw.take(160)}")
+                    return@use null
+                }
+                Log.d(
+                    "UpdateCheck",
+                    "remoto=${manifest.versionCode}/${manifest.versionName} " +
+                        "instalado=${BuildConfig.VERSION_CODE}/${BuildConfig.VERSION_NAME}",
+                )
                 manifest.takeIf {
                     it.versionCode > BuildConfig.VERSION_CODE.toLong() &&
                         it.apkUrl.startsWith("https://", ignoreCase = true)
                 }
             }
+        }.onFailure { error ->
+            Log.w("UpdateCheck", "no se pudo consultar el manifiesto", error)
         }.getOrNull()
     }
 

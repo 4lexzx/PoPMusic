@@ -98,6 +98,7 @@ fun UpdateDialog(
                     text = "Actualización disponible",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
+                    color = Ink,
                 )
                 Text(
                     text = buildString {
