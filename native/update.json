@@ -1,16 +1,12 @@
 {
-  "published": true,
-  "versionCode": 7,
-  "versionName": "0.1.7",
-  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.7/PoPMusic-v0.1.7.apk",
-  "sha256": "fb176dbb30eaff4062ebdb242625bd31b0ba171a55b1505e5b29433ee58a5049",
-  "sizeBytes": 19010357,
-  "mandatory": false,
-  "changelog": [
-    "Correccion: el numero de version en Ajustes ya no se queda en 0.1.0. Ahora muestra siempre la version instalada real (0.1.7) en el menu, en Acerca de y en el pie de pantalla.",
-    "Correccion: la radio ya no reproduce videos oficiales ni karaoke (canales OficialMana, Bacilos Oficial, vevo). Suena solo canciones de audio del artista o genero de origen.",
-    "Correccion: se restaura el salto de cancion tras elegir una cancion nueva (primer siguiente tarda unos segundos, como antes).",
-    "Correccion: en las salas, el boton de reproduccion ya no se queda en pausa al pasar a la siguiente cancion.",
-    "La radio sigue siendo coherente con la cancion/seccion de origen, sin repetir temas y sin parar."
-  ]
+    "mandatory":  false,
+    "published":  true,
+    "apkUrl":  "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.8/PoPMusic-v0.1.8.apk",
+    "sizeBytes":  19010357,
+    "versionName":  "0.1.9-prueba",
+    "versionCode":  9,
+    "changelog":  [
+                      "Prueba visual del dialogo de actualizacion"
+                  ],
+    "sha256":  "1c496e1bdced4a6efa4756ad41dade0fdf4b1e08b5f09e47762b62eb3fb56c10"
 }
