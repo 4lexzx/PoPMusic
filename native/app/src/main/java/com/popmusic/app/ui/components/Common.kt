@@ -1,5 +1,11 @@
 ﻿package com.popmusic.app.ui.components
 
+import androidx.compose.foundation.border
+import com.popmusic.app.ui.theme.Surface2
+import com.popmusic.app.ui.theme.OnInk
+import com.popmusic.app.ui.theme.Ink
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAdd
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -93,22 +99,37 @@ fun SectionHeader(
             modifier = Modifier.weight(1f),
         )
         if (playAll && onPlayAll != null) {
-            OutlinedButton(
-                onClick = onPlayAll,
-                shape = RoundedCornerShape(50),
-                border = BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                ),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp),
-                modifier = Modifier.height(28.dp),
+            val playInteraction = remember { MutableInteractionSource() }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Surface2)
+                    .border(1.dp, Ink.copy(alpha = 0.07f), RoundedCornerShape(50))
+                    .clickable(
+                        interactionSource = playInteraction,
+                        indication = ripple(bounded = true),
+                        onClick = onPlayAll,
+                    )
+                    .pressScale(playInteraction, pressedScale = 0.94f)
+                    .padding(start = 5.dp, end = 14.dp, top = 5.dp, bottom = 5.dp),
             ) {
+                Box(
+                    Modifier.size(26.dp).clip(RoundedCornerShape(50)).background(Ink),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Rounded.PlayArrow,
+                        contentDescription = null,
+                        tint = OnInk,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Reproducir todo",
-                    style = MaterialTheme.typography.labelSmall,
+                    text = "Reproducir",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Ink,
                     maxLines = 1,
                 )
             }
@@ -345,7 +366,7 @@ fun GroupedSongList(
                     }
                     if (onAdd != null) {
                         PopIconButton(
-                            icon = Icons.Rounded.Add,
+                            icon = Icons.AutoMirrored.Rounded.PlaylistAdd,
                             contentDescription = "Añadir a playlist",
                             onClick = { onAdd(song) },
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,

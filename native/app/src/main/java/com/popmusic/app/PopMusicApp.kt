@@ -1,5 +1,14 @@
 package com.popmusic.app
 
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.EnterTransition
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.Add
 import android.app.Activity
 import android.content.ContextWrapper
 import android.content.Intent
@@ -140,6 +149,9 @@ import com.popmusic.app.ui.updates.UpdateViewModel
  * Item 6: si la app pasó más de este tiempo en segundo plano sin música
  * sonando, al volver se abre como la primera vez (en Inicio).
  */
+private val EmphasizedEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
+private val EmphasizedAccelerate = CubicBezierEasing(0.3f, 0f, 0.6f, 1f)
+
 private const val AppResetAfterBackgroundMs = 30L * 60L * 1000L
 
 @Composable
@@ -316,8 +328,8 @@ fun PopMusicApp() {
     // para cubrir la transición de cierre (~300 ms).
     LaunchedEffect(currentRoute) {
         when (currentRoute) {
-            Routes.LYRICS, Routes.SONG_INFO -> playerBehind = null
-            Routes.NOW_PLAYING -> Unit
+            // Se conserva (sin dibujarse) para cuando se vuelva al reproductor.
+            Routes.LYRICS, Routes.SONG_INFO, Routes.NOW_PLAYING -> Unit
             else -> {
                 delay(700)
                 playerBehind = null
@@ -412,7 +424,9 @@ fun PopMusicApp() {
                 // Fotograma de la pantalla anterior: queda entre el
                 // fondo y el Scaffold, de modo que se ve mientras el
                 // reproductor baja (arrastre o transición de cierre).
-                playerBehind?.let { bmp ->
+                playerBehind?.takeIf {
+                    currentRoute != Routes.LYRICS && currentRoute != Routes.SONG_INFO
+                }?.let { bmp ->
                     Image(
                         bitmap = bmp.asImageBitmap(),
                         contentDescription = null,
@@ -449,7 +463,7 @@ fun PopMusicApp() {
                                 // con desvanecimiento; el que sale se va hacia
                                 // arriba (dirección coherente al volver).
                                 fadeIn(tween(260)) +
-                                    slideInVertically(tween(340, easing = FastOutSlowInEasing)) {
+                                    slideInVertically(tween(340, easing = EmphasizedEasing)) {
                                         it / 12
                                     }
                             }
@@ -457,9 +471,12 @@ fun PopMusicApp() {
                         exitTransition = {
                             if (reduceMotion) {
                                 fadeOut(tween(120))
+                            } else if (targetState.destination.route == Routes.NOW_PLAYING) {
+                                // Quieta debajo mientras el reproductor sube.
+                                ExitTransition.KeepUntilTransitionsFinished
                             } else {
                                 fadeOut(tween(180)) +
-                                    slideOutVertically(tween(280, easing = FastOutSlowInEasing)) {
+                                    slideOutVertically(tween(280, easing = EmphasizedEasing)) {
                                         -it / 28
                                     }
                             }
@@ -467,9 +484,12 @@ fun PopMusicApp() {
                         popEnterTransition = {
                             if (reduceMotion) {
                                 fadeIn(tween(150))
+                            } else if (initialState.destination.route == Routes.NOW_PLAYING) {
+                                // Ya está ahí: el reproductor se retira por encima.
+                                EnterTransition.None
                             } else {
                                 fadeIn(tween(260)) +
-                                    slideInVertically(tween(340, easing = FastOutSlowInEasing)) {
+                                    slideInVertically(tween(340, easing = EmphasizedEasing)) {
                                         -it / 28
                                     }
                             }
@@ -479,7 +499,7 @@ fun PopMusicApp() {
                                 fadeOut(tween(120))
                             } else {
                                 fadeOut(tween(200)) +
-                                    slideOutVertically(tween(300, easing = FastOutSlowInEasing)) {
+                                    slideOutVertically(tween(300, easing = EmphasizedEasing)) {
                                         it / 12
                                     }
                             }
@@ -604,19 +624,13 @@ fun PopMusicApp() {
                             route = Routes.NOW_PLAYING,
                             enterTransition = {
                                 slideInVertically(
-                                    animationSpec = tween(360, easing = FastOutSlowInEasing),
-                                    initialOffsetY = { it },
-                                ) + fadeIn(tween(200))
+                                    spring(dampingRatio = 0.92f, stiffness = 260f),
+                                ) { it }
                             },
-                            exitTransition = {
-                                slideOutVertically(tween(300)) { it } + fadeOut(tween(200))
-                            },
-                            popEnterTransition = {
-                                slideInVertically(tween(360, easing = FastOutSlowInEasing)) { it } +
-                                    fadeIn(tween(200))
-                            },
+                            exitTransition = { fadeOut(tween(160)) },
+                            popEnterTransition = { fadeIn(tween(200)) },
                             popExitTransition = {
-                                slideOutVertically(tween(300)) { it } + fadeOut(tween(200))
+                                slideOutVertically(tween(340, easing = EmphasizedAccelerate)) { it }
                             },
                         ) {
                             NowPlayingScreen(
@@ -944,6 +958,8 @@ fun PopMusicApp() {
         val dialogSong = addToPlaylistSong ?: currentSong
         AddToPlaylistDialog(
             playlists = libraryState.playlists,
+            song = dialogSong,
+            favorites = libraryState.favorites,
             onDismiss = {
                 showAddToPlaylist = false
                 addToPlaylistSong = null
@@ -997,6 +1013,8 @@ fun PopMusicApp() {
 @Composable
 private fun AddToPlaylistDialog(
     playlists: List<Playlist>,
+    song: Song?,
+    favorites: List<Song>,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
     onCreate: (String, String?) -> Unit,
@@ -1010,30 +1028,53 @@ private fun AddToPlaylistDialog(
     GlassDialog(onDismiss = onDismiss) {
         GlassDialogHeader(
             title = "Añadir a playlist",
-            subtitle = "Elige una lista o crea una nueva al instante.",
+            subtitle = song?.let { "${it.title} · ${it.artist}" },
             onClose = onDismiss,
         )
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(14.dp))
         Column(
             modifier = Modifier
-                .heightIn(max = 300.dp)
+                .heightIn(max = 340.dp)
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
+            val inFavorites = song != null && favorites.any { it.id == song.id }
             GlassActionRow(
-                icon = Icons.Rounded.Favorite,
                 title = "Canciones favoritas",
-                subtitle = "Tus me gusta",
+                subtitle = "${favorites.size} canciones".takeIf { favorites.size != 1 } ?: "1 canción",
+                leading = {
+                    Box(
+                        Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(com.popmusic.app.ui.theme.Surface3),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        com.popmusic.app.ui.components.FavoriteBadge(active = true)
+                    }
+                },
+                trailing = { PlaylistMark(inFavorites) },
                 onClick = { onSelect(LibraryRepository.FAVORITES_ID) },
             )
             playlists.forEach { playlist ->
                 GlassActionRow(
-                    icon = Icons.Rounded.QueueMusic,
                     title = playlist.name,
                     subtitle = when (playlist.songs.size) {
-                        0 -> "Playlist vacía"
+                        0 -> "Vacía"
                         1 -> "1 canción"
                         else -> "${playlist.songs.size} canciones"
+                    },
+                    leading = {
+                        com.popmusic.app.ui.components.ArtworkCollage(
+                            urls = playlist.songs.map { it.thumbnailUrl },
+                            modifier = Modifier.size(52.dp),
+                            cornerRadius = 14.dp,
+                            iconSize = 20.dp,
+                            gap = 1.dp,
+                        )
+                    },
+                    trailing = {
+                        PlaylistMark(song != null && playlist.songs.any { it.id == song.id })
                     },
                     onClick = { onSelect(playlist.id) },
                 )
@@ -1042,7 +1083,7 @@ private fun AddToPlaylistDialog(
                 Text(
                     text = "Aún no tienes playlists propias.",
                     style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
-                    color = Faint,
+                    color = com.popmusic.app.ui.theme.Muted,
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
                 )
             }
@@ -1081,7 +1122,7 @@ private fun AddToPlaylistDialog(
             }
         } else {
             GlassTextButton(
-                text = "+ Nueva playlist",
+                text = "Nueva playlist",
                 onClick = {
                     name = ""
                     syncTarget = "NONE"
@@ -1090,5 +1131,24 @@ private fun AddToPlaylistDialog(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+}
+
+/** Check si la canción ya está en esa lista; si no, un "+". */
+@Composable
+private fun PlaylistMark(added: Boolean) {
+    Box(
+        Modifier
+            .size(30.dp)
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(if (added) Ink else com.popmusic.app.ui.theme.Surface3),
+        contentAlignment = Alignment.Center,
+    ) {
+        androidx.compose.material3.Icon(
+            imageVector = if (added) Icons.Rounded.Check else Icons.Rounded.Add,
+            contentDescription = if (added) "Ya está en esta lista" else null,
+            tint = if (added) com.popmusic.app.ui.theme.OnInk else Ink,
+            modifier = Modifier.size(17.dp),
+        )
     }
 }

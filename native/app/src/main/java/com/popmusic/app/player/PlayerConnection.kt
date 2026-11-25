@@ -407,6 +407,11 @@ class PlayerConnection(private val context: Context) {
         }
     }
 
+    private fun artworkAt(player: Player, index: Int): String? {
+        if (index < 0 || index >= player.mediaItemCount) return null
+        return player.getMediaItemAt(index).mediaMetadata.artworkUri?.toString()
+    }
+
     private fun updateState(player: Player) {
         val metadata = player.currentMediaItem?.mediaMetadata
         val position = player.currentPosition.coerceAtLeast(0L)
@@ -420,6 +425,11 @@ class PlayerConnection(private val context: Context) {
             title = metadata?.title?.toString().orEmpty(),
             artist = metadata?.artist?.toString().orEmpty(),
             artworkUrl = metadata?.artworkUri?.toString(),
+            previousArtworkUrl = artworkAt(player, player.previousMediaItemIndex),
+            nextArtworkUrl = artworkAt(player, player.nextMediaItemIndex),
+            hasPrevious = player.previousMediaItemIndex >= 0,
+            // Con la radio creciendo, "siguiente" espera a la canción que llega.
+            hasNext = player.nextMediaItemIndex >= 0 || isQueueGrowing?.invoke() == true,
             positionMs = position,
             durationMs = player.duration.coerceAtLeast(0L),
             repeatMode = player.repeatMode,

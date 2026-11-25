@@ -31,8 +31,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.popmusic.app.ui.theme.BrandOrange
-import com.popmusic.app.ui.theme.BrandPink
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -42,12 +40,15 @@ import kotlin.math.sin
  * Music Flow ([AnimatedFavoriteHeart]); antes era el icono rojo plano de
  * Material, que no transmitía el cambio de estado.
  */
+private val HeartTop = Color(0xFFFF5A78)
+private val HeartBottom = Color(0xFFE11D48)
+
 private val heartBrush: Brush
-    get() = Brush.linearGradient(listOf(BrandPink, BrandOrange))
+    get() = Brush.verticalGradient(listOf(HeartTop, HeartBottom))
 
 private val glowBrush: Brush
     get() = Brush.radialGradient(
-        listOf(BrandPink.copy(alpha = 0.55f), BrandOrange.copy(alpha = 0.18f), Color.Transparent),
+        listOf(HeartTop.copy(alpha = 0.40f), Color.Transparent),
     )
 
 /** Icono relleno con el degradado en vez de un color plano. */
@@ -86,36 +87,21 @@ fun FavoriteBadge(
     modifier: Modifier = Modifier,
 ) {
     if (!active) return
-    val pop = remember { Animatable(0.55f) }
+    val pop = remember { Animatable(0.6f) }
     LaunchedEffect(Unit) {
-        pop.animateTo(
-            1.18f,
-            spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-        )
-        pop.animateTo(1f, tween(140))
+        pop.animateTo(1f, spring(dampingRatio = 0.5f, stiffness = Spring.StiffnessMedium))
     }
-    Box(modifier = modifier.size(17.dp), contentAlignment = Alignment.Center) {
-        Box(
-            modifier = Modifier
-                .size(17.dp)
-                .graphicsLayer {
-                    alpha = 0.30f
-                    scaleX = pop.value * 1.45f
-                    scaleY = pop.value * 1.45f
-                }
-                .background(glowBrush, CircleShape),
-        )
-        Box(
-            modifier = Modifier
-                .size(15.dp)
-                .graphicsLayer {
-                    scaleX = pop.value
-                    scaleY = pop.value
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            GradientHeart(15.dp)
-        }
+    // Sin halo: nítido y del mismo tamaño que el texto.
+    Box(
+        modifier = modifier
+            .size(20.dp)
+            .graphicsLayer {
+                scaleX = pop.value
+                scaleY = pop.value
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        GradientHeart(18.dp)
     }
 }
 
@@ -195,7 +181,7 @@ fun AnimatedFavoriteHeart(
                         )
                         .size((4.5f - burst.value * 2f).coerceAtLeast(1.5f).dp)
                         .graphicsLayer { alpha = (1f - burst.value) * 0.95f }
-                        .background(if (index % 2 == 0) BrandPink else BrandOrange, CircleShape),
+                        .background(if (index % 2 == 0) HeartTop else HeartBottom, CircleShape),
                 )
             }
         }

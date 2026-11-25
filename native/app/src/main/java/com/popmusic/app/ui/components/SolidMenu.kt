@@ -1,5 +1,6 @@
 package com.popmusic.app.ui.components
 
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -106,7 +107,19 @@ fun SolidMenu(
     alignStart: Boolean = false,
     content: @Composable ColumnScope.(dismiss: () -> Unit) -> Unit,
 ) {
-    if (!expanded) return
+    // Se mantiene compuesto hasta que termina la animación de salida.
+    val menuShown = remember { Animatable(0f) }
+    var rendered by remember { mutableStateOf(false) }
+    LaunchedEffect(expanded) {
+        if (expanded) {
+            rendered = true
+            menuShown.animateTo(1f, spring(dampingRatio = 0.72f, stiffness = 520f))
+        } else if (rendered) {
+            menuShown.animateTo(0f, tween(120))
+            rendered = false
+        }
+    }
+    if (!expanded && !rendered) return
 
     val density = LocalDensity.current
     var opensUp by remember { mutableStateOf(false) }
@@ -119,10 +132,8 @@ fun SolidMenu(
     Popup(
         popupPositionProvider = position,
         onDismissRequest = onDismiss,
-        properties = PopupProperties(focusable = true),
+        properties = PopupProperties(focusable = expanded),
     ) {
-        val menuShown = remember { Animatable(0f) }
-        LaunchedEffect(Unit) { menuShown.animateTo(1f, tween(140)) }
         Column(
             modifier = modifier
                 .then(
@@ -135,8 +146,8 @@ fun SolidMenu(
                     },
                 )
                 .graphicsLayer {
-                    alpha = menuShown.value
-                    val s = 0.92f + 0.08f * menuShown.value
+                    alpha = menuShown.value.coerceIn(0f, 1f)
+                    val s = 0.70f + 0.30f * menuShown.value
                     scaleX = s
                     scaleY = s
                     transformOrigin = TransformOrigin(

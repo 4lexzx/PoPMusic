@@ -318,7 +318,20 @@ class YouTubeRepository {
         continuation: String? = null,
     ): MusicRadioPage = withContext(Dispatchers.IO) {
         if (!videoId.matches(VIDEO_ID_REGEX)) return@withContext MusicRadioPage()
-        runCatching {
+        runCatching { MusicRadioParser.parse(musicNext(videoId, continuation)) }
+            .onFailure { Log.w(TAG, "No se pudo leer la radio de Music de $videoId", it) }
+            .getOrDefault(MusicRadioPage())
+    }
+
+    data class MusicMeta(val artist: String, val album: String?, val year: String?)
+
+    /** Álbum y año oficiales de un audio de YouTube Music; null si no los tiene. */
+    suspend fun musicMeta(videoId: String): MusicMeta? = withContext(Dispatchers.IO) {
+        if (!videoId.matches(VIDEO_ID_REGEX)) return@withContext null
+        runCatching { MusicRadioParser.meta(musicNext(videoId, null), videoId) }.getOrNull()
+    }
+
+    private fun musicNext(videoId: String, continuation: String?): JSONObject {
             NewPipeInitializer.ensureInitialized()
             val country = Locale.getDefault().country.takeIf { it.length == 2 } ?: "US"
             val client = JSONObject()
@@ -342,10 +355,7 @@ class YouTubeRepository {
                 body.toString().toByteArray(Charsets.UTF_8),
             )
             check(response.responseCode() == 200) { "HTTP ${response.responseCode()}" }
-            MusicRadioParser.parse(JSONObject(response.responseBody()))
-        }.onFailure {
-            Log.w(TAG, "No se pudo leer la radio de Music de $videoId", it)
-        }.getOrDefault(MusicRadioPage())
+            return JSONObject(response.responseBody())
     }
 
     suspend fun videoDetails(videoId: String): VideoDetails? = withContext(Dispatchers.IO) {

@@ -1,5 +1,15 @@
 package com.popmusic.app.ui.components
 
+import kotlinx.coroutines.launch
+import com.popmusic.app.ui.theme.Surface3
+import com.popmusic.app.ui.theme.Surface2
+import com.popmusic.app.ui.theme.OnInk
+import com.popmusic.app.ui.theme.Muted
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -79,73 +89,75 @@ fun GlassDialog(
     Dialog(
         onDismissRequest = { if (dismissEnabled) onDismiss() },
         properties = DialogProperties(
-            dismissOnBackPress = dismissEnabled,
-            dismissOnClickOutside = dismissEnabled,
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
             usePlatformDefaultWidth = false,
             decorFitsSystemWindows = false,
         ),
     ) {
-        var visible by remember { mutableStateOf(false) }
-        LaunchedEffect(Unit) { visible = true }
-        val alpha by animateFloatAsState(
-            targetValue = if (visible) 1f else 0f,
-            animationSpec = tween(180),
-            label = "dialogAlpha",
-        )
-        val scale by animateFloatAsState(
-            targetValue = if (visible) 1f else 0.94f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMediumLow,
-            ),
-            label = "dialogScale",
-        )
-        val scrimInteraction = remember { MutableInteractionSource() }
+        val scope = rememberCoroutineScope()
+        val shown = remember { Animatable(0f) }
+        var closing by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) { shown.animateTo(1f, spring(dampingRatio = 0.80f, stiffness = 420f)) }
+        // Al cerrar tocando fuera o con "atrás" también hay animación.
+        val close: () -> Unit = {
+            if (!closing) {
+                closing = true
+                scope.launch {
+                    shown.animateTo(0f, tween(150))
+                    onDismiss()
+                }
+            }
+        }
+        androidx.activity.compose.BackHandler(enabled = dismissEnabled) { close() }
+        val shape = RoundedCornerShape(28.dp)
 
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
+                .drawBehind { drawRect(Color.Black, alpha = (0.62f * shown.value).coerceIn(0f, 1f)) }
                 .imePadding()
-                .background(Color.Black.copy(alpha = 0.52f * alpha))
                 .clickable(
-                    interactionSource = scrimInteraction,
+                    interactionSource = remember { MutableInteractionSource() },
                     indication = null,
                     enabled = dismissEnabled,
-                    onClick = onDismiss,
+                    onClick = close,
                 )
-                .padding(horizontal = 22.dp, vertical = 32.dp),
+                .padding(horizontal = 20.dp, vertical = 32.dp),
             contentAlignment = Alignment.Center,
         ) {
             val availableHeight = maxHeight * 0.88f
-            // Sólido como el resto de la interfaz (sin cristal): los menús y
-            // diálogos usan opaca con borde fino, igual que las cards de
-            // Ajustes y el menú ⋯ del reproductor.
             Box(
                 modifier = modifier
-                    .widthIn(max = 380.dp)
+                    .widthIn(max = 400.dp)
                     .fillMaxWidth()
                     .graphicsLayer {
-                        this.alpha = alpha
-                        scaleX = scale
-                        scaleY = scale
+                        alpha = shown.value.coerceIn(0f, 1f)
+                        val s = 0.90f + 0.10f * shown.value
+                        scaleX = s
+                        scaleY = s
+                        translationY = (1f - shown.value) * 46.dp.toPx()
                     }
-                    .shadow(24.dp, RoundedCornerShape(24.dp), clip = false)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                    .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(24.dp))
+                    .shadow(30.dp, shape, clip = false)
+                    .clip(shape)
+                    .background(Surface2)
+                    .border(1.dp, Ink.copy(alpha = 0.07f), shape)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         onClick = {},
                     ),
             ) {
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = availableHeight)
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                    content = content,
-                )
+                // Un Dialog no hereda el color de texto: sin esto salía negro.
+                CompositionLocalProvider(LocalContentColor provides Ink) {
+                    Column(
+                        modifier = Modifier
+                            .heightIn(max = availableHeight)
+                            .verticalScroll(rememberScrollState())
+                            .padding(20.dp),
+                        content = content,
+                    )
+                }
             }
         }
     }
@@ -179,14 +191,15 @@ fun GlassDialogHeader(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
+                fontWeight = FontWeight.Bold,
+                color = Ink,
             )
             if (!subtitle.isNullOrBlank()) {
                 Spacer(Modifier.height(4.dp))
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Faint,
+                    color = Muted,
                 )
             }
         }
@@ -284,20 +297,11 @@ fun GlassPrimaryButton(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .background(
-                if (danger) {
-                    Danger.copy(alpha = if (enabled) 0.18f else 0.08f)
-                } else {
-                    Color.White.copy(alpha = if (enabled) 0.16f else 0.08f)
+                when {
+                    danger -> Danger.copy(alpha = if (enabled) 0.20f else 0.08f)
+                    enabled -> Ink
+                    else -> Surface3
                 },
-            )
-            .border(
-                1.dp,
-                if (danger) {
-                    Danger.copy(alpha = if (enabled) 0.55f else 0.25f)
-                } else {
-                    Color.White.copy(alpha = 0.24f)
-                },
-                RoundedCornerShape(16.dp),
             )
             .clickable(
                 interactionSource = interaction,
@@ -306,7 +310,7 @@ fun GlassPrimaryButton(
                 onClick = onClick,
             )
             .pressScale(interaction, pressedScale = 0.96f)
-            .padding(horizontal = 18.dp, vertical = 13.dp),
+            .padding(horizontal = 18.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -314,9 +318,9 @@ fun GlassPrimaryButton(
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = when {
-                !enabled -> Faint
+                !enabled -> Muted
                 danger -> Danger
-                else -> Ink
+                else -> OnInk
             },
         )
     }
@@ -333,8 +337,7 @@ fun GlassTextButton(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.07f))
-            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+            .background(Surface3)
             .clickable(
                 interactionSource = interaction,
                 indication = ripple(bounded = true),
@@ -342,7 +345,7 @@ fun GlassTextButton(
                 onClick = onClick,
             )
             .pressScale(interaction, pressedScale = 0.96f)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -368,6 +371,9 @@ fun GlassActionRow(
     titleStyle: TextStyle = MaterialTheme.typography.titleMedium,
     /** Oculta el cuadro del icono a la izquierda (filas de solo texto). */
     hideIcon: Boolean = false,
+    /** Contenido propio a la izquierda (p. ej. la portada de una playlist). */
+    leading: (@Composable () -> Unit)? = null,
+    trailing: (@Composable () -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -377,14 +383,8 @@ fun GlassActionRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
             .background(
-                accent?.copy(alpha = 0.08f)
-                    ?: Color.White.copy(alpha = if (selected) 0.13f else 0.06f),
-            )
-            .border(
-                width = 1.dp,
-                color = accent?.copy(alpha = 0.38f)
-                    ?: Color.White.copy(alpha = if (selected) 0.24f else 0.11f),
-                shape = RoundedCornerShape(16.dp),
+                accent?.copy(alpha = 0.10f)
+                    ?: if (selected) Ink.copy(alpha = 0.10f) else Color.Transparent,
             )
             .clickable(
                 interactionSource = interaction,
@@ -392,18 +392,18 @@ fun GlassActionRow(
                 onClick = onClick,
             )
             .pressScale(interaction, pressedScale = 0.98f)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 10.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (!hideIcon) {
+        if (leading != null) {
+            leading()
+            Spacer(Modifier.width(14.dp))
+        } else if (!hideIcon) {
             Box(
                 modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        accent?.copy(alpha = 0.12f)
-                            ?: Color.White.copy(alpha = if (icon != null) 0.08f else 0.06f),
-                    ),
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(accent?.copy(alpha = 0.14f) ?: Surface3),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
@@ -419,7 +419,7 @@ fun GlassActionRow(
             Text(
                 text = title,
                 style = titleStyle,
-                color = accent ?: MaterialTheme.colorScheme.onSurface,
+                color = accent ?: Ink,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -427,11 +427,15 @@ fun GlassActionRow(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Faint,
+                    color = Muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+        if (trailing != null) {
+            Spacer(Modifier.width(10.dp))
+            trailing()
         }
     }
 }

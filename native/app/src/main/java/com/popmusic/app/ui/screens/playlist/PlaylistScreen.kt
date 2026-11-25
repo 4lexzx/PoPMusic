@@ -1,5 +1,9 @@
 ﻿package com.popmusic.app.ui.screens.playlist
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.border
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -196,76 +200,29 @@ fun PlaylistScreen(
             )
             Spacer(Modifier.height(18.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(18.dp),
-            ) {
-                val interaction = remember { MutableInteractionSource() }
-                val enabled = songs.isNotEmpty()
-
-                // Orden de botones (tanda 6, punto 4): aleatorio, play, descargar.
-                GlassIconButton(
-                    icon = Icons.Rounded.Shuffle,
-                    contentDescription = "Aleatorio",
-                    onClick = { if (songs.isNotEmpty()) onPlay(songs.shuffled(), 0) },
-                    enabled = songs.isNotEmpty(),
-                    size = 56.dp,
-                    iconSize = 24.dp,
-                )
-
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .shadow(
-                            elevation = if (enabled) 18.dp else 0.dp,
-                            shape = CircleShape,
-                            ambientColor = Accent.copy(alpha = 0.35f),
-                            spotColor = Accent.copy(alpha = 0.35f),
-                        )
-                        .clip(CircleShape)
-                        .background(
-                            if (enabled) {
-                                Brush.linearGradient(listOf(Ink, Accent))
-                            } else {
-                                Brush.linearGradient(listOf(Surface2, Surface2))
-                            },
-                        )
-                        .clickable(
-                            interactionSource = interaction,
-                            indication = ripple(bounded = false, radius = 34.dp, color = Black),
-                            enabled = enabled,
-                        ) { onPlay(songs, 0) }
-                        .pressScale(interaction, pressedScale = 0.88f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = if (enabled) Icons.Rounded.PlayArrow else Icons.Rounded.QueueMusic,
-                        contentDescription = "Reproducir playlist",
-                        tint = if (enabled) OnInk else Faint,
-                        modifier = Modifier.size(38.dp),
-                    )
-                }
-
-                GlassIconButton(
-                    icon = if (allDownloaded) Icons.Rounded.DownloadDone else Icons.Rounded.Download,
-                    contentDescription = if (allDownloaded) "Descargada" else "Descargar playlist",
-                    onClick = {
-                        if (wifiBlocked) {
-                            Toast.makeText(
-                                context,
-                                "Conecta a Wi-Fi o desactiva «Solo Wi-Fi» en Ajustes",
-                                Toast.LENGTH_SHORT,
-                            ).show()
-                        } else if (!allDownloaded) {
-                            songs.forEach { song -> app?.downloadRepository?.download(song) }
-                        }
-                    },
-                    enabled = songs.isNotEmpty() && !allDownloaded,
-                    size = 56.dp,
-                    iconSize = 24.dp,
-                    tint = if (allDownloaded) Accent else Ink,
-                )
-            }
+            PlaylistActions(
+                enabled = songs.isNotEmpty(),
+                downloaded = allDownloaded,
+                // Avance de la descarga de la playlist; null si no hay ninguna.
+                downloadProgress = if (activeDownloads > 0 && songs.isNotEmpty()) {
+                    downloadedCount.toFloat() / songs.size
+                } else {
+                    null
+                },
+                onShuffle = { onPlay(songs.shuffled(), 0) },
+                onPlay = { onPlay(songs, 0) },
+                onDownload = {
+                    if (wifiBlocked) {
+                        Toast.makeText(
+                            context,
+                            "Conecta a Wi-Fi o desactiva «Solo Wi-Fi» en Ajustes",
+                            Toast.LENGTH_SHORT,
+                        ).show()
+                    } else if (!allDownloaded) {
+                        songs.forEach { song -> app?.downloadRepository?.download(song) }
+                    }
+                },
+            )
             if (activeDownloads > 0) {
                 Spacer(Modifier.height(10.dp))
                 Text(
@@ -456,6 +413,114 @@ fun PlaylistScreen(
                 )
             }
         }
+    }
+}
+
+/** Aleatorio · Reproducir · Descargar, alineados a todo el ancho. */
+@Composable
+private fun PlaylistActions(
+    enabled: Boolean,
+    downloaded: Boolean,
+    downloadProgress: Float?,
+    onShuffle: () -> Unit,
+    onPlay: () -> Unit,
+    onDownload: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SideAction(
+            icon = Icons.Rounded.Shuffle,
+            label = "Reproducir en aleatorio",
+            enabled = enabled,
+            onClick = onShuffle,
+        )
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .height(56.dp)
+                .clip(RoundedCornerShape(50))
+                .background(if (enabled) Ink else Surface2)
+                .clickable(
+                    interactionSource = interaction,
+                    indication = ripple(bounded = true),
+                    enabled = enabled,
+                    onClick = onPlay,
+                )
+                .pressScale(interaction, pressedScale = 0.96f),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val content = if (enabled) OnInk else Faint
+            Icon(
+                imageVector = Icons.Rounded.PlayArrow,
+                contentDescription = null,
+                tint = content,
+                modifier = Modifier.size(28.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "Reproducir",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = content,
+                maxLines = 1,
+            )
+        }
+        SideAction(
+            icon = if (downloaded) Icons.Rounded.DownloadDone else Icons.Rounded.Download,
+            label = if (downloaded) "Playlist descargada" else "Descargar playlist",
+            enabled = enabled && !downloaded && downloadProgress == null,
+            highlighted = downloaded,
+            progress = downloadProgress,
+            onClick = onDownload,
+        )
+    }
+}
+
+@Composable
+private fun SideAction(
+    icon: ImageVector,
+    label: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    highlighted: Boolean = false,
+    progress: Float? = null,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .size(56.dp)
+            .clip(CircleShape)
+            .background(Surface2)
+            .border(1.dp, Ink.copy(alpha = 0.08f), CircleShape)
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                enabled = enabled,
+                onClick = onClick,
+            )
+            .pressScale(interaction, pressedScale = 0.92f),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (progress != null) {
+            CircularProgressIndicator(
+                progress = { progress.coerceIn(0.04f, 1f) },
+                color = Ink,
+                trackColor = Ink.copy(alpha = 0.12f),
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(50.dp),
+            )
+        }
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            tint = if (enabled || highlighted || progress != null) Ink else Faint,
+            modifier = Modifier.size(24.dp),
+        )
     }
 }
 

@@ -178,6 +178,7 @@ fun SettingsScreen(
     val taste by preferences.taste.collectAsState()
     val library by libraryRepository.state.collectAsState()
     val session by authRepository.session.collectAsState()
+    val nickname by preferences.nickname.collectAsState()
     val syncAccounts by musicSync.state.collectAsState()
     val syncEvent by musicSync.events.collectAsState()
     val scope = rememberCoroutineScope()
@@ -349,7 +350,7 @@ fun SettingsScreen(
             onFilterChange = { filter = it },
             onBack = onBack,
             groups = groups,
-            accountEmail = session?.let { it.email.ifBlank { "Cuenta conectada" } },
+            accountEmail = session?.let { nickname.ifBlank { it.email.ifBlank { "Cuenta conectada" } } },
             accountAvatar = session?.avatarUrl,
             onOpenAuth = onOpenAuth,
             onSignOut = { scope.launch { authRepository.signOut() } },

@@ -374,7 +374,9 @@ class PartySession(private val app: PoPMusicApplication) {
 
     fun displayName(): String {
         val email = app.authRepository.session.value?.email.orEmpty()
-        val raw = email.substringBefore("@").ifBlank { "Invitado" }
+        val raw = app.preferences.nickname.value
+            .ifBlank { email.substringBefore("@") }
+            .ifBlank { "Invitado" }
         return raw.take(16)
     }
 
