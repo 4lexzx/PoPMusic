@@ -1,16 +1,18 @@
 {
   "published": true,
-  "versionCode": 10,
-  "versionName": "0.1.10",
-  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.10/PoPMusic-v0.1.10.apk",
-  "sha256": "0ff45388defb18c1fa27bcd93cfbeedefb418330b5bd05d286d93f1e484727bf",
-  "sizeBytes": 19026741,
+  "versionCode": 11,
+  "versionName": "0.1.11",
+  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.11/PoPMusic-v0.1.11.apk",
+  "sha256": "2abfa1cc054451c858f2d9cfb830281f2d7f9a450c197915ace739e273629b9b",
+  "sizeBytes": 19108661,
   "mandatory": false,
   "changelog": [
-    "Recomendaciones: La radio mantiene mejor el género, los artistas afines y el idioma.",
-    "Salto inmediato: Ya puedes pasar de canción desde la primera que eliges.",
-    "Reproducción: El botón de play ya no se retrasa respecto al audio.",
-    "Letras: Los remixes y versiones spanglish usan su propia letra.",
-    "Actualizaciones: Nuevo diseño del aviso de versión nueva."
+    "Fondos: 40 fondos animados en 6 secciones y vista previa antes de aplicar.",
+    "Colores: La app adapta su paleta al fondo que elijas.",
+    "Salas: Nueva interfaz y sugerencias según los gustos de cada persona.",
+    "Reproductor: Fondo animado con los colores de la carátula.",
+    "Artistas: Fotos de perfil en tus gustos y en el buscador.",
+    "Diseño: Ajustes, gustos, menús y barras renovados.",
+    "Rendimiento: Perfil de compilación ampliado."
   ]
 }
