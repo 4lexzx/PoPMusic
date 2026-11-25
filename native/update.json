@@ -1,17 +1,13 @@
 {
   "published": true,
-  "versionCode": 12,
-  "versionName": "0.1.12",
-  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.12/PoPMusic-v0.1.12.apk",
-  "sha256": "9702bd8151c8ad2574c02004828b3443e66c226ae25b92120a5db3afc90fd5c9",
-  "sizeBytes": 19141429,
+  "versionCode": 13,
+  "versionName": "0.1.13",
+  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.13/PoPMusic-v0.1.13.apk",
+  "sha256": "12d85ef3f6fef1dd6ce7f94aab20277e4b048575de8d3009d093a36b7428ca12",
+  "sizeBytes": 19174197,
   "mandatory": false,
   "changelog": [
-    "Reproductor: Carrusel de carátulas y cierre más fluido.",
-    "Información: Artista con foto y datos comprobados de cada canción.",
-    "Cuenta: Nuevo diseño y apodo.",
-    "Biblioteca: Artistas con foto y contador corregido.",
-    "Playlists: Nuevos botones y portadas al añadir canciones.",
-    "Diseño: Burbujas, menús, corazón y animaciones renovados."
+    "Reconocer: Identifica canciones en segundos, con pantalla nueva.",
+    "Buscador: Videos relacionados, en vivo y covers debajo de las canciones."
   ]
 }
