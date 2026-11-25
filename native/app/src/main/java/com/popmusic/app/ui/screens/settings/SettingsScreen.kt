@@ -70,6 +70,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -106,7 +107,8 @@ import com.popmusic.app.data.prefs.BackgroundMode
 import com.popmusic.app.data.prefs.BackgroundSettings
 import com.popmusic.app.data.prefs.PlaybackSettings
 import com.popmusic.app.data.prefs.TasteSettings
-import com.popmusic.app.ui.components.AppBackground
+import com.popmusic.app.ui.components.PopSlider
+import com.popmusic.app.ui.components.animatedPreset
 import com.popmusic.app.ui.components.BackgroundPresets
 import com.popmusic.app.ui.components.GlassDialog
 import com.popmusic.app.ui.components.GlassDialogActions
@@ -120,6 +122,7 @@ import com.popmusic.app.ui.theme.Danger
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
 import com.popmusic.app.ui.theme.Line
+import com.popmusic.app.ui.theme.Muted
 import com.popmusic.app.ui.theme.OnInk
 import com.popmusic.app.ui.theme.LiquidGlass
 import com.popmusic.app.ui.theme.LocalGlassOpacity
@@ -507,7 +510,10 @@ private fun SettingsRoot(
             value = filter,
             onValueChange = onFilterChange,
             placeholder = "Buscar ajustes…",
-            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+            leadingIcon = {
+                Icon(Icons.Rounded.Search, null, tint = Faint, modifier = Modifier.size(19.dp))
+            },
         )
 
         if (term.isNotBlank()) {
@@ -595,39 +601,71 @@ private fun SettingsDetail(
                 // La transparencia del cristal no es un ajuste de fondo: se
                 // cambia en "Cristal y desenfoque" y se aplica al instante.
                 val draft = backgroundDraft
-                SectionLabel("Fondos dinámicos")
-                BackgroundChoices(
-                    settings = draft,
-                    onSelectPreset = { index ->
-                        onDraftChange(draft.copy(mode = BackgroundMode.PRESET, presetId = index))
-                    },
-                    onSelectNone = { onDraftChange(draft.copy(mode = BackgroundMode.NONE)) },
+                var fullPreview by remember { mutableStateOf(false) }
+                val changed = draft != settings
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    BackgroundPhonePreview(settings = draft, onExpand = { fullPreview = true })
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        text = if (changed) {
+                            "Vista previa · aún no se ha aplicado"
+                        } else {
+                            "Este es tu fondo actual"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Muted,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        GlassTextButton(
+                            text = "Pantalla completa",
+                            onClick = { fullPreview = true },
+                            modifier = Modifier.weight(1f),
+                        )
+                        PrimaryAction(
+                            text = if (changed) "Aplicar fondo" else "Aplicado",
+                            onClick = { if (changed) preferences.update { draft } },
+                            enabled = changed,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
+                }
+                BackgroundGallery(
+                    draft = draft,
+                    onChange = onDraftChange,
                     onPickImage = onPickImage,
                 )
                 if (draft.mode != BackgroundMode.NONE) {
-                    Spacer(Modifier.height(18.dp))
-                    SectionLabel("Ajustes del fondo")
-                    SliderRow(
-                        title = "Desenfoque",
-                        value = draft.backgroundBlur,
-                        onValueChange = { onDraftChange(draft.copy(backgroundBlur = it)) },
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    SliderRow(
-                        title = "Oscurecimiento",
-                        value = draft.backgroundDim,
-                        onValueChange = { onDraftChange(draft.copy(backgroundDim = it)) },
+                    Spacer(Modifier.height(14.dp))
+                    SettingsCard(title = "Ajustar") {
+                        if (draft.mode == BackgroundMode.IMAGE) {
+                            SliderRow(
+                                title = "Desenfoque",
+                                value = draft.backgroundBlur,
+                                onValueChange = { onDraftChange(draft.copy(backgroundBlur = it)) },
+                            )
+                        }
+                        SliderRow(
+                            title = "Oscurecimiento",
+                            value = draft.backgroundDim,
+                            onValueChange = { onDraftChange(draft.copy(backgroundDim = it)) },
+                        )
+                    }
+                }
+                if (fullPreview) {
+                    BackgroundFullPreview(
+                        settings = draft,
+                        canApply = changed,
+                        onApply = { preferences.update { draft } },
+                        onClose = { fullPreview = false },
                     )
                 }
-                Spacer(Modifier.height(18.dp))
-                SectionLabel("Vista previa")
-                AppScreenPreview(settings = draft, playback = playback, glassOpacity = draft.glassOpacity)
-                Spacer(Modifier.height(12.dp))
-                PrimaryAction(
-                    text = if (draft != settings) "Aplicar" else "Aplicado",
-                    onClick = { if (draft != settings) preferences.update { draft } },
-                )
-                Spacer(Modifier.height(20.dp))
             }
 
             SettingsView.EXPORT -> {
@@ -744,6 +782,7 @@ private fun AccountsDetail(musicSync: MusicSyncManager) {
 
 @Composable
 private fun PlaybackDetail(playback: PlaybackSettings, preferences: AppPreferences) {
+    PlayerPhonePreview(playback = playback)
     SettingsCard(title = "Transición") {
         SwitchRow(
             title = "Transición suave",
@@ -753,7 +792,7 @@ private fun PlaybackDetail(playback: PlaybackSettings, preferences: AppPreferenc
                 preferences.updatePlayback { it.copy(fadeIn = enabled) }
             },
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         SliderRow(
             title = "Crossfade",
             value = playback.crossfadeSeconds / 10f,
@@ -767,7 +806,7 @@ private fun PlaybackDetail(playback: PlaybackSettings, preferences: AppPreferenc
                 preferences.updatePlayback { it.copy(crossfadeSeconds = seconds) }
             },
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         SwitchRow(
             title = "Omitir silencios",
             subtitle = "Salta automáticamente los tramos sin sonido",
@@ -776,7 +815,7 @@ private fun PlaybackDetail(playback: PlaybackSettings, preferences: AppPreferenc
                 preferences.updatePlayback { it.copy(skipSilence = enabled) }
             },
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         SwitchRow(
             title = "Reproducción instantánea",
             subtitle = "Sin fundidos y precarga más canciones por adelantado. Empieza antes y el aleatorio es inmediato.",
@@ -796,7 +835,7 @@ private fun PlaybackDetail(playback: PlaybackSettings, preferences: AppPreferenc
                 preferences.updatePlayback { it.copy(pauseOnMute = enabled) }
             },
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         SwitchRow(
             title = "Reanudar al conectar",
             subtitle = "Continúa la reproducción al reconectar auriculares o Bluetooth",
@@ -816,7 +855,7 @@ private fun PlaybackDetail(playback: PlaybackSettings, preferences: AppPreferenc
                 preferences.updatePlayback { it.copy(hideVideos = enabled) }
             },
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         SwitchRow(
             title = "Ocultar Shorts",
             subtitle = "Deja fuera piezas cortas de 70 segundos o menos",
@@ -828,11 +867,6 @@ private fun PlaybackDetail(playback: PlaybackSettings, preferences: AppPreferenc
     }
 
     SleepTimerSection(playback = playback, preferences = preferences)
-
-    // Vista previa viva: los chips cambian al activar/desactivar ajustes.
-    Spacer(Modifier.height(18.dp))
-    SectionLabel("Vista previa")
-    PlaybackPreview(playback = playback)
 }
 
 @Composable
@@ -1007,7 +1041,7 @@ private fun AppearanceDetail(
                     preferences.update { it.copy(glassOpacity = value) }
                 },
             )
-            HorizontalDivider(color = Line)
+            HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         } else {
             Text(
                 text = "Activa «Cristal líquido» para ajustar el desenfoque, " +
@@ -1040,7 +1074,7 @@ private fun AppearanceDetail(
             },
             padded = false,
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         SwitchRow(
             title = "Canvas ambiental",
             subtitle = "Fondo desenfocado con movimiento lento en el reproductor",
@@ -1161,23 +1195,23 @@ private fun AboutDetail(
     Spacer(Modifier.height(10.dp))
     SettingsCard(title = "Creador") {
         InfoRow("Creador", "4lexzx")
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         InfoRow("GitHub", "github.com/4lexzx")
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         InfoRow("Nacionalidad", "Peruana")
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         InfoRow("Contacto / soporte", "solisumboalexander@hotmail.com")
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         InfoRow("Repositorio", "github.com/4lexzx/PoPMusic")
     }
     Spacer(Modifier.height(10.dp))
     SettingsCard(title = "Detalles técnicos") {
         InfoRow("Fuente de audio", "YouTube (NewPipe)")
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         InfoRow("Letras", "LRCLIB")
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         InfoRow("Reconocimiento", "AudD")
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         InfoRow("Sincronización", "Supabase (Google/Spotify)")
         Spacer(Modifier.height(12.dp))
         Text(
@@ -1206,18 +1240,33 @@ private fun SettingsHeader(
     onBack: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 16.dp, end = 20.dp, top = 8.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onBack) {
+        IconButton(
+            onClick = onBack,
+            modifier = Modifier
+                .size(42.dp)
+                .clip(CircleShape)
+                .background(Surface2),
+        ) {
             Icon(
                 imageVector = Icons.Rounded.ArrowBack,
                 contentDescription = "Volver",
+                tint = Ink,
+                modifier = Modifier.size(20.dp),
             )
         }
+        Spacer(Modifier.width(14.dp))
         Text(
             text = title,
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = Ink,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -1231,41 +1280,22 @@ private fun SettingsGroup(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+            .padding(horizontal = 16.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .border(1.dp, Ink.copy(alpha = 0.05f), RoundedCornerShape(20.dp)),
     ) {
         items.forEachIndexed { index, item ->
-            // Cada elemento es su propia card (estilo Echo): la primera y la
-            // última llevan 24 dp fuera y 4 dp dentro; las intermedias 4 dp.
-            val shape = when {
-                items.size == 1 -> RoundedCornerShape(24.dp)
-                index == 0 -> RoundedCornerShape(
-                    topStart = 24.dp,
-                    topEnd = 24.dp,
-                    bottomStart = 4.dp,
-                    bottomEnd = 4.dp,
+            SettingsRow(item = item)
+            if (index != items.lastIndex) {
+                HorizontalDivider(
+                    color = Ink.copy(alpha = 0.06f),
+                    modifier = Modifier.padding(start = 64.dp),
                 )
-                index == items.size - 1 -> RoundedCornerShape(
-                    topStart = 4.dp,
-                    topEnd = 4.dp,
-                    bottomStart = 24.dp,
-                    bottomEnd = 24.dp,
-                )
-                else -> RoundedCornerShape(4.dp)
-            }
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .animateContentSize(),
-                shape = shape,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 0.dp,
-            ) {
-                SettingsRow(item = item)
             }
         }
     }
-    Spacer(Modifier.height(12.dp))
+    Spacer(Modifier.height(10.dp))
 }
 
 @Composable
@@ -1280,23 +1310,24 @@ private fun SettingsRow(item: RootItem) {
                 onClick = item.onClick,
             )
             .pressScale(interaction, pressedScale = 0.98f)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
-                .clip(RoundedCornerShape(12.dp)),
+                .size(36.dp)
+                .clip(RoundedCornerShape(11.dp))
+                .background(Surface3),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = item.icon,
                 contentDescription = null,
-                tint = Ink.copy(alpha = 0.8f),
-                modifier = Modifier.size(24.dp),
+                tint = Ink,
+                modifier = Modifier.size(19.dp),
             )
         }
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.label,
@@ -1306,8 +1337,8 @@ private fun SettingsRow(item: RootItem) {
             )
             Text(
                 text = item.subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                color = Muted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1333,12 +1364,13 @@ private fun SettingsCard(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
-        shape = RoundedCornerShape(24.dp),
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(20.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Ink.copy(alpha = 0.05f)),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 0.dp,
     ) {
-        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
             content()
         }
     }
@@ -1351,13 +1383,13 @@ private fun SwitchRow(
     subtitle: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit,
-    padded: Boolean = true,
+    @Suppress("UNUSED_PARAMETER") padded: Boolean = true,
     icon: ImageVector? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = if (padded) 8.dp else 0.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
@@ -1373,12 +1405,23 @@ private fun SwitchRow(
             Text(text = title, style = MaterialTheme.typography.titleMedium)
             Text(
                 text = subtitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                color = Muted,
             )
         }
         Spacer(Modifier.width(10.dp))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = OnInk,
+                checkedTrackColor = Ink,
+                checkedBorderColor = Ink,
+                uncheckedThumbColor = Muted,
+                uncheckedTrackColor = Surface3,
+                uncheckedBorderColor = Ink.copy(alpha = 0.10f),
+            ),
+        )
     }
 }
 
@@ -1407,7 +1450,7 @@ private fun LinkRow(
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Muted,
             )
         }
         Icon(
@@ -1428,18 +1471,18 @@ private fun QualityChip(
 ) {
     val interaction = remember { MutableInteractionSource() }
     val background by animateColorAsState(
-        targetValue = if (selected) Ink.copy(alpha = 0.18f) else Color.White.copy(alpha = 0.05f),
+        targetValue = if (selected) Ink else Surface3,
         animationSpec = tween(180),
         label = "qualityBg",
     )
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(background)
             .border(
                 1.dp,
-                if (selected) Ink.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.10f),
-                RoundedCornerShape(14.dp),
+                Ink.copy(alpha = 0.05f),
+                RoundedCornerShape(12.dp),
             )
             .clickable(
                 interactionSource = interaction,
@@ -1453,7 +1496,7 @@ private fun QualityChip(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) Ink else Faint,
+            color = if (selected) OnInk else Muted,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
         )
     }
@@ -1464,27 +1507,29 @@ private fun PrimaryAction(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
 ) {
     val interaction = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(15.dp))
-            .background(Ink.copy(alpha = 0.92f))
+            .clip(RoundedCornerShape(14.dp))
+            .background(if (enabled) Ink else Surface3)
             .clickable(
                 interactionSource = interaction,
                 indication = ripple(bounded = true, color = Black),
+                enabled = enabled,
                 onClick = onClick,
             )
             .pressScale(interaction, pressedScale = 0.97f)
-            .padding(vertical = 13.dp),
+            .padding(vertical = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = OnInk,
+            color = if (enabled) OnInk else Muted,
         )
     }
 }
@@ -1505,7 +1550,7 @@ private fun InfoRow(label: String, value: String) {
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Muted,
         )
     }
 }
@@ -1582,19 +1627,19 @@ private fun SupportDetail(onOpenDocs: () -> Unit) {
             value = "solisumboalexander@hotmail.com",
             url = "mailto:solisumboalexander@hotmail.com",
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         ExternalLinkRow(
             label = "Informes en GitHub",
             value = "github.com/4lexzx/PoPMusic/issues",
             url = "https://github.com/4lexzx/PoPMusic/issues",
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         ExternalLinkRow(
             label = "Sitio web",
             value = "4lexzx.github.io/PoPMusic",
             url = "https://4lexzx.github.io/PoPMusic/",
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         ExternalLinkRow(
             label = "Documentación",
             value = "Guía de uso dentro de la app",
@@ -1613,7 +1658,7 @@ private fun SupportDetail(onOpenDocs: () -> Unit) {
                 "4. Envíalo por correo o abre un informe en GitHub. Respondemos " +
                 "lo antes posible.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Muted,
         )
     }
     Spacer(Modifier.height(10.dp))
@@ -1624,13 +1669,13 @@ private fun SupportDetail(onOpenDocs: () -> Unit) {
                 "todo: se borra la cola guardada y al volver se abre como la " +
                 "primera vez, sin retomar la última canción.",
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         FaqItem(
             question = "¿Se puede escuchar sin internet?",
             answer = "Sí, si has descargado antes las canciones. Aparecen en " +
                 "Biblioteca → Descargas y se reproducen desde el archivo local.",
         )
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         FaqItem(
             question = "¿Por qué no veo mis playlists de Spotify?",
             answer = "La importación por enlace funciona sin iniciar sesión. Para " +
@@ -1646,7 +1691,7 @@ private fun DocSection(title: String, body: String) {
         Text(
             text = body,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Muted,
         )
     }
 }
@@ -1663,7 +1708,7 @@ private fun FaqItem(question: String, answer: String) {
         Text(
             text = answer,
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = Muted,
         )
     }
 }
@@ -1696,7 +1741,7 @@ private fun ExternalLinkRow(
             Text(
                 text = value,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Muted,
             )
         }
         Icon(
@@ -1711,11 +1756,11 @@ private fun ExternalLinkRow(
 @Composable
 private fun SectionLabel(text: String) {
     Text(
-        text = text.uppercase(),
-        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        letterSpacing = 1.4.sp,
-        modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 8.dp),
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = Muted,
+        modifier = Modifier.padding(start = 22.dp, end = 20.dp, top = 12.dp, bottom = 8.dp),
     )
 }
 
@@ -1726,27 +1771,33 @@ private fun SliderRow(
     onValueChange: (Float) -> Unit,
     valueLabel: String = "${(value * 100).toInt()}%",
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = valueLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = Faint,
-            )
-        }
-        Slider(
-            value = value.coerceIn(0f, 1f),
-            onValueChange = onValueChange,
-            colors = SliderDefaults.colors(
-                thumbColor = Ink,
-                activeTrackColor = Ink,
-                inactiveTrackColor = Color.White.copy(alpha = 0.14f),
-            ),
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        SliderHeader(title, valueLabel)
+        PopSlider(value = value, onValueChange = onValueChange, label = title)
+    }
+}
+
+/** Título a la izquierda y valor en una pastilla a la derecha. */
+@Composable
+private fun SliderHeader(title: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Ink,
+            modifier = Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Surface3)
+                .padding(horizontal = 10.dp, vertical = 4.dp),
         )
     }
 }
@@ -1758,12 +1809,11 @@ private fun AccountCard(
     onOpenAuth: () -> Unit,
     onSignOut: () -> Unit,
 ) {
-    SectionLabel("Cuenta")
     // Sólida como el resto de las cards de Ajustes (sin cristal).
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(22.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 0.dp,
@@ -1777,9 +1827,9 @@ private fun AccountCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
-                    .background(Ink.copy(alpha = 0.10f)),
+                    .background(Surface3),
                 contentAlignment = Alignment.Center,
             ) {
                 // Ítem 2: la foto de cuenta (la misma que en Perfil).
@@ -1788,7 +1838,7 @@ private fun AccountCard(
                         model = avatarUrl,
                         contentDescription = "Foto de perfil",
                         contentScale = ContentScale.Crop,
-                        modifier = Modifier.size(42.dp),
+                        modifier = Modifier.size(48.dp),
                     )
                 } else {
                     Icon(
@@ -1816,7 +1866,7 @@ private fun AccountCard(
                         "Sesión iniciada en PoP Music"
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = Faint,
+                    color = Muted,
                 )
             }
             Spacer(Modifier.width(10.dp))
@@ -1883,14 +1933,7 @@ private fun EqualizerSection(
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
                         .background(
-                            if (selected) Ink.copy(alpha = 0.16f)
-                            else Color.White.copy(alpha = 0.06f),
-                        )
-                        .border(
-                            1.dp,
-                            if (selected) Ink.copy(alpha = 0.5f)
-                            else Color.White.copy(alpha = 0.10f),
-                            RoundedCornerShape(50),
+                            if (selected) Ink else Surface3,
                         )
                         .clickable(
                             interactionSource = interaction,
@@ -1910,13 +1953,13 @@ private fun EqualizerSection(
                     Text(
                         text = name,
                         style = MaterialTheme.typography.labelLarge,
-                        color = if (selected) Ink else Faint,
+                        color = if (selected) OnInk else Muted,
                     )
                 }
             }
         }
         Spacer(Modifier.height(14.dp))
-        HorizontalDivider(color = Line)
+        HorizontalDivider(color = Ink.copy(alpha = 0.06f))
         Spacer(Modifier.height(6.dp))
         eqBandLabels.forEachIndexed { index, label ->
             EqSlider(
@@ -1948,29 +1991,18 @@ private fun EqSlider(
     value: Float,
     onValueChange: (Float) -> Unit,
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(text = title, style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = if (value >= 0f) "+${"%.1f".format(value)} dB"
-                else "${"%.1f".format(value)} dB",
-                style = MaterialTheme.typography.labelMedium,
-                color = Faint,
-            )
-        }
-        Slider(
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        SliderHeader(
+            title,
+            if (value >= 0f) "+${"%.1f".format(value)} dB" else "${"%.1f".format(value)} dB",
+        )
+        PopSlider(
             value = value.coerceIn(EQ_MIN_DB, EQ_MAX_DB),
             onValueChange = onValueChange,
-            valueRange = EQ_MIN_DB..EQ_MAX_DB,
-            colors = SliderDefaults.colors(
-                thumbColor = Ink,
-                activeTrackColor = Ink,
-                inactiveTrackColor = Color.White.copy(alpha = 0.14f),
-            ),
+            range = EQ_MIN_DB..EQ_MAX_DB,
+            step = 0.5f,
+            centered = true,
+            label = title,
         )
     }
 }
@@ -1980,621 +2012,69 @@ private fun SleepTimerSection(
     playback: PlaybackSettings,
     preferences: AppPreferences,
 ) {
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(playback.sleepAtEpochMs) {
+        while (true) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(10_000L)
+        }
+    }
+    val remaining = if (playback.sleepAtEpochMs > now) {
+        ((playback.sleepAtEpochMs - now + 59_999L) / 60_000L).toInt()
+    } else {
+        0
+    }
+    // Mientras se arrastra manda el dedo; al soltar se programa.
+    var dragged by remember { mutableStateOf<Float?>(null) }
+    val shown = dragged ?: remaining.toFloat().coerceAtMost(MAX_SLEEP_MIN)
     SettingsCard(title = "Temporizador") {
-        Text(
-            text = "Detiene la música automáticamente",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Faint,
+        SliderHeader(
+            title = "Detener la música",
+            value = if (shown < 1f) "Desactivado" else "${shown.toInt()} min",
         )
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SleepChip(15, playback, preferences)
-            SleepChip(30, playback, preferences)
-            SleepChip(45, playback, preferences)
-            SleepChip(60, playback, preferences)
+        PopSlider(
+            value = shown,
+            onValueChange = { dragged = it },
+            range = 0f..MAX_SLEEP_MIN,
+            step = 5f,
+            label = "Temporizador en minutos",
+            onValueChangeFinished = { minutes ->
+                val startedAt = System.currentTimeMillis()
+                now = startedAt
+                preferences.updatePlayback {
+                    it.copy(
+                        sleepAtEpochMs = if (minutes < 1f) {
+                            0L
+                        } else {
+                            startedAt + minutes.toLong() * 60_000L
+                        },
+                    )
+                }
+                dragged = null
+            },
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            listOf("No", "30", "60", "90", "120").forEach { mark ->
+                Text(mark, style = MaterialTheme.typography.labelSmall, color = Faint)
+            }
         }
         Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SleepChip(90, playback, preferences)
-            val active = playback.sleepAtEpochMs > 0L
-            val interaction = remember { MutableInteractionSource() }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(
-                        if (active) Color.White.copy(alpha = 0.06f) else Ink.copy(alpha = 0.16f),
-                    )
-                    .border(
-                        1.dp,
-                        if (active) Color.White.copy(alpha = 0.10f) else Ink.copy(alpha = 0.5f),
-                        RoundedCornerShape(50),
-                    )
-                    .clickable(
-                        interactionSource = interaction,
-                        indication = ripple(bounded = true),
-                    ) {
-                        preferences.updatePlayback { it.copy(sleepAtEpochMs = 0L) }
-                    }
-                    .pressScale(interaction, pressedScale = 0.94f)
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-            ) {
-                Text(
-                    text = "Desactivar",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (active) Faint else Ink,
-                )
-            }
-        }
-        if (playback.sleepAtEpochMs > 0L) {
-            Spacer(Modifier.height(10.dp))
-            val remaining = playback.sleepAtEpochMs - System.currentTimeMillis()
-            val message = if (remaining > 0L) {
-                val minutes = remaining / 60_000L
-                if (minutes >= 1) "Se detendrá en $minutes min" else "Deteniendo…"
-            } else {
-                "Detenido"
-            }
-            Text(
-                text = message,
-                style = MaterialTheme.typography.labelMedium,
-                color = Faint,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SleepChip(
-    minutes: Int,
-    playback: PlaybackSettings,
-    preferences: AppPreferences,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val selected = playback.sleepAtEpochMs > 0L &&
-        kotlin.math.abs(
-            playback.sleepAtEpochMs - System.currentTimeMillis() - minutes * 60_000L,
-        ) < 15_000L
-    Text(
-        text = "$minutes min",
-        style = MaterialTheme.typography.labelLarge,
-        color = if (selected) Ink else Faint,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(
-                if (selected) Ink.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.06f),
-            )
-            .border(
-                1.dp,
-                if (selected) Ink.copy(alpha = 0.5f) else Color.White.copy(alpha = 0.10f),
-                RoundedCornerShape(50),
-            )
-            .clickable(
-                interactionSource = interaction,
-                indication = ripple(bounded = true),
-            ) {
-                val now = System.currentTimeMillis()
-                preferences.updatePlayback {
-                    it.copy(sleepAtEpochMs = now + minutes * 60_000L)
-                }
-            }
-            .pressScale(interaction, pressedScale = 0.94f)
-            .padding(horizontal = 14.dp, vertical = 8.dp),
-    )
-}
-
-/**
- * Vista previa viva: una miniatura de la pantalla de Inicio de la MISMA
- * app que refleja los ajustes EN TIEMPO REAL — cambias el fondo → cambia
- * aquí; activas "Cristal líquido" → la barra de navegación pasa de sólida
- * a liquid glass; ocultas la miniatura → la carátula desaparece.
- */
-@Composable
-private fun AppScreenPreview(
-    settings: BackgroundSettings,
-    playback: PlaybackSettings,
-    glassOpacity: Float = 0.65f,
-) {
-    val shape = RoundedCornerShape(22.dp)
-    // El cristal de la vista previa usa los VALORES DEL BORRADOR, no los
-    // guardados, para que la transparencia se vea al mover el deslizador.
-    CompositionLocalProvider(
-        LocalGlassOpacity provides glassOpacity,
-        LocalLiquidGlassEnabled provides settings.liquidGlass,
-    ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .height(380.dp)
-            .clip(shape)
-            .border(1.dp, Color.White.copy(alpha = 0.12f), shape),
-    ) {
-        // Fondo real de la app (degradado/imagen + desenfoque + oscurecimiento)
-        AppBackground(settings = settings, modifier = Modifier.fillMaxSize())
-
-        Column(modifier = Modifier.fillMaxSize()) {
-            // — Cabecera —
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 14.dp, end = 14.dp, top = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "PoP Music",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink,
-                )
-                Spacer(Modifier.weight(1f))
-                PreviewHeaderIcon(Icons.Rounded.History)
-                Spacer(Modifier.width(6.dp))
-                PreviewHeaderIcon(Icons.Rounded.Person)
-            }
-
-            // — Chips de ánimo —
-            Row(
-                modifier = Modifier.padding(start = 14.dp, top = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                PreviewPill("Para estudiar")
-                PreviewPill("Energía")
-                PreviewPill("Triste")
-            }
-
-            // — Sección + tarjetas —
-            Text(
-                text = "PARA TI",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Bold,
-                color = Faint,
-                modifier = Modifier.padding(start = 14.dp, top = 12.dp),
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                PreviewCard(
-                    modifier = Modifier.weight(1f),
-                    brush = Brush.linearGradient(listOf(Accent, Color(0xFF7B2FF7))),
-                )
-                PreviewCard(
-                    modifier = Modifier.weight(1f),
-                    brush = Brush.linearGradient(listOf(Color(0xFFE04BC8), Color(0xFFFFA51E))),
-                )
-            }
-
-            Spacer(Modifier.weight(1f))
-
-            // — Mini reproductor (la carátula se oculta con "Ocultar miniatura") —
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color.White.copy(alpha = 0.03f + 0.14f * glassOpacity))
-                    .border(
-                        1.dp,
-                        Color.White.copy(alpha = 0.08f + 0.14f * glassOpacity),
-                        RoundedCornerShape(16.dp),
-                    )
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (playback.hideThumbnail) {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.14f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.PlayArrow,
-                            contentDescription = null,
-                            tint = Ink,
-                            modifier = Modifier.size(16.dp),
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .size(28.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Brush.linearGradient(listOf(Accent, Surface2))),
-                    )
-                }
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "Canción de ejemplo",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Ink,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "Artista · 3:24",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Faint,
-                        maxLines = 1,
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Rounded.PlayArrow,
-                    contentDescription = null,
-                    tint = Ink,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
-
-            // — Barra de navegación: sólida o liquid glass según el ajuste —
-            PreviewNav(
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                settings = settings,
-                glassOpacity = glassOpacity,
-            )
-        }
-    }
-    }
-}
-
-/**
- * Barra de navegación en miniatura: con "Cristal líquido" APAGADO es
- * sólida (Surface3 + borde fino, como la nav real); ACTIVADO usa
- * liquid glass — el cambio se ve al mover el interruptor.
- */
-@Composable
-private fun PreviewNav(
-    modifier: Modifier,
-    settings: BackgroundSettings,
-    glassOpacity: Float,
-) {
-    val pill = RoundedCornerShape(24.dp)
-    Box(modifier = modifier.fillMaxWidth()) {
-        if (settings.liquidGlass) {
-            LiquidGlass(
-                modifier = Modifier.fillMaxWidth(),
-                shape = pill,
-                elevation = 6.dp,
-            ) {
-                PreviewNavTabs()
-            }
-        } else {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(pill)
-                    .background(Surface3.copy(alpha = 0.55f + 0.45f * glassOpacity))
-                    .border(1.dp, Faint.copy(alpha = 0.30f), pill),
-            ) {
-                PreviewNavTabs()
-            }
-        }
-    }
-}
-
-/** Pestañas de la nav en miniatura: Inicio activo, el resto atenuado. */
-@Composable
-private fun PreviewNavTabs() {
-    val tabs = listOf(
-        Icons.Rounded.Home to "Inicio",
-        Icons.Rounded.Search to "Buscar",
-        Icons.Rounded.Mic to "Reconocer",
-        Icons.Rounded.LibraryMusic to "Biblioteca",
-    )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 6.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-    ) {
-        tabs.forEachIndexed { index, (icon, label) ->
-            val active = index == 0
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (active) Ink else Faint,
-                    modifier = Modifier.size(18.dp),
-                )
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (active) Ink else Faint,
-                    fontSize = 8.sp,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
-
-/** Icono circular de cabecera en la vista previa. */
-@Composable
-private fun PreviewHeaderIcon(icon: ImageVector) {
-    Box(
-        modifier = Modifier
-            .size(26.dp)
-            .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.10f))
-            .border(1.dp, Color.White.copy(alpha = 0.14f), CircleShape),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = Ink,
-            modifier = Modifier.size(14.dp),
-        )
-    }
-}
-
-/** Chip de ánimo en la vista previa. */
-@Composable
-private fun PreviewPill(label: String) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelSmall,
-        color = Ink,
-        maxLines = 1,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(Color.White.copy(alpha = 0.12f))
-            .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(50))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-    )
-}
-
-/** Tarjeta de contenido en la vista previa (con barra de título falsa). */
-@Composable
-private fun PreviewCard(modifier: Modifier, brush: Brush) {
-    Box(
-        modifier = modifier
-            .height(74.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(brush),
-    ) {
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(8.dp)
-                .width(46.dp)
-                .height(6.dp)
-                .clip(RoundedCornerShape(3.dp))
-                .background(Color.White.copy(alpha = 0.55f)),
-        )
-    }
-}
-
-/**
- * Vista previa viva de Reproducción: un mini-reproductor de mentira con
- * los ajustes ACTIVOS como chips — cambia al mover los interruptores.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun PlaybackPreview(playback: PlaybackSettings) {
-    val active = buildList {
-        if (playback.fadeIn) add("Transición suave")
-        if (playback.crossfadeSeconds > 0) add("Crossfade ${playback.crossfadeSeconds} s")
-        if (playback.skipSilence) add("Omitir silencios")
-        if (playback.instantPlay) add("Inicio instantáneo")
-        if (playback.pauseOnMute) add("Pausa al silenciar")
-        if (playback.resumeOnHeadset) add("Reanudar al conectar")
-        if (playback.equalizerEnabled) add("Ecualizador")
-        if (playback.hideVideos) add("Sin videos")
-        if (playback.hideShorts) add("Sin Shorts")
-    }
-    val shape = RoundedCornerShape(22.dp)
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp)
-            .heightIn(min = 168.dp)
-            .clip(shape)
-            .background(Brush.verticalGradient(listOf(Surface3, Surface2)))
-            .border(1.dp, Color.White.copy(alpha = 0.10f), shape),
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Vista previa",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = Ink,
-            )
-            Text(
-                text = "Así se reproduce con tus ajustes",
-                style = MaterialTheme.typography.bodySmall,
-                color = Faint,
-            )
-            Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Brush.linearGradient(listOf(Accent, Surface2))),
-                )
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "Canción de ejemplo",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Ink,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "Artista · 3:24",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Faint,
-                        maxLines = 1,
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.12f))
-                        .border(1.dp, Color.White.copy(alpha = 0.20f), CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.PlayArrow,
-                        contentDescription = null,
-                        tint = Ink,
-                        modifier = Modifier.size(20.dp),
-                    )
-                }
-            }
-            Spacer(Modifier.height(12.dp))
-            if (active.isEmpty()) {
-                Text(
-                    text = "Sin ajustes activos: sonará con los valores por defecto.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Faint,
-                )
-            } else {
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    active.forEach { label -> PreviewChip(label) }
-                }
-            }
-        }
-    }
-}
-
-/** Chip de ajuste activo dentro de la vista previa. */
-@Composable
-private fun PreviewChip(label: String) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.labelMedium,
-        color = Ink,
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(Color.White.copy(alpha = 0.10f))
-            .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(50))
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-    )
-}
-
-@Composable
-private fun BackgroundChoices(
-    settings: BackgroundSettings,
-    onSelectPreset: (Int) -> Unit,
-    onSelectNone: () -> Unit,
-    onPickImage: () -> Unit,
-) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        item {
-            ChoiceSwatch(
-                selected = settings.mode == BackgroundMode.NONE,
-                onClick = onSelectNone,
-                label = "Sin fondo",
-                brush = Brush.linearGradient(listOf(Black, Surface)),
-                trailing = {
-                    Text(
-                        text = "A",
-                        color = Faint,
-                        fontWeight = FontWeight.Bold,
-                    )
-                },
-            )
-        }
-        itemsIndexed(BackgroundPresets) { index, preset ->
-            ChoiceSwatch(
-                selected = settings.mode == BackgroundMode.PRESET && settings.presetId == index,
-                onClick = { onSelectPreset(index) },
-                label = preset.name,
-                brush = Brush.linearGradient(preset.colors),
-            )
-        }
-        item {
-            ChoiceSwatch(
-                selected = settings.mode == BackgroundMode.IMAGE,
-                onClick = onPickImage,
-                label = "Galería",
-                brush = Brush.linearGradient(listOf(Surface3, Surface)),
-                trailing = {
-                    Icon(
-                        imageVector = Icons.Rounded.Image,
-                        contentDescription = null,
-                        tint = Ink,
-                        modifier = Modifier.size(22.dp),
-                    )
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun ChoiceSwatch(
-    selected: Boolean,
-    onClick: () -> Unit,
-    label: String,
-    brush: Brush,
-    trailing: (@Composable () -> Unit)? = null,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val ring by animateFloatAsState(
-        targetValue = if (selected) 1f else 0f,
-        animationSpec = tween(200),
-        label = "swatchRing",
-    )
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.width(78.dp),
-    ) {
-        Box(
-            modifier = Modifier
-                .size(68.dp)
-                .clip(CircleShape)
-                .background(brush)
-                .border(
-                    width = (1f + 2f * ring).dp,
-                    color = if (selected) Ink else Color.White.copy(alpha = 0.12f),
-                    shape = CircleShape,
-                )
-                .clickable(
-                    interactionSource = interaction,
-                    indication = ripple(bounded = false, radius = 34.dp),
-                    onClick = onClick,
-                )
-                .pressScale(interaction, pressedScale = 0.92f),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (trailing != null) {
-                trailing()
-            }
-            if (selected && trailing == null) {
-                Icon(
-                    imageVector = Icons.Rounded.Check,
-                    contentDescription = null,
-                    tint = Ink,
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-        }
-        Spacer(Modifier.height(6.dp))
         Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (selected) Ink else Faint,
-            maxLines = 1,
+            text = if (remaining > 0 && dragged == null) {
+                "Se detendrá en $remaining min. Lleva la barra a «No» para cancelarlo."
+            } else {
+                "Desliza para elegir cuánto tiempo más quieres escuchar."
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = Muted,
         )
     }
 }
+
+private const val MAX_SLEEP_MIN = 120f
 
 private fun detailTitle(view: SettingsView): String = when (view) {
     SettingsView.ACCOUNTS -> "Cuentas de música"
@@ -2620,6 +2100,7 @@ private fun qualityLabel(quality: String): String = when (quality) {
 private fun backgroundLabel(settings: BackgroundSettings): String = when (settings.mode) {
     BackgroundMode.NONE -> "Sin fondo"
     BackgroundMode.IMAGE -> "Imagen de la galería"
+    BackgroundMode.ANIMATED -> "Animado · ${animatedPreset(settings.presetId).name}"
     BackgroundMode.PRESET -> BackgroundPresets
         .getOrNull(settings.presetId)
         ?.let { "Degradado ${it.name}" }

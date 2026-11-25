@@ -1,10 +1,20 @@
 package com.popmusic.app.ui.screens.party
 
 import androidx.compose.foundation.background
+import com.popmusic.app.ui.screens.player.PlayerPaletteWash
+import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -87,7 +97,6 @@ import com.popmusic.app.ui.theme.OnInk
 import com.popmusic.app.ui.theme.Surface
 import com.popmusic.app.ui.theme.Surface2
 import com.popmusic.app.ui.theme.Surface3
-import com.popmusic.app.ui.theme.LiquidGlass
 import com.popmusic.app.ui.theme.Muted
 import com.popmusic.app.ui.theme.pressScale
 
@@ -126,71 +135,49 @@ fun PartyScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = Icons.Rounded.ArrowBack,
-                contentDescription = "Volver",
-                tint = Ink,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .clickable(
-                        interactionSource = interaction,
-                        indication = ripple(bounded = true),
-                        onClick = onBack,
-                    )
-                    .padding(8.dp)
-                    .size(22.dp),
-            )
-            Spacer(Modifier.width(8.dp))
+            RoundAction(Icons.Rounded.ArrowBack, "Volver", onClick = onBack)
+            Spacer(Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Salas",
+                    text = if (state.inRoom) "Sala en vivo" else "Salas",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink,
                 )
-                Text(
-                    text = when {
-                        state.status == PartyStatus.JOINED ->
-                            "En vivo · ${state.participants.size} escuchando"
-
-                        state.inRoom -> "Reconectando…"
-                        else -> "Todos controlan"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (state.inRoom) Muted else Faint,
-                )
-            }
-            if (state.inRoom) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(Color.White.copy(alpha = 0.08f))
-                        .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(50))
-                        .clickable(
-                            interactionSource = interaction,
-                            indication = ripple(bounded = true),
-                            onClick = viewModel::leave,
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (state.inRoom) {
+                        Box(
+                            Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (state.status == PartyStatus.JOINED) Ink else Faint,
+                                ),
                         )
-                        .pressScale(interaction, pressedScale = 0.95f)
-                        .padding(horizontal = 12.dp, vertical = 7.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Logout,
-                        contentDescription = null,
-                        tint = Faint,
-                        modifier = Modifier.size(15.dp),
-                    )
-                    Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(6.dp))
+                    }
                     Text(
-                        text = "Salir",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Ink,
-                        fontWeight = FontWeight.SemiBold,
+                        text = when {
+                            state.status == PartyStatus.JOINED ->
+                                if (state.participants.size == 1) {
+                                    "Solo tú por ahora"
+                                } else {
+                                    "${state.participants.size} escuchando"
+                                }
+
+                            state.inRoom -> "Reconectando…"
+                            else -> "Todos controlan la música"
+                        },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Muted,
                     )
                 }
+            }
+            if (state.inRoom) {
+                RoundAction(Icons.Rounded.Logout, "Salir de la sala", onClick = viewModel::leave)
             }
         }
 
@@ -217,107 +204,136 @@ private fun JoinContent(
     state: PartyUiState,
     viewModel: PartyViewModel,
 ) {
-    val interaction = remember { MutableInteractionSource() }
     val connecting = state.status == PartyStatus.CONNECTING
+    val cardShape = RoundedCornerShape(24.dp)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .verticalScroll(rememberScrollState())
+            .imePadding()
+            .padding(horizontal = 16.dp)
+            .padding(top = 8.dp, bottom = 170.dp),
     ) {
-        Spacer(Modifier.height(40.dp))
-
-        // Anillo plateado (blanco → gris).
-        Box(
+        Column(
             modifier = Modifier
-                .size(96.dp)
-                .clip(CircleShape)
-                .background(
-                    Brush.linearGradient(listOf(Color.White, Color(0xFF6E6E78))),
-                )
-                .padding(3.dp),
-            contentAlignment = Alignment.Center,
+                .fillMaxWidth()
+                .clip(cardShape)
+                .background(Brush.verticalGradient(listOf(Surface3, Surface2)))
+                .border(1.dp, Ink.copy(alpha = 0.06f), cardShape)
+                .padding(20.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(CircleShape)
-                    .background(Surface),
-                contentAlignment = Alignment.Center,
+            Row(
+                modifier = Modifier.fillMaxWidth().height(64.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Groups,
-                    contentDescription = null,
-                    tint = Ink,
-                    modifier = Modifier.size(42.dp),
-                )
+                // Tres oyentes solapados: la idea de la sala de un vistazo.
+                listOf(Icons.Rounded.Groups, Icons.Rounded.GraphicEq, Icons.Rounded.QueueMusic)
+                    .forEachIndexed { index, icon ->
+                        Box(
+                            modifier = Modifier
+                                .offset(x = (-12 * index).dp)
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(if (index == 0) Ink else LineStrong)
+                                .border(3.dp, Surface3, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = if (index == 0) OnInk else Ink,
+                                modifier = Modifier.size(25.dp),
+                            )
+                        }
+                    }
             }
-        }
-
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text = "Escucha en vivo con amigos",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = "Todos controlan: cualquiera puede cambiar la canción, " +
-                "pausar o añadir temas a la cola compartida.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Faint,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(28.dp))
-
-        GlassTextField(
-            value = state.code,
-            onValueChange = viewModel::onCodeChange,
-            placeholder = "Código de la sala",
-            capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters,
-            imeAction = androidx.compose.ui.text.input.ImeAction.Done,
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Rounded.ConfirmationNumber,
-                    contentDescription = null,
-                    tint = Ink,
-                    modifier = Modifier.size(20.dp),
-                )
-            },
-        )
-        Spacer(Modifier.height(14.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedAction(
-                text = if (connecting) "Conectando…" else "Unirse",
-                icon = Icons.Rounded.Login,
-                enabled = !connecting && state.code.length >= 4,
-                onClick = { viewModel.joinRoom(state.code) },
-                modifier = Modifier.weight(1f),
+            Spacer(Modifier.height(16.dp))
+            Text(
+                text = "Escucha con tus amigos",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = Ink,
             )
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "La misma música, al mismo tiempo. Cualquiera puede pausar, " +
+                    "saltar o añadir canciones.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Muted,
+            )
+            Spacer(Modifier.height(20.dp))
             PrimaryAction(
                 text = "Crear sala",
                 icon = Icons.Rounded.Add,
                 enabled = !connecting,
                 onClick = viewModel::createRoom,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxWidth(),
             )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(cardShape)
+                .background(Surface2)
+                .border(1.dp, Ink.copy(alpha = 0.06f), cardShape)
+                .padding(20.dp),
+        ) {
+            Text(
+                text = "¿Te han invitado?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = "Escribe el código que te compartieron.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Muted,
+            )
+            Spacer(Modifier.height(14.dp))
+            GlassTextField(
+                value = state.code,
+                onValueChange = viewModel::onCodeChange,
+                placeholder = "Código de la sala",
+                capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Characters,
+                imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Rounded.ConfirmationNumber,
+                        contentDescription = null,
+                        tint = Muted,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+            )
+            Spacer(Modifier.height(10.dp))
+            OutlinedAction(
+                text = if (connecting) "Conectando…" else "Unirme a la sala",
+                icon = Icons.Rounded.Login,
+                enabled = !connecting && state.code.length >= 4,
+                onClick = { viewModel.joinRoom(state.code) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            state.error?.let { error ->
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = error,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
         }
 
         if (connecting) {
             Spacer(Modifier.height(20.dp))
-            MusicLoader(size = 24.dp, color = MaterialTheme.colorScheme.onSurface)
-        }
-
-        state.error?.let { error ->
-            Spacer(Modifier.height(16.dp))
-            Text(
-                text = error,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                textAlign = TextAlign.Center,
+            MusicLoader(
+                size = 24.dp,
+                color = Ink,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
             )
         }
     }
@@ -333,33 +349,34 @@ private fun RoomContent(
     onTabChange: (PartyTab) -> Unit,
     onCopyCode: () -> Unit,
 ) {
-    val interaction = remember { MutableInteractionSource() }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(modifier = Modifier.fillMaxSize()) {
         // ————— Código + participantes (sigue el color del fondo) —————
+        val headerShape = RoundedCornerShape(22.dp)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp, vertical = 4.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .background(
-                    Brush.horizontalGradient(listOf(Surface2, Surface3)),
-                )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .clip(headerShape)
+                .background(Brush.verticalGradient(listOf(Surface3, Surface2)))
+                .border(1.dp, Ink.copy(alpha = 0.06f), headerShape)
+                .padding(start = 18.dp, end = 10.dp, top = 12.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Código de la sala",
+                    text = "Código",
                     style = MaterialTheme.typography.labelMedium,
                     color = Muted,
                 )
                 Text(
                     text = state.code.uppercase(),
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace,
-                    letterSpacing = 3.sp,
+                    letterSpacing = 2.sp,
+                    maxLines = 1,
                     color = Ink,
                 )
             }
@@ -373,7 +390,7 @@ private fun RoomContent(
                     if (index > 0) Spacer(Modifier.width((-9).dp))
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(32.dp)
                             .clip(CircleShape)
                             .background(if (index == 0) Ink else Surface3)
                             .border(2.dp, Surface2, CircleShape),
@@ -401,7 +418,7 @@ private fun RoomContent(
                     Spacer(Modifier.width((-9).dp))
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(32.dp)
                             .clip(CircleShape)
                             .background(Surface3)
                             .border(2.dp, Surface2, CircleShape),
@@ -415,46 +432,43 @@ private fun RoomContent(
                         )
                     }
                 }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "${state.participants.size}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Ink,
-                )
             }
 
             Spacer(Modifier.width(10.dp))
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(LineStrong)
-                    .clickable(
-                        interactionSource = interaction,
-                        indication = ripple(bounded = true),
-                        onClick = onCopyCode,
-                    )
-                    .pressScale(interaction, pressedScale = 0.94f)
-                    .padding(10.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.ContentCopy,
-                    contentDescription = "Copiar código",
-                    tint = Ink,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+            RoundAction(Icons.Rounded.ContentCopy, "Copiar código", filled = false, onClick = onCopyCode)
+            Spacer(Modifier.width(6.dp))
+            RoundAction(
+                icon = Icons.Rounded.Share,
+                label = "Invitar",
+                filled = true,
+                onClick = {
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                        .setType("text/plain")
+                        .putExtra(
+                            android.content.Intent.EXTRA_TEXT,
+                            "Escucha música conmigo en PoP Music. " +
+                                "Entra en Salas con el código ${state.code.uppercase()}",
+                        )
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent.createChooser(send, "Invitar a la sala"),
+                        )
+                    }
+                },
+            )
         }
 
         Spacer(Modifier.height(6.dp))
 
-        // ————— Pestañas —————
+        // ————— Pestañas: control segmentado —————
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = 16.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Surface2)
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             PartyTab.entries.forEach { entry ->
                 TabPill(
@@ -469,7 +483,11 @@ private fun RoomContent(
         Spacer(Modifier.height(6.dp))
 
         when (tab) {
-            PartyTab.QUEUE -> QueueTab(state = state, viewModel = viewModel)
+            PartyTab.QUEUE -> QueueTab(
+                state = state,
+                viewModel = viewModel,
+                onSearch = { onTabChange(PartyTab.SEARCH) },
+            )
             PartyTab.SEARCH -> SearchTab(state = state, viewModel = viewModel)
             PartyTab.MY_MUSIC -> MyMusicTab(state = state, viewModel = viewModel)
         }
@@ -484,46 +502,133 @@ private fun TabPill(
     modifier: Modifier = Modifier,
 ) {
     val interaction = remember { MutableInteractionSource() }
+    val content = if (selected) OnInk else Muted
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .background(
-                if (selected) Color.White else Color.White.copy(alpha = 0.06f),
-            )
-            .border(
-                1.dp,
-                if (selected) Color.Transparent else Color.White.copy(alpha = 0.10f),
-                RoundedCornerShape(50),
-            )
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) Ink else Color.Transparent)
             .clickable(
                 interactionSource = interaction,
-                indication = ripple(
-                    bounded = true,
-                    color = if (selected) {
-                        Color.Black.copy(alpha = 0.12f)
-                    } else {
-                        Color.White.copy(alpha = 0.12f)
-                    },
-                ),
+                indication = ripple(bounded = true),
                 onClick = onClick,
             )
             .pressScale(interaction, pressedScale = 0.96f)
-            .padding(vertical = 9.dp),
+            .padding(vertical = 10.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
             imageVector = tab.icon,
             contentDescription = null,
-            tint = if (selected) Color.Black else Faint,
+            tint = content,
             modifier = Modifier.size(16.dp),
         )
         Spacer(Modifier.width(6.dp))
         Text(
             text = tab.label,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (selected) Color.Black else Faint,
+            style = MaterialTheme.typography.labelLarge,
+            color = content,
+            maxLines = 1,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+        )
+    }
+}
+
+/** Botón circular de la sala. */
+@Composable
+private fun RoundAction(
+    icon: ImageVector,
+    label: String,
+    modifier: Modifier = Modifier,
+    filled: Boolean = false,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(if (filled) Ink else Surface2)
+            .border(1.dp, Ink.copy(alpha = 0.08f), CircleShape)
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                onClick = onClick,
+            )
+            .pressScale(interaction, pressedScale = 0.92f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(icon, label, tint = if (filled) OnInk else Ink, modifier = Modifier.size(19.dp))
+    }
+}
+
+/** Botón ancho con icono para las acciones de la cola. */
+@Composable
+private fun QueueAction(
+    icon: ImageVector,
+    text: String,
+    filled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    loading: Boolean = false,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(if (filled) Ink else Surface2)
+            .border(1.dp, Ink.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                enabled = !loading,
+                onClick = onClick,
+            )
+            .pressScale(interaction, pressedScale = 0.96f)
+            .height(48.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        val tint = if (filled) OnInk else Ink
+        if (loading) {
+            MusicLoader(size = 18.dp, color = tint)
+        } else {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = tint,
+            maxLines = 1,
+        )
+    }
+}
+
+/** Botón redondo de añadir: "+" y, al añadir, un check. */
+@Composable
+private fun AddCircle(added: Boolean, label: String, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .size(38.dp)
+            .clip(CircleShape)
+            .background(if (added) Surface3 else Ink)
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                enabled = !added,
+                onClick = onClick,
+            )
+            .pressScale(interaction, pressedScale = 0.90f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = if (added) Icons.Rounded.Check else Icons.Rounded.Add,
+            contentDescription = if (added) "Añadida" else label,
+            tint = if (added) Ink else OnInk,
+            modifier = Modifier.size(20.dp),
         )
     }
 }
@@ -534,7 +639,11 @@ private fun TabPill(
 private fun QueueTab(
     state: PartyUiState,
     viewModel: PartyViewModel,
+    onSearch: () -> Unit,
 ) {
+    var showSuggestions by remember { mutableStateOf(false) }
+    val suggestions by viewModel.tasteSuggestions.collectAsState()
+    val suggesting by viewModel.tasteLoading.collectAsState()
     val snapshot = state.snapshot
     val queue = snapshot?.queue ?: emptyList()
     val currentIndex = snapshot?.index ?: -1
@@ -558,85 +667,59 @@ private fun QueueTab(
     ) {
         // Ahora suena + controles
         item(key = "now") {
-            LiquidGlass(
+            NowPlayingCard(
+                song = currentSong,
+                playing = playing,
+                shuffle = playerState.shuffle,
+                repeatMode = playerState.repeatMode,
+                durationMs = playerState.durationMs,
+                viewModel = viewModel,
+            )
+        }
+
+        item(key = "actions") {
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                shape = RoundedCornerShape(24.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Artwork(
-                            url = currentSong?.thumbnailUrl,
-                            cornerRadius = 14.dp,
-                            modifier = Modifier.size(56.dp),
-                        )
-                        Spacer(Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = currentSong?.title ?: "Aún no hay canciones",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = currentSong?.artist
-                                    ?: "Añade la primera desde Buscar o Mi música",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Faint,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                // Usa los gustos guardados en ESTE móvil: cada quien, los suyos.
+                QueueAction(
+                    icon = Icons.Rounded.AutoAwesome,
+                    text = if (showSuggestions) "Sugerir otras" else "Sugerir",
+                    filled = true,
+                    loading = suggesting,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        if (showSuggestions) {
+                            viewModel.refreshSuggestions()
+                        } else {
+                            showSuggestions = true
+                            viewModel.loadTasteSuggestions()
                         }
-                    }
-                    Spacer(Modifier.height(14.dp))
-                    // SpaceEvenly + fillMaxWidth: los 5 botones se reparten
-                    // sin desbordar aunque la pantalla sea estrecha.
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        PlayerControlButton(
-                            icon = Icons.Rounded.Shuffle,
-                            description = "Aleatorio",
-                            large = false,
-                            active = playerState.shuffle,
-                            onClick = viewModel::toggleShuffle,
-                        )
-                        PlayerControlButton(
-                            icon = Icons.Rounded.SkipPrevious,
-                            description = "Anterior",
-                            large = false,
-                            onClick = viewModel::previous,
-                        )
-                        PlayButton(
-                            playing = playing,
-                            onClick = viewModel::togglePlay,
-                        )
-                        PlayerControlButton(
-                            icon = Icons.Rounded.SkipNext,
-                            description = "Siguiente",
-                            large = false,
-                            onClick = viewModel::next,
-                        )
-                        PlayerControlButton(
-                            icon = if (playerState.repeatMode == Player.REPEAT_MODE_ONE) {
-                                Icons.Rounded.RepeatOne
-                            } else {
-                                Icons.Rounded.Repeat
-                            },
-                            description = "Repetir",
-                            large = false,
-                            active = playerState.repeatMode != Player.REPEAT_MODE_OFF,
-                            onClick = viewModel::cycleRepeatMode,
-                        )
-                    }
-                }
+                    },
+                )
+                QueueAction(
+                    icon = Icons.Rounded.Search,
+                    text = "Buscar",
+                    filled = false,
+                    modifier = Modifier.weight(1f),
+                    onClick = onSearch,
+                )
+            }
+        }
+
+        if (showSuggestions) {
+            item(key = "suggestions") {
+                SuggestionsCard(
+                    songs = suggestions,
+                    loading = suggesting,
+                    justAdded = state.justAdded,
+                    queued = queue.mapTo(HashSet()) { it.id },
+                    onAdd = { viewModel.addSongs(listOf(it)) },
+                    onClose = { showSuggestions = false },
+                )
             }
         }
 
@@ -655,7 +738,7 @@ private fun QueueTab(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "Cola compartida · ${upcoming.size}",
+                        text = "A continuación · ${upcoming.size}",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -710,7 +793,290 @@ private fun QueueTab(
             }
         }
 
-        item(key = "end") { Spacer(Modifier.height(24.dp)) }
+        item(key = "end") { Spacer(Modifier.height(170.dp)) }
+    }
+}
+
+/** Lo que suena, sobre los colores animados de su carátula. */
+@Composable
+private fun NowPlayingCard(
+    song: Song?,
+    playing: Boolean,
+    shuffle: Boolean,
+    repeatMode: Int,
+    durationMs: Long,
+    viewModel: PartyViewModel,
+) {
+    val position by viewModel.positionMs.collectAsState()
+    val shape = RoundedCornerShape(28.dp)
+    // Con carátula el fondo es oscuro: textos blancos fijos.
+    val over = if (song != null) Color.White else Ink
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(shape)
+            .background(Surface2)
+            .border(1.dp, Ink.copy(alpha = 0.06f), shape),
+    ) {
+        if (song != null) {
+            PlayerPaletteWash(artworkUrl = song.thumbnailUrl, modifier = Modifier.matchParentSize())
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(104.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(over.copy(alpha = 0.08f)),
+                ) {
+                    Artwork(
+                        url = song?.thumbnailUrl,
+                        cornerRadius = 20.dp,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+                Spacer(Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(over.copy(alpha = 0.12f))
+                            .padding(horizontal = 9.dp, vertical = 4.dp),
+                    ) {
+                        Icon(Icons.Rounded.GraphicEq, null, tint = over, modifier = Modifier.size(13.dp))
+                        Spacer(Modifier.width(5.dp))
+                        Text(
+                            text = when {
+                                song == null -> "Sala lista"
+                                playing -> "Sonando para todos"
+                                else -> "En pausa"
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                            color = over,
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = song?.title ?: "Elige la primera canción",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = over,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = song?.artist ?: "Pulsa Sugerir o Buscar",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = over.copy(alpha = 0.75f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+            if (song != null) {
+                Spacer(Modifier.height(16.dp))
+                val progress = if (durationMs > 0L) {
+                    (position.toFloat() / durationMs).coerceIn(0f, 1f)
+                } else {
+                    0f
+                }
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(5.dp)
+                        .clip(CircleShape)
+                        .background(over.copy(alpha = 0.22f)),
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth(progress)
+                            .height(5.dp)
+                            .clip(CircleShape)
+                            .background(over),
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ControlIcon(Icons.Rounded.Shuffle, "Aleatorio", over, 22.dp, shuffle, viewModel::toggleShuffle)
+                ControlIcon(Icons.Rounded.SkipPrevious, "Anterior", over, 32.dp, false, viewModel::previous)
+                val interaction = remember { MutableInteractionSource() }
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(CircleShape)
+                        .background(over)
+                        .clickable(
+                            interactionSource = interaction,
+                            indication = ripple(bounded = true),
+                            onClick = viewModel::togglePlay,
+                        )
+                        .pressScale(interaction, pressedScale = 0.92f),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        contentDescription = if (playing) "Pausar" else "Reproducir",
+                        tint = if (song != null) Color.Black else OnInk,
+                        modifier = Modifier.size(34.dp),
+                    )
+                }
+                ControlIcon(Icons.Rounded.SkipNext, "Siguiente", over, 32.dp, false, viewModel::next)
+                ControlIcon(
+                    if (repeatMode == Player.REPEAT_MODE_ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat,
+                    "Repetir",
+                    over,
+                    22.dp,
+                    repeatMode != Player.REPEAT_MODE_OFF,
+                    viewModel::cycleRepeatMode,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ControlIcon(
+    icon: ImageVector,
+    label: String,
+    color: Color,
+    size: androidx.compose.ui.unit.Dp,
+    active: Boolean,
+    onClick: () -> Unit,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(if (active) color.copy(alpha = 0.18f) else Color.Transparent)
+            .clickable(
+                interactionSource = interaction,
+                indication = ripple(bounded = true),
+                onClick = onClick,
+            )
+            .pressScale(interaction, pressedScale = 0.90f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            icon,
+            label,
+            tint = if (active || size > 24.dp) color else color.copy(alpha = 0.65f),
+            modifier = Modifier.size(size),
+        )
+    }
+}
+
+/** Canciones sugeridas en la cola según los gustos de quien pulsó. */
+@Composable
+private fun SuggestionsCard(
+    songs: List<Song>,
+    loading: Boolean,
+    justAdded: Set<String>,
+    queued: Set<String>,
+    onAdd: (Song) -> Unit,
+    onClose: () -> Unit,
+) {
+    val shape = RoundedCornerShape(24.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(shape)
+            .background(Surface2)
+            .border(1.dp, Ink.copy(alpha = 0.06f), shape)
+            .padding(top = 14.dp, bottom = 16.dp),
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp, end = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    "Para ti",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink,
+                )
+                Text(
+                    "Según tus gustos musicales",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Muted,
+                )
+            }
+            Icon(
+                Icons.Rounded.Close,
+                "Cerrar sugerencias",
+                tint = Muted,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(onClick = onClose)
+                    .padding(9.dp)
+                    .size(20.dp),
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        when {
+            songs.isNotEmpty() -> LazyRow(
+                contentPadding = PaddingValues(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(songs, key = { it.id }) { song ->
+                    Column(Modifier.width(124.dp)) {
+                        Box {
+                            Artwork(
+                                url = song.thumbnailUrl,
+                                cornerRadius = 16.dp,
+                                modifier = Modifier.size(124.dp),
+                            )
+                            Box(Modifier.align(Alignment.BottomEnd).padding(7.dp)) {
+                                AddCircle(
+                                    added = song.id in justAdded || song.id in queued,
+                                    label = "Añadir a la cola",
+                                    onClick = { onAdd(song) },
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(7.dp))
+                        Text(
+                            song.title,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = Ink,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            song.artist,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Muted,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+
+            loading -> Box(
+                Modifier.fillMaxWidth().height(120.dp),
+                contentAlignment = Alignment.Center,
+            ) { MusicLoader(size = 24.dp, color = Ink) }
+
+            else -> Text(
+                "No encontramos sugerencias. Revisa tu conexión y pulsa Sugerir otras.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Muted,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
     }
 }
 
@@ -722,7 +1088,10 @@ private fun SearchTab(
     viewModel: PartyViewModel,
 ) {
     val tasteSuggestions by viewModel.tasteSuggestions.collectAsState()
-    LaunchedEffect(Unit) { viewModel.loadTasteSuggestions() }
+    val tasteLoading by viewModel.tasteLoading.collectAsState()
+    val taste by viewModel.taste.collectAsState()
+    val queued = state.snapshot?.queue?.mapTo(HashSet()) { it.id }.orEmpty()
+    LaunchedEffect(taste) { viewModel.loadTasteSuggestions() }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -752,7 +1121,7 @@ private fun SearchTab(
                                 modifier = Modifier
                                     .size(18.dp)
                                     .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.10f))
+                                    .background(Ink.copy(alpha = 0.10f))
                                     .clickable { viewModel.clearSearch() }
                                     .padding(3.dp),
                             )
@@ -771,25 +1140,69 @@ private fun SearchTab(
         // Sin búsqueda: sugerencias según los gustos del usuario (Tanda 12);
         // si aún no hay, el aviso genérico de siempre.
         if (state.searchQuery.isBlank()) {
-            if (tasteSuggestions.isNotEmpty()) {
-                item(key = "taste-header") {
-                    SectionRow(icon = Icons.Rounded.AutoAwesome, title = "Según tus gustos")
+            // Atajos a mis artistas y géneros.
+            val shortcuts = taste.artists + taste.genres.sorted()
+            if (shortcuts.isNotEmpty()) {
+                item(key = "taste-shortcuts") {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(shortcuts) { name ->
+                            Text(
+                                name,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Ink,
+                                modifier = Modifier
+                                    .clip(CircleShape)
+                                    .background(Surface2)
+                                    .border(1.dp, Ink.copy(alpha = 0.06f), CircleShape)
+                                    .clickable { viewModel.onSearchQueryChange(name) }
+                                    .padding(horizontal = 14.dp, vertical = 9.dp),
+                            )
+                        }
+                    }
                 }
-                itemsIndexed(
-                    tasteSuggestions,
-                    key = { _, song -> "taste-${song.id}" },
-                ) { _, song ->
-                    SearchAddRow(
-                        song = song,
-                        added = song.id in state.justAdded,
-                        onAdd = { viewModel.addSongs(listOf(song)) },
-                    )
-                }
-            } else {
-                item(key = "search-hint") {
+            }
+            item(key = "taste-header") {
+                SectionRow(
+                    icon = Icons.Rounded.AutoAwesome,
+                    title = "Según tus gustos",
+                    action = {
+                        RoundAction(
+                            icon = Icons.Rounded.Refresh,
+                            label = "Otras sugerencias",
+                            onClick = viewModel::refreshSuggestions,
+                        )
+                    },
+                )
+            }
+            itemsIndexed(
+                tasteSuggestions,
+                key = { _, song -> "taste-${song.id}" },
+            ) { _, song ->
+                SearchAddRow(
+                    song = song,
+                    added = song.id in state.justAdded || song.id in queued,
+                    onAdd = { viewModel.addSongs(listOf(song)) },
+                )
+            }
+            item(key = "taste-more") {
+                if (tasteSuggestions.isEmpty() && !tasteLoading) {
                     EmptyHint(
                         icon = Icons.Rounded.Search,
                         text = "Busca cualquier canción y añádela a la cola de todos.",
+                    )
+                } else {
+                    QueueAction(
+                        icon = Icons.Rounded.AutoAwesome,
+                        text = if (tasteLoading) "Buscando…" else "Más sugerencias",
+                        filled = false,
+                        loading = tasteLoading,
+                        onClick = viewModel::moreSuggestions,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                     )
                 }
             }
@@ -801,12 +1214,12 @@ private fun SearchTab(
         ) { _, song ->
             SearchAddRow(
                 song = song,
-                added = song.id in state.justAdded,
+                added = song.id in state.justAdded || song.id in queued,
                 onAdd = { viewModel.addSongs(listOf(song)) },
             )
         }
 
-        item(key = "end") { Spacer(Modifier.height(24.dp)) }
+        item(key = "end") { Spacer(Modifier.height(170.dp)) }
     }
 }
 
@@ -926,36 +1339,38 @@ private fun MyMusicTab(
             }
         }
 
-        item(key = "end") { Spacer(Modifier.height(24.dp)) }
+        item(key = "end") { Spacer(Modifier.height(170.dp)) }
     }
 }
 
 @Composable
-private fun SectionRow(icon: ImageVector, title: String) {
+private fun SectionRow(
+    icon: ImageVector,
+    title: String,
+    action: (@Composable () -> Unit)? = null,
+) {
     Row(
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             modifier = Modifier
-                .size(28.dp)
-                .clip(RoundedCornerShape(9.dp))
-                .background(Color.White),
+                .size(32.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Surface3),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = Color.Black,
-                modifier = Modifier.size(16.dp),
-            )
+            Icon(icon, null, tint = Ink, modifier = Modifier.size(17.dp))
         }
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(12.dp))
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
+            fontWeight = FontWeight.Bold,
+            color = Ink,
+            modifier = Modifier.weight(1f),
         )
+        action?.invoke()
     }
 }
 
@@ -983,75 +1398,6 @@ private fun EmptyHint(icon: ImageVector, text: String) {
 // ————————————————— Controles y filas —————————————————
 
 @Composable
-private fun PlayButton(playing: Boolean, onClick: () -> Unit) {
-    val interaction = remember { MutableInteractionSource() }
-    Box(
-        modifier = Modifier
-            .size(64.dp)
-            .clip(CircleShape)
-            .background(Color.White)
-            .clickable(
-                interactionSource = interaction,
-                indication = ripple(
-                    bounded = true,
-                    color = Color.Black.copy(alpha = 0.12f),
-                ),
-                onClick = onClick,
-            )
-            .pressScale(interaction, pressedScale = 0.93f),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = if (playing) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-            contentDescription = if (playing) "Pausar" else "Reproducir",
-            tint = Color.Black,
-            modifier = Modifier.size(32.dp),
-        )
-    }
-}
-
-@Composable
-private fun PlayerControlButton(
-    icon: ImageVector,
-    description: String,
-    large: Boolean,
-    onClick: () -> Unit,
-    active: Boolean = false,
-) {
-    val interaction = remember { MutableInteractionSource() }
-    val size = if (large) 64.dp else 48.dp
-    Box(
-        modifier = Modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(
-                if (active) Color.White.copy(alpha = 0.16f)
-                else Color.White.copy(alpha = 0.07f),
-            )
-            .border(
-                1.dp,
-                if (active) Color.White.copy(alpha = 0.40f)
-                else Color.White.copy(alpha = 0.12f),
-                CircleShape,
-            )
-            .clickable(
-                interactionSource = interaction,
-                indication = ripple(bounded = true),
-                onClick = onClick,
-            )
-            .pressScale(interaction, pressedScale = 0.93f),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = description,
-            tint = Ink,
-            modifier = Modifier.size(if (large) 30.dp else 22.dp),
-        )
-    }
-}
-
-@Composable
 private fun QueueRow(
     song: Song,
     index: Int,
@@ -1064,10 +1410,10 @@ private fun QueueRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 3.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(
-                if (isCurrent) Color.White.copy(alpha = 0.10f)
-                else Color.Transparent,
+                if (isCurrent) Ink.copy(alpha = 0.10f)
+                else Surface2.copy(alpha = 0.55f),
             )
             .clickable(
                 interactionSource = interaction,
@@ -1105,7 +1451,7 @@ private fun QueueRow(
         Artwork(
             url = song.thumbnailUrl,
             cornerRadius = 10.dp,
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(48.dp),
         )
         Spacer(Modifier.width(10.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -1120,7 +1466,7 @@ private fun QueueRow(
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodySmall,
-                color = Faint,
+                color = Muted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -1134,70 +1480,40 @@ private fun SearchAddRow(
     added: Boolean,
     onAdd: () -> Unit,
 ) {
-    val interaction = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 3.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .clip(RoundedCornerShape(18.dp))
+            .background(Surface2.copy(alpha = 0.55f))
+            .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Artwork(
             url = song.thumbnailUrl,
-            cornerRadius = 10.dp,
-            modifier = Modifier.size(38.dp),
+            cornerRadius = 12.dp,
+            modifier = Modifier.size(50.dp),
         )
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = song.title,
                 style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Ink,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodySmall,
-                color = Faint,
+                color = Muted,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Spacer(Modifier.width(8.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(
-                    if (added) Color.White.copy(alpha = 0.10f) else Color.White,
-                )
-                .clickable(
-                    interactionSource = interaction,
-                    indication = ripple(
-                        bounded = true,
-                        color = Color.Black.copy(alpha = 0.12f),
-                    ),
-                    enabled = !added,
-                    onClick = onAdd,
-                )
-                .pressScale(interaction, pressedScale = 0.94f)
-                .padding(horizontal = 12.dp, vertical = 7.dp),
-        ) {
-            Icon(
-                imageVector = if (added) Icons.Rounded.Check else Icons.Rounded.Add,
-                contentDescription = null,
-                tint = if (added) Faint else Color.Black,
-                modifier = Modifier.size(15.dp),
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = if (added) "Añadido" else "Añadir",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (added) Faint else Color.Black,
-            )
-        }
+        Spacer(Modifier.width(10.dp))
+        AddCircle(added = added, label = "Añadir a la cola", onClick = onAdd)
     }
 }
 
@@ -1212,14 +1528,13 @@ private fun PlaylistAddRow(
     onAdd: () -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
-    val addInteraction = remember { MutableInteractionSource() }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 3.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.04f))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .clip(RoundedCornerShape(18.dp))
+            .background(Surface2)
+            .padding(start = 8.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         // Toca (o usa la flecha) para abrir la playlist y elegir canciones.
@@ -1237,7 +1552,7 @@ private fun PlaylistAddRow(
         ) {
             ArtworkCollage(
                 urls = covers,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(50.dp),
                 cornerRadius = 12.dp,
                 iconSize = 16.dp,
                 gap = 1.dp,
@@ -1254,7 +1569,7 @@ private fun PlaylistAddRow(
                 Text(
                     text = if (count == 1) "1 canción" else "$count canciones",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Faint,
+                    color = Muted,
                 )
             }
             Icon(
@@ -1267,39 +1582,7 @@ private fun PlaylistAddRow(
             )
         }
         Spacer(Modifier.width(8.dp))
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(
-                    if (added) Color.White.copy(alpha = 0.10f) else Color.White,
-                )
-                .clickable(
-                    interactionSource = addInteraction,
-                    indication = ripple(
-                        bounded = true,
-                        color = Color.Black.copy(alpha = 0.12f),
-                    ),
-                    enabled = !added,
-                    onClick = onAdd,
-                )
-                .pressScale(addInteraction, pressedScale = 0.94f)
-                .padding(horizontal = 12.dp, vertical = 7.dp),
-        ) {
-            Icon(
-                imageVector = if (added) Icons.Rounded.Check else Icons.Rounded.Add,
-                contentDescription = null,
-                tint = if (added) Faint else Color.Black,
-                modifier = Modifier.size(15.dp),
-            )
-            Spacer(Modifier.width(4.dp))
-            Text(
-                text = if (added) "Añadida" else "Añadir",
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = if (added) Faint else Color.Black,
-            )
-        }
+        AddCircle(added = added, label = "Añadir toda la playlist", onClick = onAdd)
     }
 }
 
@@ -1318,13 +1601,13 @@ private fun PrimaryAction(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
             .background(
-                if (enabled) Color.White else Color.White.copy(alpha = 0.10f),
+                if (enabled) Ink else Ink.copy(alpha = 0.10f),
             )
             .clickable(
                 interactionSource = interaction,
                 indication = ripple(
                     bounded = true,
-                    color = Color.Black.copy(alpha = 0.12f),
+                    color = OnInk.copy(alpha = 0.12f),
                 ),
                 enabled = enabled,
                 onClick = onClick,
@@ -1337,7 +1620,7 @@ private fun PrimaryAction(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (enabled) Color.Black else Faint,
+            tint = if (enabled) OnInk else Faint,
             modifier = Modifier.size(17.dp),
         )
         Spacer(Modifier.width(7.dp))
@@ -1345,7 +1628,7 @@ private fun PrimaryAction(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = if (enabled) Color.Black else Faint,
+            color = if (enabled) OnInk else Faint,
         )
     }
 }
@@ -1362,10 +1645,10 @@ private fun OutlinedAction(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = if (enabled) 0.07f else 0.04f))
+            .background(Ink.copy(alpha = if (enabled) 0.07f else 0.04f))
             .border(
                 1.dp,
-                Color.White.copy(alpha = if (enabled) 0.22f else 0.10f),
+                Ink.copy(alpha = if (enabled) 0.14f else 0.06f),
                 RoundedCornerShape(16.dp),
             )
             .clickable(

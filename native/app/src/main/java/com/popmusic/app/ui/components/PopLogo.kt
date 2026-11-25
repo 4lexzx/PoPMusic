@@ -7,6 +7,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -16,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.popmusic.app.R
+import com.popmusic.app.ui.theme.Ink
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 
@@ -43,6 +46,7 @@ private var master: Bitmap? = null
 fun PopLogo(
     modifier: Modifier = Modifier,
     contentDescription: String = "PoP Music",
+    tint: Color = Ink,
 ) {
     val context = LocalContext.current
     Canvas(
@@ -60,6 +64,7 @@ fun PopLogo(
             dstOffset = IntOffset(((size.width - dstWidth) / 2f).roundToInt(), 0),
             dstSize = IntSize(dstWidth, targetHeight),
             filterQuality = FilterQuality.High,
+            colorFilter = ColorFilter.tint(tint),
         )
     }
 }

@@ -145,6 +145,61 @@ class RecommendationsRepository(
         return TasteRecommendations(songs = songs)
     }
 
+    /**
+     * Mezcla para proponer en una sala: SOLO los gustos de quien la pide (sus
+     * artistas, sus géneros y canciones afines). Sin gustos configurados se usan
+     * los artistas de su biblioteca, y las búsquedas genéricas como último recurso.
+     */
+    suspend fun tasteMix(
+        library: LibraryState,
+        tasteGenres: Set<String>,
+        tasteArtists: List<String>,
+        excludeIds: Set<String> = emptySet(),
+        limit: Int = 30,
+    ): List<Song> {
+        val ownArtists = (library.favorites + library.playlists.flatMap { it.songs })
+            .map { it.artist.trim().removeSuffix(" - Topic") }
+            .filter { it.isNotBlank() }
+            .groupingBy { it }
+            .eachCount()
+            .entries
+            .sortedByDescending { it.value }
+            .map { it.key }
+            .take(6)
+        val genres = tasteGenres.mapNotNull { label ->
+            TASTE_GENRES.firstOrNull { it.label == label }?.query
+        }
+        val queries = buildList {
+            addAll(tasteArtists.shuffled().take(4).map { "$it canciones" })
+            addAll(genres.shuffled().take(4).map { "$it ${RADIO_SUFFIXES.random()}" })
+            if (size < 4) addAll(ownArtists.shuffled().take(4).map { "$it canciones" })
+            if (isEmpty()) addAll(FALLBACK_QUERIES)
+        }.distinct()
+
+        val lists = supervisorScope {
+            queries.map { query ->
+                async {
+                    val songs = runCatching { youtube.search(query) }
+                        .getOrDefault(emptyList())
+                        .filter(::isSongLike)
+                        .take(12)
+                    // Canciones afines a la primera: no solo los mismos artistas.
+                    val related = songs.firstOrNull()
+                        ?.let { youtube.musicRadio(it.id).songs.drop(1).take(6) }
+                        .orEmpty()
+                    (songs.shuffled().take(8) + related).shuffled()
+                }
+            }.awaitAll()
+        }
+        // Se reparten por turnos para que ningún gusto acapare la lista.
+        val mixed = (0 until (lists.maxOfOrNull { it.size } ?: 0)).flatMap { turn ->
+            lists.shuffled().mapNotNull { it.getOrNull(turn) }
+        }
+        return diversify(
+            dedupeBySong(mixed.filter { it.id !in excludeIds && isSongLike(it) }),
+        ).take(limit)
+    }
+
     /** Temas de secciones horizontales: gustos elegidos, luego artistas de la biblioteca, luego géneros. */
     fun discoverThemes(
         library: LibraryState,

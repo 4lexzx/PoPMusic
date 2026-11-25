@@ -364,6 +364,23 @@ fun PopMusicApp() {
         }
     }
 
+    // Estas pantallas pintan un fondo oscuro propio (carátula): paleta oscura.
+    val immersiveRoute = currentRoute == Routes.NOW_PLAYING ||
+        currentRoute == Routes.MUSIC_FLOW ||
+        currentRoute == Routes.LYRICS ||
+        currentRoute == Routes.SONG_INFO
+    val barView = androidx.compose.ui.platform.LocalView.current
+    val lightBars = com.popmusic.app.ui.theme.Ambient.isLight
+    androidx.compose.runtime.SideEffect {
+        com.popmusic.app.ui.theme.Ambient.immersive = immersiveRoute
+        (barView.context as? android.app.Activity)?.window?.let { window ->
+            androidx.core.view.WindowCompat.getInsetsController(window, barView).apply {
+                isAppearanceLightStatusBars = lightBars
+                isAppearanceLightNavigationBars = lightBars
+            }
+        }
+    }
+
     CompositionLocalProvider(
         LocalGlassOpacity provides backgroundSettings.glassOpacity,
         LocalLiquidGlassEnabled provides backgroundSettings.liquidGlass,

@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -46,27 +47,27 @@ data class BackgroundPreset(
 val BackgroundPresets: List<BackgroundPreset> = listOf(
     BackgroundPreset(
         "Aurora",
-        listOf(Color(0xFF3A1D6E), Color(0xFF1B2A6B), Color(0xFF0B0B14)),
+        listOf(Color(0xFF241546), Color(0xFF131C46), Color(0xFF0B0B14)),
     ),
     BackgroundPreset(
         "Atardecer",
-        listOf(Color(0xFF7A2E2E), Color(0xFF3B1E4E), Color(0xFF120B17)),
+        listOf(Color(0xFF4A1E1E), Color(0xFF261434), Color(0xFF120B17)),
     ),
     BackgroundPreset(
         "Océano",
-        listOf(Color(0xFF0E3B4A), Color(0xFF12365C), Color(0xFF060A12)),
+        listOf(Color(0xFF0A2933), Color(0xFF0D2540), Color(0xFF060A12)),
     ),
     BackgroundPreset(
         "Bosque",
-        listOf(Color(0xFF16402F), Color(0xFF123A2E), Color(0xFF070D0B)),
+        listOf(Color(0xFF0F2C20), Color(0xFF0C261E), Color(0xFF070D0B)),
     ),
     BackgroundPreset(
         "Magma",
-        listOf(Color(0xFF5C2318), Color(0xFF3A1A2A), Color(0xFF0F0709)),
+        listOf(Color(0xFF3A1710), Color(0xFF26111B), Color(0xFF0F0709)),
     ),
     BackgroundPreset(
         "Grafito",
-        listOf(Color(0xFF2C2C36), Color(0xFF171719), Color(0xFF050506)),
+        listOf(Color(0xFF222228), Color(0xFF171719), Color(0xFF050506)),
     ),
 )
 
@@ -76,6 +77,8 @@ private const val TWO_PI = (Math.PI * 2).toFloat()
 fun AppBackground(
     settings: BackgroundSettings,
     modifier: Modifier = Modifier,
+    /** Las vistas previas no deben teñir el tema de toda la app. */
+    applyAmbient: Boolean = true,
 ) {
     val blurDp = (settings.backgroundBlur.coerceIn(0f, 1f) * 56f).dp
     val dim = settings.backgroundDim.coerceIn(0f, 0.92f)
@@ -106,25 +109,7 @@ fun AppBackground(
         imageTint = extracted
     }
 
-    val presetTint = when (settings.mode) {
-        BackgroundMode.PRESET -> BackgroundPresets[
-            settings.presetId.coerceIn(0, BackgroundPresets.lastIndex),
-        ].colors.first()
-
-        else -> null
-    }
-    val tint = presetTint ?: imageTint
-    SideEffect {
-        if (settings.mode == BackgroundMode.NONE || tint == null) {
-            // Sin fondo (negro): los colores quedan exactamente como siempre.
-            Ambient.color = Black
-            Ambient.strength = 0f
-        } else {
-            Ambient.color = tint
-            val luminance = 0.2126f * tint.red + 0.7152f * tint.green + 0.0722f * tint.blue
-            Ambient.strength = (1f - dim) * (0.30f + 0.70f * luminance)
-        }
-    }
+    if (applyAmbient) SideEffect { applyAmbientPalette(settings, imageTint) }
 
     Box(modifier = modifier.fillMaxSize().background(Black)) {
         when (settings.mode) {
@@ -143,6 +128,9 @@ fun AppBackground(
                 }
             }
 
+            BackgroundMode.ANIMATED ->
+                AnimatedBackgroundCanvas(preset = animatedPreset(settings.presetId))
+
             BackgroundMode.PRESET -> {
                 val preset = BackgroundPresets[
                     settings.presetId.coerceIn(0, BackgroundPresets.lastIndex),
@@ -158,6 +146,42 @@ fun AppBackground(
                     .background(Black.copy(alpha = dim)),
             )
         }
+    }
+}
+
+/** Tiñe la paleta de toda la app según el fondo elegido. */
+internal fun applyAmbientPalette(settings: BackgroundSettings, imageTint: Color? = null) {
+    val dim = settings.backgroundDim.coerceIn(0f, 0.92f)
+    val presetTint = when (settings.mode) {
+        BackgroundMode.PRESET -> BackgroundPresets[
+            settings.presetId.coerceIn(0, BackgroundPresets.lastIndex),
+        ].colors.first()
+
+        BackgroundMode.ANIMATED -> animatedPreset(settings.presetId).colors[1]
+
+        else -> null
+    }
+    val tint = presetTint ?: imageTint
+    val animated = settings.mode == BackgroundMode.ANIMATED
+    if (settings.mode == BackgroundMode.NONE || tint == null) {
+        // Sin fondo (negro): los colores quedan exactamente como siempre.
+        Ambient.color = Black
+        Ambient.strength = 0f
+        Ambient.accent = null
+        Ambient.pastel = false
+    } else if (animated) {
+        val preset = animatedPreset(settings.presetId)
+        // Un pastel muy oscurecido deja de ser claro.
+        Ambient.pastel = preset.light && dim < 0.35f
+        Ambient.color = lerp(tint, Black, dim)
+        Ambient.strength = if (preset.light) 0f else (1f - dim) * 0.75f
+        Ambient.accent = preset.accent
+    } else {
+        Ambient.pastel = false
+        Ambient.accent = null
+        Ambient.color = tint
+        val luminance = 0.2126f * tint.red + 0.7152f * tint.green + 0.0722f * tint.blue
+        Ambient.strength = (1f - dim) * (0.30f + 0.70f * luminance)
     }
 }
 

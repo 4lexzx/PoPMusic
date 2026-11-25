@@ -65,6 +65,11 @@ import com.popmusic.app.ui.screens.onboarding.SelectedArtistChip
 import com.popmusic.app.ui.screens.onboarding.TasteChip
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
+import com.popmusic.app.ui.theme.Muted
+import com.popmusic.app.ui.theme.OnInk
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.clickable
 import com.popmusic.app.ui.theme.BgElev
 import com.popmusic.app.ui.theme.Surface2
 import com.popmusic.app.ui.theme.LiquidGlass
@@ -161,9 +166,6 @@ fun TastesScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(listOf(Surface2, BgElev)),
-            )
             .statusBarsPadding()
             .navigationBarsPadding()
             .imePadding(),
@@ -174,24 +176,27 @@ fun TastesScreen(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.size(42.dp).clip(CircleShape).background(Surface2),
+            ) {
                 Icon(
                     imageVector = Icons.Rounded.ArrowBack,
                     contentDescription = "Volver",
                     tint = Ink,
                 )
             }
-            Spacer(Modifier.size(4.dp))
+            Spacer(Modifier.size(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = "Tus gustos musicales",
                     style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                 )
                 Text(
                     text = "Definen tu inicio y tus recomendaciones",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Faint,
+                    color = Muted,
                 )
             }
         }
@@ -201,53 +206,36 @@ fun TastesScreen(
                 .weight(1f)
                 .fillMaxWidth()
                 .verticalScroll(scrollState)
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
                 .padding(bottom = 20.dp),
         ) {
             Spacer(Modifier.height(8.dp))
 
-            // — Géneros —
-            SectionTitle(
-                "Géneros",
-                trailing = if (selectedGenres.isEmpty()) null else "${selectedGenres.size} elegidos",
+            TasteCard(
+                title = "Géneros",
                 icon = Icons.Rounded.GraphicEq,
-            )
-            Spacer(Modifier.height(10.dp))
-            LiquidGlass(shape = RoundedCornerShape(24.dp)) {
-                FlowRow(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    TASTE_GENRES.forEach { genre ->
-                        TasteChip(
-                            label = genre.label,
-                            selected = genre.label in selectedGenres,
-                            onClick = {
-                                selectedGenres = if (genre.label in selectedGenres) {
-                                    selectedGenres - genre.label
-                                } else {
-                                    selectedGenres + genre.label
-                                }
-                            },
-                        )
-                    }
-                }
+                trailing = if (selectedGenres.isEmpty()) null else "${selectedGenres.size} elegidos",
+            ) {
+                GenreGrid(
+                    selected = selectedGenres,
+                    onToggle = { label ->
+                        selectedGenres = if (label in selectedGenres) {
+                            selectedGenres - label
+                        } else {
+                            selectedGenres + label
+                        }
+                    },
+                )
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(12.dp))
 
-            // — Artistas —
-            SectionTitle(
-                "Artistas favoritos",
-                trailing = "${artists.size} de $MAX_ARTISTS",
+            TasteCard(
+                title = "Artistas favoritos",
                 icon = Icons.Rounded.Person,
-            )
-            Spacer(Modifier.height(10.dp))
-            LiquidGlass(shape = RoundedCornerShape(24.dp)) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                trailing = "${artists.size} de $MAX_ARTISTS",
+            ) {
+                Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         GlassTextField(
                             value = artistInput,
@@ -282,50 +270,25 @@ fun TastesScreen(
                         }
                     }
                 }
-            }
-
-            Spacer(Modifier.height(14.dp))
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ARTIST_SUGGESTIONS
-                    .filter { suggestion -> artists.none { it.equals(suggestion, true) } }
-                    .forEach { suggestion ->
-                        TasteChip(
-                            label = suggestion,
-                            selected = false,
-                            enabled = artists.size < MAX_ARTISTS,
-                            onClick = { addArtist(suggestion) },
-                        )
-                    }
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            // — Podcasts —
-            SectionTitle("Podcasts", icon = Icons.Rounded.Podcasts)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TasteChip(
-                    label = "Sí, escucho podcasts",
-                    selected = podcast,
-                    onClick = { podcast = true },
-                )
-                TasteChip(
-                    label = "Solo música",
-                    selected = !podcast,
-                    onClick = { podcast = false },
+                Spacer(Modifier.height(18.dp))
+                ArtistGrid(
+                    suggestions = ARTIST_SUGGESTIONS,
+                    selected = artists,
+                    canAdd = artists.size < MAX_ARTISTS,
+                    onToggle = { name ->
+                        val current = artists.firstOrNull { it.equals(name, ignoreCase = true) }
+                        if (current != null) artists = artists - current else addArtist(name)
+                    },
                 )
             }
 
-            if (podcast) {
-                Spacer(Modifier.height(16.dp))
-                LiquidGlass(shape = RoundedCornerShape(24.dp)) {
+            Spacer(Modifier.height(12.dp))
+
+            TasteCard(title = "Podcasts", icon = Icons.Rounded.Podcasts) {
+                PodcastSwitch(podcast = podcast, onChange = { podcast = it })
+                if (podcast) {
+                    Spacer(Modifier.height(14.dp))
                     FlowRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
@@ -343,18 +306,8 @@ fun TastesScreen(
                             )
                         }
                     }
-                }
-
-                // Tanda 9: escribir temas propios, igual que con los artistas.
-                Spacer(Modifier.height(12.dp))
-                LiquidGlass(shape = RoundedCornerShape(24.dp)) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text(
-                            text = "Tus propios temas",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Faint,
-                        )
-                        Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(14.dp))
+                    Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             GlassTextField(
                                 value = topicInput,
@@ -387,6 +340,7 @@ fun TastesScreen(
                                     SelectedArtistChip(
                                         artist = topic,
                                         onRemove = { podcastTopics = podcastTopics - topic },
+                                        showPhoto = false,
                                     )
                                 }
                             }
@@ -396,12 +350,23 @@ fun TastesScreen(
             }
 
             Spacer(Modifier.height(28.dp))
-            GlassPrimaryButton(
-                text = "Guardar cambios",
-                onClick = { save() },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Ink)
+                    .clickable { save() }
+                    .padding(vertical = 15.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "Guardar cambios",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = OnInk,
+                )
+            }
+            Spacer(Modifier.height(24.dp))
         }
     }
 }

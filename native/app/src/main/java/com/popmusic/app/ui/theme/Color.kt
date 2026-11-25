@@ -24,17 +24,47 @@ object Ambient {
     var strength by mutableStateOf(0f)
         internal set
 
+    /** Tono vivo del fondo animado: tiñe textos y botones. Null = neutro. */
+    var accent by mutableStateOf<Color?>(null)
+        internal set
+
+    /** Fondo claro (pastel): superficies claras y textos oscuros. */
+    var pastel by mutableStateOf(false)
+        internal set
+
     /**
-     * Mezcla [base] hacia el color del fondo. El factor 0.35 mantiene el
-     * cambio sutil: en negro no se nota nada y con fondo de color las
-     * superficies toman su tono.
+     * Reproductor, letras y similares pintan su propio fondo oscuro con la
+     * carátula: ahí la paleta vuelve a ser la oscura aunque el fondo sea pastel.
+     */
+    var immersive by mutableStateOf(false)
+        internal set
+
+    private val lightMode: Boolean get() = pastel && !immersive
+
+    /**
+     * Mezcla [base] hacia el color del fondo. En negro no se nota nada y con
+     * fondo de color las superficies toman su tono.
      */
     fun solid(base: Color): Color {
-        val currentColor = color
+        if (lightMode) {
+            // De casi blanco a más teñido según el nivel de la superficie.
+            return lerp(Color.White, color, (base.red * 6f).coerceIn(0.2f, 1f))
+        }
         val currentStrength = strength
-        if (currentStrength <= 0f) return base
+        if (currentStrength <= 0f || (pastel && immersive)) return base
         val fraction = (currentStrength * 0.6f).coerceIn(0f, 0.6f)
-        return lerp(base, currentColor, fraction)
+        return lerp(base, color, fraction)
+    }
+
+    /** Tiñe un color de texto o botón con el acento, sin perder contraste. */
+    fun ink(dark: Color, light: Color): Color {
+        val tint = accent
+        if (isLight) {
+            if (tint == null || !lightMode) return light
+            return lerp(light, lerp(tint, Color.Black, 0.50f), 0.70f)
+        }
+        if (tint == null || (pastel && immersive)) return dark
+        return lerp(dark, tint, 0.28f)
     }
 
     /** Luminancia perceptiva aproximada (0 = negro, 1 = blanco). */
@@ -43,13 +73,11 @@ object Ambient {
 
     /**
      * Indica si las superficies efectivas son claras. Es la señal que usa
-     * toda la paleta para decidir entre letras negras y blancas: con el fondo
-     * negro por defecto es siempre false; con un fondo claro (imagen o preset
-     * luminoso sin oscurecer) pasa a true. El umbral 0.46 es el punto en que
-     * el negro empieza a dar más contraste que el blanco.
+     * toda la paleta para decidir entre letras negras y blancas. El umbral
+     * 0.46 es el punto en que el negro da más contraste que el blanco.
      */
     val isLight: Boolean
-        get() = luminance(solid(SurfaceBase)) > 0.46f
+        get() = !immersive && (pastel || luminance(solid(SurfaceBase)) > 0.46f)
 }
 
 /** Base de [Surface]; se conserva aparte para medir la luminancia efectiva. */
@@ -68,7 +96,7 @@ val LineStrong: Color get() = Ambient.solid(Color(0xFF2A2A30))
  * cuando el fondo es blanco/claro ([Ambient.isLight]). Antes era blanco fijo
  * y los textos negros sueltos quedaban ilegibles cuando el fondo aclaraba.
  */
-val Ink: Color get() = if (Ambient.isLight) Color(0xFF0A0A0C) else Color(0xFFFFFFFF)
+val Ink: Color get() = Ambient.ink(Color(0xFFFFFFFF), Color(0xFF0A0A0C))
 
 /**
  * Color de contenido sobre un relleno de [Ink] (botones sólidos, píldoras,
@@ -79,9 +107,9 @@ val Ink: Color get() = if (Ambient.isLight) Color(0xFF0A0A0C) else Color(0xFFFFF
 val OnInk: Color get() = if (Ambient.isLight) Color(0xFFFFFFFF) else Color(0xFF000000)
 
 /** Texto secundario y terciario: siguen a [Ink] para no desaparecer. */
-val Muted: Color get() = if (Ambient.isLight) Color(0xFF3C3C44) else Color(0xFFB4B4BB)
-val Faint: Color get() = if (Ambient.isLight) Color(0xFF5E5E66) else Color(0xFF74747C)
-val Accent: Color get() = if (Ambient.isLight) Color(0xFF35353C) else Color(0xFFD7D7DE)
+val Muted: Color get() = Ambient.ink(Color(0xFFB4B4BB), Color(0xFF3C3C44))
+val Faint: Color get() = Ambient.ink(Color(0xFF74747C), Color(0xFF5E5E66))
+val Accent: Color get() = Ambient.ink(Color(0xFFD7D7DE), Color(0xFF35353C))
 val Danger = Color(0xFFFF4D4D)
 
 // ————— Colores de marca PoP Music (degradado del logo) —————

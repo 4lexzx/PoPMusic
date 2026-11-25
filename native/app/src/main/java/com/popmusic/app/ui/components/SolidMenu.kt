@@ -6,18 +6,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,98 +40,134 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import com.popmusic.app.ui.theme.Ambient
 import com.popmusic.app.ui.theme.Ink
 import com.popmusic.app.ui.theme.pressScale
-import kotlin.math.roundToInt
+
+private val MenuShape = RoundedCornerShape(14.dp)
 
 /**
- * Burbuja de opciones SÓLIDA y compacta (sin liquid glass): la misma tarjeta
- * del menú ⋯ del reproductor (fondo opaco #1A1A1E, borde fino, r18, sombra).
- *
- * Se ancla al padre (el Box que contiene el botón que la abre), se despliega
- * hacia abajo y, si el ancla queda en la mitad inferior de la pantalla, hacia
- * arriba para no salirse. [content] recibe el cierre para que cada fila pueda
- * cerrar el menú tras ejecutar su acción.
+ * Coloca el menú pegado al botón que lo abre: alineado a su derecha, debajo
+ * si cabe y encima si no. Nunca se sale de la pantalla.
+ */
+private class MenuPosition(
+    private val gap: Int,
+    private val margin: Int,
+    private val alignStart: Boolean,
+    private val onPlaced: (opensUp: Boolean) -> Unit,
+) : PopupPositionProvider {
+    override fun calculatePosition(
+        anchorBounds: IntRect,
+        windowSize: IntSize,
+        layoutDirection: LayoutDirection,
+        popupContentSize: IntSize,
+    ): IntOffset {
+        val maxX = (windowSize.width - popupContentSize.width - margin).coerceAtLeast(margin)
+        val wantedX = if (alignStart) {
+            anchorBounds.left
+        } else {
+            anchorBounds.right - popupContentSize.width
+        }
+        val below = anchorBounds.bottom + gap
+        val above = anchorBounds.top - gap - popupContentSize.height
+        val up = below + popupContentSize.height > windowSize.height - margin && above >= margin
+        onPlaced(up)
+        val maxY = (windowSize.height - popupContentSize.height - margin).coerceAtLeast(margin)
+        return IntOffset(
+            wantedX.coerceIn(margin, maxX),
+            (if (up) above else below).coerceIn(margin, maxY),
+        )
+    }
+}
+
+/**
+ * Burbuja de opciones SÓLIDA y compacta: se ajusta al ancho de su texto y se
+ * ancla al Box que contiene el botón que la abre. [content] recibe el cierre.
  */
 @Composable
 fun SolidMenu(
     expanded: Boolean,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    width: Dp = 232.dp,
+    /** Ancho fijo; si no se indica, el menú se ajusta a su contenido. */
+    width: Dp? = null,
+    alignStart: Boolean = false,
     content: @Composable ColumnScope.(dismiss: () -> Unit) -> Unit,
 ) {
-    val density = LocalDensity.current
-    val screenHeight = LocalContext.current.resources.displayMetrics.heightPixels.toFloat()
-    var anchorTop by remember { mutableStateOf(0f) }
-    var anchorHeight by remember { mutableStateOf(0f) }
-
-    // Nodo de medición dentro del anchor (posición del botón que la abre).
-    // Siempre compuesto: así el menú abre ya anclado aunque el anchor se mueva.
-    Spacer(
-        modifier = modifier
-            .size(0.dp)
-            .onGloballyPositioned { coords ->
-                anchorTop = coords.positionInWindow().y
-                anchorHeight = coords.size.height.toFloat()
-            },
-    )
-
     if (!expanded) return
 
-    val openUp = anchorTop > 0f && anchorTop + anchorHeight / 2f > screenHeight * 0.6f
-    val offsetY = with(density) {
-        val gap = 4.dp.toPx()
-        (if (openUp) -(anchorHeight + gap) else anchorHeight + gap).roundToInt()
+    val density = LocalDensity.current
+    var opensUp by remember { mutableStateOf(false) }
+    val position = remember(density, alignStart) {
+        with(density) {
+            MenuPosition(6.dp.roundToPx(), 10.dp.roundToPx(), alignStart) { opensUp = it }
+        }
     }
 
     Popup(
-        alignment = if (openUp) Alignment.BottomEnd else Alignment.TopEnd,
-        offset = IntOffset(-4, offsetY),
+        popupPositionProvider = position,
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = true),
     ) {
         val menuShown = remember { Animatable(0f) }
-        LaunchedEffect(Unit) { menuShown.animateTo(1f, tween(150)) }
+        LaunchedEffect(Unit) { menuShown.animateTo(1f, tween(140)) }
         Column(
-            modifier = Modifier
-                .width(width)
+            modifier = modifier
+                .then(
+                    if (width != null) {
+                        Modifier.width(width)
+                    } else {
+                        Modifier
+                            .widthIn(min = 148.dp, max = 240.dp)
+                            .width(IntrinsicSize.Max)
+                    },
+                )
                 .graphicsLayer {
                     alpha = menuShown.value
-                    val s = 0.95f + 0.05f * menuShown.value
+                    val s = 0.92f + 0.08f * menuShown.value
                     scaleX = s
                     scaleY = s
-                    transformOrigin = if (openUp) {
-                        TransformOrigin(1f, 1f)
-                    } else {
-                        TransformOrigin(1f, 0f)
-                    }
+                    transformOrigin = TransformOrigin(
+                        if (alignStart) 0f else 1f,
+                        if (opensUp) 1f else 0f,
+                    )
                 }
-                .shadow(14.dp, RoundedCornerShape(18.dp), clip = false)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Ambient.solid(Color(0xFF1A1A1E)))
-                .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {},
-                )
-                .padding(vertical = 6.dp),
+                .shadow(16.dp, MenuShape, clip = false)
+                .clip(MenuShape)
+                .background(Ambient.solid(Color(0xFF151517)))
+                .border(1.dp, Ink.copy(alpha = 0.07f), MenuShape)
+                .verticalScroll(rememberScrollState())
+                .padding(4.dp),
             content = { content(onDismiss) },
         )
     }
 }
 
-/** Fila del menú compacto: icono 20 + texto (mismo estilo que el ⋯ del player). */
+/** Línea fina que separa las acciones delicadas (p. ej. eliminar). */
+@Composable
+fun SolidMenuDivider() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+            .height(1.dp)
+            .background(Ink.copy(alpha = 0.07f)),
+    )
+}
+
+/** Fila compacta: icono 17 + texto. */
 @Composable
 fun SolidMenuRow(
     icon: ImageVector,
@@ -144,26 +184,29 @@ fun SolidMenuRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
             .clickable(
                 interactionSource = interaction,
                 indication = ripple(bounded = true),
                 onClick = onClick,
             )
             .pressScale(interaction, pressedScale = 0.98f)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 10.dp, vertical = 10.dp),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = iconTint ?: tint ?: Ink,
-            modifier = Modifier.size(20.dp),
+            tint = iconTint ?: tint ?: Ink.copy(alpha = 0.78f),
+            modifier = Modifier.size(17.dp),
         )
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(10.dp))
         Text(
             text = label,
             color = tint ?: Ink,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(end = 4.dp),
         )
     }
 }
@@ -182,13 +225,15 @@ fun SolidMenuTextRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(if (selected) Ink.copy(alpha = 0.07f) else Color.Transparent)
             .clickable(
                 interactionSource = interaction,
                 indication = ripple(bounded = true),
                 onClick = onClick,
             )
             .pressScale(interaction, pressedScale = 0.98f)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 9.dp),
     ) {
         Text(
             text = label,
@@ -198,11 +243,7 @@ fun SolidMenuTextRow(
             modifier = Modifier.weight(1f),
         )
         if (selected) {
-            Text(
-                text = "●",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelSmall,
-            )
+            Box(Modifier.size(6.dp).clip(CircleShape).background(Ink))
         }
     }
 }

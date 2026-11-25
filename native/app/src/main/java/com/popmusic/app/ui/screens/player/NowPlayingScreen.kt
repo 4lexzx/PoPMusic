@@ -286,6 +286,7 @@ fun NowPlayingScreen(
                 motion = ambientMotion,
             )
             PlayerPaletteWash(
+                motion = ambientMotion,
                 artworkUrl = state.artworkUrl,
                 modifier = Modifier.fillMaxSize(),
             )
@@ -832,13 +833,13 @@ private fun PlayerSleepSegmentButton(
                         }
                         .shadow(14.dp, RoundedCornerShape(18.dp), clip = false)
                         .clip(RoundedCornerShape(18.dp))
-                        .background(Ambient.solid(Color(0xFF1A1A1E)))
+                        .background(Ambient.solid(Color(0xFF151517)))
                         .border(
                             1.dp,
                             Color.White.copy(alpha = 0.08f),
                             RoundedCornerShape(18.dp),
                         )
-                        .padding(vertical = 6.dp),
+                        .padding(vertical = 4.dp),
                 ) {
                     listOf(15, 30, 45, 60, 90).forEach { mins ->
                         PlayerMenuRow(
@@ -912,7 +913,7 @@ private fun PlayerTopMenu(
                 }
                 Column(
                     modifier = Modifier
-                        .width(232.dp)
+                        .width(196.dp)
                         .graphicsLayer {
                             alpha = menuShown.value
                             val s = 0.95f + 0.05f * menuShown.value
@@ -923,14 +924,14 @@ private fun PlayerTopMenu(
                         }
                         .shadow(14.dp, RoundedCornerShape(18.dp), clip = false)
                         .clip(RoundedCornerShape(18.dp))
-                        .background(Ambient.solid(Color(0xFF1A1A1E)))
+                        .background(Ambient.solid(Color(0xFF151517)))
                         .border(1.dp, Color.White.copy(alpha = 0.08f), RoundedCornerShape(18.dp))
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null,
                             onClick = {},
                         )
-                        .padding(vertical = 6.dp),
+                        .padding(vertical = 4.dp),
                 ) {
                     PlayerMenuRow(
                         icon = Icons.Rounded.Info,
@@ -996,19 +997,19 @@ private fun PlayerMenuRow(
                 onClick = onClick,
             )
             .pressScale(interaction, pressedScale = 0.98f)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = Ink,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(17.dp),
         )
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(10.dp))
         Text(
             text = label,
             color = Ink,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.labelLarge,
             maxLines = 1,
         )
     }
