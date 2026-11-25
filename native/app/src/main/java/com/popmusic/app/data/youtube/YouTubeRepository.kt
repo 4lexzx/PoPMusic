@@ -1,5 +1,7 @@
 package com.popmusic.app.data.youtube
 
+import org.json.JSONObject
+import java.util.Locale
 import android.util.Log
 import com.popmusic.app.domain.Playlist
 import com.popmusic.app.domain.Song
@@ -283,6 +285,52 @@ class YouTubeRepository {
             result
         }
 
+    /** Una página de la radio de YouTube Music y el token para pedir la siguiente. */
+    data class MusicRadioPage(
+        val songs: List<Song> = emptyList(),
+        val continuation: String? = null,
+    )
+
+    /**
+     * Radio de YouTube Music (endpoint `next` del cliente web de Music). Con
+     * UNA petición ligera devuelve unas 50 canciones de audio afines a la
+     * semilla, sin videoclips y con paginación real.
+     */
+    suspend fun musicRadio(
+        videoId: String,
+        continuation: String? = null,
+    ): MusicRadioPage = withContext(Dispatchers.IO) {
+        if (!videoId.matches(VIDEO_ID_REGEX)) return@withContext MusicRadioPage()
+        runCatching {
+            NewPipeInitializer.ensureInitialized()
+            val country = Locale.getDefault().country.takeIf { it.length == 2 } ?: "US"
+            val client = JSONObject()
+                .put("clientName", "WEB_REMIX")
+                .put("clientVersion", MUSIC_CLIENT_VERSION)
+                .put("hl", "es")
+                .put("gl", country)
+            val body = JSONObject()
+                .put("context", JSONObject().put("client", client))
+                .put("videoId", videoId)
+                .put("playlistId", "RDAMVM$videoId")
+                .put("params", "wAEB")
+                .put("isAudioOnly", true)
+            if (continuation != null) body.put("continuation", continuation)
+            val response = NewPipe.getDownloader().post(
+                "https://music.youtube.com/youtubei/v1/next?prettyPrint=false",
+                mapOf(
+                    "Content-Type" to listOf("application/json"),
+                    "Origin" to listOf("https://music.youtube.com"),
+                ),
+                body.toString().toByteArray(Charsets.UTF_8),
+            )
+            check(response.responseCode() == 200) { "HTTP ${response.responseCode()}" }
+            MusicRadioParser.parse(JSONObject(response.responseBody()))
+        }.onFailure {
+            Log.w(TAG, "No se pudo leer la radio de Music de $videoId", it)
+        }.getOrDefault(MusicRadioPage())
+    }
+
     suspend fun videoDetails(videoId: String): VideoDetails? = withContext(Dispatchers.IO) {
         NewPipeInitializer.ensureInitialized()
         runCatching {
@@ -322,6 +370,8 @@ class YouTubeRepository {
     private companion object {
         const val TAG = "YouTubeRadio"
         const val MIN_RELATED_VIEWS = 25_000L
+        val VIDEO_ID_REGEX = Regex("[A-Za-z0-9_-]{11}")
+        const val MUSIC_CLIENT_VERSION = "1.20250310.01.00"
         const val ATTEMPTS = 2
         const val RETRY_DELAY_MS = 300L
     }

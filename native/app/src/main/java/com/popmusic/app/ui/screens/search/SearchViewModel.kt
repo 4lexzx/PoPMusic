@@ -95,7 +95,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
                     tasteArtists = taste.artists,
                 ).songs
             }.getOrDefault(emptyList()))
-            DiscoveryPool.add(forYou, taste.genres.toList() + taste.artists)
+            DiscoveryPool.add(forYou)
         }
         loadTrending(DEFAULT_CHART_COUNTRY)
     }

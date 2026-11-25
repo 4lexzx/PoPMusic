@@ -314,7 +314,11 @@ class PlaybackService : MediaSessionService() {
                 // de la cola evita que el primer "siguiente" espere a YouTube.
                 if (count > 0 && player.playbackState != Player.STATE_IDLE) {
                     prefetchNextImmediate(player)
-                    prefetchUpcoming(player, prefetchAhead)
+                    // Mientras carga la pista elegida, solo la siguiente: el
+                    // resto se precarga al pasar a READY (deferredPrefetch).
+                    if (player.playbackState == Player.STATE_READY) {
+                        prefetchUpcoming(player, prefetchAhead)
+                    }
                 }
             }
 
