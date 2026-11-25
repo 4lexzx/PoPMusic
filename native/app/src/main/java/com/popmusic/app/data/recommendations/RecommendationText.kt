@@ -102,7 +102,7 @@ internal object RecommendationText {
     )
 
     private val SPANISH_WORDS = listOf(
-        "de", "la", "el", "los", "las", "un", "una", "que", "en", "con",
+        "de", "del", "la", "el", "los", "las", "un", "una", "que", "en", "con",
         "por", "para", "es", "no", "se", "su", "al", "lo", "como", "mas",
         "me", "mi", "tu", "te", "nos", "amor", "vida", "corazon", "cancion",
         "siempre", "nunca", "porque", "pero", "donde", "cuando", "esta",

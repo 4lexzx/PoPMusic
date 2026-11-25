@@ -77,7 +77,7 @@ class MusicFlowViewModel(application: Application) : AndroidViewModel(applicatio
                 Log.w(TAG, "No se pudo cargar el feed del flow", it)
             }.getOrNull()?.songs.orEmpty()
 
-            DiscoveryPool.add(fresh, taste.genres.toList() + taste.artists)
+            DiscoveryPool.add(fresh)
             val merged = (local + fresh).distinctBy { it.id }
             state = MusicFlowState(
                 songs = merged,

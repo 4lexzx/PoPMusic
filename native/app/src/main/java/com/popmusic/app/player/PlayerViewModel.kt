@@ -8,7 +8,9 @@ import com.popmusic.app.PoPMusicApplication
 import com.popmusic.app.data.recommendations.DiscoveryPool
 import com.popmusic.app.data.recommendations.RecommendationsRepository
 import com.popmusic.app.domain.Song
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -45,6 +47,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
 
+        connection.isQueueGrowing = { autoExtend && radioJob?.isActive == true }
+
         viewModelScope.launch {
             connection.state.collect { state ->
                 if (state.mediaId.isBlank() || state.durationMs <= 0L) return@collect
@@ -65,6 +69,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
         this.autoExtend = autoExtend
         queueIds = songs.mapTo(HashSet()) { it.id }
         radioJob?.cancel()
+        // Sin esto, Music Flow alargaba su cola con la semilla (y el artista)
+        // de la radio ANTERIOR y metía canciones de otro estilo.
+        radioSeed = if (autoExtend) songs.getOrNull(startIndex) else null
+        radioGenreHint = null
+        radioArtistOnly = null
+        recommendations.resetRadio()
         connection.play(songs, startIndex)
     }
 
@@ -110,24 +120,22 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
     private fun extendRadio(seed: Song) {
         if (radioJob?.isActive == true) return
         radioJob = viewModelScope.launch {
-            // La resolución de la primera URL tarda unos cientos de ms. Si las
-            // búsquedas de la radio arrancan a la vez compiten por la red y la
-            // canción elegida tarda el doble en empezar a sonar.
-            withTimeoutOrNull(2_000L) {
-                state.first { it.isPlaying && it.mediaId == seed.id }
+            // La radio de una canción es UNA petición ligera: se lanza ya, para
+            // que "siguiente" funcione desde la primera pista. La de artista
+            // hace varias búsquedas y trae su propia cola, así que espera a que
+            // suene para no competir por la red.
+            if (radioArtistOnly != null && queueIds.size > 1) {
+                withTimeoutOrNull(2_000L) {
+                    state.first { it.isPlaying && it.mediaId == seed.id }
+                }
             }
-            val batch = runCatching {
-                recommendations.radio(
-                    library = app.libraryRepository.state.value,
-                    excludeIds = queueIds,
-                    seedSong = seed,
-                    discovered = DiscoveryPool.snapshot(),
-                    genreHint = radioGenreHint,
-                    artistOnly = radioArtistOnly,
-                )
-            }.onFailure {
-                Log.w(TAG, "No se pudo crear la radio de ${seed.title}", it)
-            }.getOrDefault(emptyList())
+            var batch = fetchRadio(seed)
+            for (waitMs in RADIO_RETRY_MS) {
+                if (batch.isNotEmpty()) break
+                delay(waitMs)
+                batch = fetchRadio(seed)
+            }
+            if (batch.isEmpty()) connection.cancelPendingSkip()
             if (batch.isNotEmpty()) {
                 queueIds = queueIds + batch.map { it.id }
                 connection.addToQueue(batch)
@@ -138,6 +146,22 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
                 )
             }
         }
+    }
+
+    private suspend fun fetchRadio(seed: Song): List<Song> = try {
+        recommendations.radio(
+            library = app.libraryRepository.state.value,
+            excludeIds = queueIds,
+            seedSong = seed,
+            discovered = DiscoveryPool.snapshot(),
+            genreHint = radioGenreHint,
+            artistOnly = radioArtistOnly,
+        )
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "No se pudo crear la radio de ${seed.title}", e)
+        emptyList()
     }
 
     fun addToQueue(songs: List<Song>) {
@@ -171,10 +195,14 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
 
     override fun onCleared() {
         connection.onNearQueueEnd = null
+        connection.isQueueGrowing = null
         super.onCleared()
     }
 
     private companion object {
         const val TAG = "PlayerViewModel"
+
+        /** Reintentos si la radio llega vacía (corte de red puntual). */
+        val RADIO_RETRY_MS = listOf(1_500L, 4_000L)
     }
 }

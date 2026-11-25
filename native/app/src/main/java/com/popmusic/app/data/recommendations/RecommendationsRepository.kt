@@ -76,6 +76,13 @@ class RecommendationsRepository(
     /** Playlist RDAMVM de YouTube ya descargada: la radio real, como en Echo. */
     private var radioPool = emptyList<Song>()
     private var radioPoolSeed: String? = null
+    /** Radio de YouTube Music: fuente principal, ya filtrada por afinidad. */
+    private val musicPool = LinkedHashMap<String, Song>()
+    private var musicSeed: String? = null
+    private var musicRadioId: String? = null
+    private var musicContinuation: String? = null
+    private var musicReseedCursor = 0
+    private var musicLanguage: String? = null
 
     fun resetRadio() {
         radioSeenKeys.clear()
@@ -87,6 +94,12 @@ class RecommendationsRepository(
         radioChainCursor = 0
         radioPool = emptyList()
         radioPoolSeed = null
+        musicPool.clear()
+        musicSeed = null
+        musicRadioId = null
+        musicContinuation = null
+        musicReseedCursor = 0
+        musicLanguage = null
     }
 
     suspend fun forTaste(
@@ -229,6 +242,12 @@ class RecommendationsRepository(
         // NewPipe no expone el `continuation`, pero la playlist pública da el
         // mismo catálogo y se reabre desde la última canción al agotarse.
         val seedId = seedSong?.id
+        if (seedSong != null && onlyKey == null) {
+            val fromMusic = musicBatch(seedSong, excludeIds + savedIds, limit, genreHint)
+            if (fromMusic.isNotEmpty()) return fromMusic
+        }
+
+        // De aquí en adelante: modo artista, o respaldo si Music no responde.
         if (seedId != null && radioPoolSeed != seedId) {
             radioPoolSeed = seedId
             radioPool = youtube.radioPlaylist(seedId)
@@ -308,10 +327,16 @@ class RecommendationsRepository(
                 val genre = explicit ?: pickGenre(seedTags + streamTags, artist, language, seedSong)
                 radioGenre = genre
                 Log.d("RadioGenero", "Género fijado: $genre (semilla=${seedSong?.title}, pista=$genreHint)")
-                radioQueries = (RADIO_SUFFIXES + listOf("exitos", "canciones"))
-                    .shuffled().take(3).map { suffix -> "$genre $suffix" }
-                    .let { if (artist != null) it + "$artist $genre" else it }
-                    .distinct().shuffled()
+                radioQueries = if (genre.isBlank()) {
+                    // Género desconocido: buscar por el artista. Inventar uno
+                    // ("latin pop") llenaba la cola de música sin relación.
+                    listOf("$artist canciones", "$artist exitos", "$artist")
+                } else {
+                    (RADIO_SUFFIXES + listOf("exitos", "canciones"))
+                        .shuffled().take(3).map { suffix -> "$genre $suffix" }
+                        .let { if (artist != null) it + "$artist $genre" else it }
+                        .distinct().shuffled()
+                }
             }
         }
         val fixedGenre = radioGenre.orEmpty()
@@ -394,11 +419,9 @@ class RecommendationsRepository(
             radioLanguage == null || languageGroup(song) == radioLanguage ||
                 languageGroup(song) == "unknown"
         }
-        val pool = when {
-            sameLanguage.size >= MIN_RADIO_RESULTS -> sameLanguage
-            coherent.size >= MIN_RADIO_RESULTS -> coherent
-            else -> candidates
-        }
+        // Antes, con menos de cuatro resultados se devolvían los candidatos SIN
+        // filtrar: por eso a veces sonaban otros géneros e idiomas.
+        val pool = sameLanguage
         val batch = if (onlyKey != null) {
             // Aquí queremos todas las del artista, no un máximo por intérprete.
             pool.shuffled().take(limit)
@@ -415,6 +438,124 @@ class RecommendationsRepository(
                 "${radioLanguage ?: "cualquiera"})",
         )
         return batch
+    }
+
+    /**
+     * Siguiente lote de la radio de YouTube Music. Respeta su orden (primero
+     * lo más afín) y descarta lo ya servido y lo que está en otro idioma.
+     */
+    private suspend fun musicBatch(
+        seed: Song,
+        excluded: Set<String>,
+        limit: Int,
+        genreHint: String?,
+    ): List<Song> {
+        if (musicSeed != seed.id) {
+            var radioId = seed.id
+            var page = youtube.musicRadio(radioId)
+            if (page.songs.count { it.id != seed.id } < MIN_MUSIC_RESULTS) {
+                // La semilla es un videoclip (Tendencias, búsqueda web): Music
+                // responde con más videoclips. Se usa su versión de audio.
+                radioId = audioVersionOf(seed)?.id ?: return emptyList()
+                page = youtube.musicRadio(radioId)
+            }
+            if (page.songs.isEmpty()) return emptyList()
+            musicPool.clear()
+            page.songs.forEach { musicPool[it.id] = it }
+            musicSeed = seed.id
+            musicRadioId = radioId
+            musicContinuation = page.continuation
+            musicReseedCursor = 0
+            musicLanguage = radioLanguageOf(seed, page.songs, genreHint)
+        }
+        val seedKeys = titleKeys(seed)
+        fun available(): List<Song> = diversify(
+            dedupeBySong(
+                musicPool.values.filter { song ->
+                    song.id != seed.id && song.id !in excluded && song.id !in radioSeenIds &&
+                        isSongLike(song) &&
+                        titleKeys(song).none { it in seedKeys || it in radioSeenKeys } &&
+                        languageFits(song, musicLanguage)
+                },
+            ),
+        )
+
+        var ready = available()
+        var requests = 0
+        while (ready.size < limit / 2 && requests < MAX_MUSIC_REQUESTS) {
+            requests++
+            val token = musicContinuation
+            val page = if (token != null) {
+                youtube.musicRadio(musicRadioId ?: seed.id, token)
+            } else {
+                // Radio agotada: se reabre desde las PRIMERAS canciones
+                // servidas, las más cercanas a la semilla, para no derivar.
+                val next = radioChain.getOrNull(musicReseedCursor) ?: break
+                musicReseedCursor++
+                youtube.musicRadio(next)
+            }
+            val before = musicPool.size
+            page.songs.forEach { song -> if (song.id !in musicPool) musicPool[song.id] = song }
+            // Una página sin nada nuevo significa que esa radio se agotó.
+            musicContinuation = page.continuation?.takeIf { musicPool.size > before }
+            ready = available()
+        }
+        val batch = ready.take(limit)
+        radioSeenKeys += batch.flatMap(::titleKeys)
+        radioSeenIds += batch.map { it.id }
+        radioChain += batch.map { it.id }
+        Log.d(
+            "RadioGenero",
+            "Radio Music: ${batch.size} de ${musicPool.size} (${musicLanguage ?: "cualquiera"})",
+        )
+        return batch
+    }
+
+    /** La misma canción en audio o, si no existe, otra del MISMO artista. */
+    private suspend fun audioVersionOf(seed: Song): Song? {
+        val keys = titleKeys(seed)
+        val seedText = " ${RecommendationText.key("${seed.title} ${seed.artist}")} "
+        val query = RecommendationText.key(
+            "${seed.artist} ${seed.title.replace(Regex("\\[.*?\\]|\\(.*?\\)"), " ")}",
+        ).ifBlank { return null }
+        val sameArtist = searchAll(listOf(query)).filter { song ->
+            val artistKey = RecommendationText.key(song.artist)
+            song.id != seed.id && artistKey.isNotBlank() && " $artistKey " in seedText
+        }
+        return sameArtist.firstOrNull { song ->
+            val titleKey = RecommendationText.key(song.title)
+            titleKeys(song).any { it in keys } ||
+                (titleKey.isNotBlank() && " $titleKey " in seedText)
+        } ?: sameArtist.firstOrNull()
+    }
+
+    /**
+     * Idioma de la radio. Un título suelto engaña ("Halo", "BbY WOW"), así que
+     * manda lo que suena alrededor; después la semilla y la sección de origen.
+     */
+    private fun radioLanguageOf(seed: Song, songs: List<Song>, genreHint: String?): String? {
+        if (RecommendationText.hasForeignScript(seed.title)) return null
+        if (songs.count { RecommendationText.hasForeignScript(it.title) } * 3 > songs.size) return null
+        val votes = songs.mapNotNull(::titleLanguage)
+        val top = votes.groupingBy { it }.eachCount().maxByOrNull { it.value }
+        if (top != null && votes.size >= MIN_LANGUAGE_VOTES && top.value * 10 >= votes.size * 7) {
+            return top.key
+        }
+        titleLanguage(seed)?.let { return it }
+        if (RecommendationText.likelyLatinArtist(seed.artist)) return "es"
+        val hint = genreHint?.let(::genreQueryFor).orEmpty()
+        return if ("espanol" in hint || "latino" in hint) "es" else null
+    }
+
+    /** Solo el título: la tilde de "Beyoncé" no convierte su música en español. */
+    private fun titleLanguage(song: Song): String? =
+        RecommendationText.languageOf(song.copy(artist = ""))
+
+    private fun languageFits(song: Song, language: String?): Boolean {
+        if (language == null) return true
+        if (RecommendationText.hasForeignScript(song.title)) return false
+        val detected = titleLanguage(song)
+        return detected == null || detected == language
     }
 
     /**
@@ -436,7 +577,7 @@ class RecommendationsRepository(
             RecommendationText.tags("${song.title} ${song.artist}")
         val artistKey = RecommendationText.key(song.artist)
         val artistGenre = ARTIST_GENRES
-            .firstOrNull { artistKey.contains(RecommendationText.key(it.first)) }
+            .firstOrNull { " ${RecommendationText.key(it.first)} " in " $artistKey " }
             ?.second
         val signals = (tags + artistGenre?.let(RecommendationText::tags).orEmpty()) -
             GENERIC_GENRE_WORDS
@@ -493,7 +634,7 @@ class RecommendationsRepository(
 
         if (artist != null) {
             val key = RecommendationText.key(artist)
-            ARTIST_GENRES.firstOrNull { key.contains(RecommendationText.key(it.first)) }
+            ARTIST_GENRES.firstOrNull { " ${RecommendationText.key(it.first)} " in " $key " }
                 ?.let { return it.second }
         }
         if (song != null) {
@@ -503,6 +644,7 @@ class RecommendationsRepository(
                 (RecommendationText.tags(genre) - GENERIC_GENRE_WORDS).any { it in fromTitle }
             }?.let { return it }
         }
+        if (artist != null) return ""
         return when (language) {
             "en" -> "english pop"
             else -> "latin pop"
@@ -636,7 +778,9 @@ class RecommendationsRepository(
             "lyrics", "letras", "letra", "video", "oficial", "official",
             "audio", "hd", "hq", "4k", "live", "en vivo", "subtitulado",
         )
-        const val MIN_RADIO_RESULTS = 4
+        const val MIN_LANGUAGE_VOTES = 5
+        const val MIN_MUSIC_RESULTS = 5
+        const val MAX_MUSIC_REQUESTS = 3
         const val MIN_SONGS = 8
         const val MIN_DURATION = 45L
         const val MAX_DURATION = 600L
@@ -714,7 +858,7 @@ class RecommendationsRepository(
             "la union" to "rock en espanol",
             "el tri" to "rock en espanol",
             "elefante" to "rock en espanol",
-            "bon jovi" to "rock en espanol",
+            "bon jovi" to "rock clasico",
             "la oreja de van gogh" to "pop en espanol",
             "cristian castro" to "baladas romanticas",
             "alejandro sanz" to "baladas romanticas",

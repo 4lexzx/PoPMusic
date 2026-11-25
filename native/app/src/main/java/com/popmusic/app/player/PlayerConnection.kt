@@ -45,6 +45,12 @@ class PlayerConnection(private val context: Context) {
 
     var onNearQueueEnd: (() -> Unit)? = null
 
+    /** True mientras se están buscando canciones para alargar la cola. */
+    var isQueueGrowing: (() -> Boolean)? = null
+
+    /** Pista desde la que se pidió "siguiente" cuando aún no había ninguna. */
+    private var pendingSkipId: String? = null
+
     private val _state = MutableStateFlow(PlayerUiState())
     val state: StateFlow<PlayerUiState> = _state.asStateFlow()
 
@@ -113,6 +119,7 @@ class PlayerConnection(private val context: Context) {
         val safeIndex = startIndex.coerceIn(0, songs.lastIndex)
         val selected = songs[safeIndex]
         nearEndNotified = false
+        pendingSkipId = null
         _positionMs.value = 0L
         _state.value = _state.value.copy(
             isPlaying = false,
@@ -178,9 +185,23 @@ class PlayerConnection(private val context: Context) {
     }
 
     fun addToQueue(songs: List<Song>) {
-        val mediaController = controller ?: return
+        val mediaController = controller
+        if (mediaController == null) {
+            // Arranque en frío: sin esto, las canciones de la radio se perdían.
+            pendingQueue = pendingQueue?.let { (queue, index) -> (queue + songs) to index }
+            return
+        }
         mediaController.addMediaItems(songs.map { it.toMediaItem(0) })
         nearEndNotified = false
+        val skipFrom = pendingSkipId ?: return
+        pendingSkipId = null
+        if (mediaController.currentMediaItem?.mediaId == skipFrom) {
+            mediaController.seekToNextMediaItem()
+        }
+    }
+
+    fun cancelPendingSkip() {
+        pendingSkipId = null
     }
 
     fun togglePlayPause() {
@@ -193,7 +214,19 @@ class PlayerConnection(private val context: Context) {
         // 2-4 s con la canción anterior sonando. PlaybackService resuelve la
         // pista entrante en onMediaItemTransition, fuera del hilo del gesto.
         Log.d("SkipPerf", "next @${SystemClock.elapsedRealtime()}")
-        controller?.seekToNextMediaItem()
+        val mediaController = controller ?: return
+        val nextIndex = mediaController.nextMediaItemIndex
+        val noNext = nextIndex < 0 || nextIndex == mediaController.currentMediaItemIndex
+        if (noNext && mediaController.mediaItemCount > 0) {
+            // Primera canción de la radio: la cola aún no ha llegado. Se
+            // recuerda el gesto y se salta en cuanto haya una siguiente.
+            onNearQueueEnd?.invoke()
+            if (isQueueGrowing?.invoke() == true) {
+                pendingSkipId = mediaController.currentMediaItem?.mediaId
+                return
+            }
+        }
+        mediaController.seekToNextMediaItem()
     }
 
     fun previous() {
@@ -274,6 +307,7 @@ class PlayerConnection(private val context: Context) {
     fun clearQueue() {
         playJob?.cancel()
         pendingQueue = null
+        pendingSkipId = null
         val mediaController = controller
         if (mediaController != null) {
             mediaController.setMediaItems(emptyList())
@@ -438,6 +472,7 @@ class PlayerConnection(private val context: Context) {
         playJob?.cancel()
         pendingQueue = null
         nearEndNotified = false
+        pendingSkipId = null
         lastRecordedId = null
         _positionMs.value = 0L
         _state.value = PlayerUiState()
