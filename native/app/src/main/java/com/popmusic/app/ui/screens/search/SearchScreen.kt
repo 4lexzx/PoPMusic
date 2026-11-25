@@ -83,6 +83,7 @@ fun SearchScreen(
     val query = viewModel.query.trim()
     val searching = query.isNotEmpty()
     val results = viewModel.filtered(viewModel.results)
+    val videos = viewModel.videos
     // Corazón de favorito junto al nombre (ítem 4 de la tanda 3).
     val library by viewModel.library.collectAsState()
     val favoriteIds = remember(library) { library.favorites.mapTo(HashSet()) { it.id } }
@@ -108,7 +109,7 @@ fun SearchScreen(
         Spacer(Modifier.height(18.dp))
 
         when {
-            viewModel.isLoading -> {
+            viewModel.isLoading || (searching && results.isEmpty() && viewModel.videosLoading) -> {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -122,7 +123,7 @@ fun SearchScreen(
                 }
             }
 
-            viewModel.error != null -> {
+            viewModel.error != null && videos.isEmpty() -> {
                 EmptyState(
                     title = "No se pudo buscar",
                     subtitle = viewModel.error ?: "",
@@ -137,7 +138,7 @@ fun SearchScreen(
                 )
             }
 
-            searching && results.isEmpty() -> {
+            searching && results.isEmpty() && videos.isEmpty() -> {
                 EmptyState(
                     title = "Sin resultados",
                     subtitle = if (viewModel.source == SearchSource.LOCAL) {
@@ -159,7 +160,7 @@ fun SearchScreen(
             searching -> {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(bottom = 40.dp),
+                    contentPadding = PaddingValues(bottom = 110.dp),
                 ) {
                     if (viewModel.artistMatches.isNotEmpty()) {
                         item(key = "artist-cards") {
@@ -199,6 +200,35 @@ fun SearchScreen(
                                 onOpenPlayer()
                             },
                         )
+                    }
+                    if (videos.isNotEmpty()) {
+                        item(key = "videos-header") {
+                            Column(modifier = Modifier.animateItem()) {
+                                Spacer(Modifier.height(if (results.isEmpty()) 4.dp else 22.dp))
+                                Text(
+                                    text = "Videos relacionados con la búsqueda",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                                Spacer(Modifier.height(2.dp))
+                                Text(
+                                    text = "En vivo, covers y versiones que no están como canción",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Faint,
+                                )
+                                Spacer(Modifier.height(8.dp))
+                            }
+                        }
+                        items(videos, key = { "video-${it.id}" }) { video ->
+                            VideoRow(
+                                video = video,
+                                modifier = Modifier.animateItem(),
+                                onClick = {
+                                    onPlay(listOf(video), 0)
+                                    onOpenPlayer()
+                                },
+                            )
+                        }
                     }
                 }
             }
@@ -497,6 +527,63 @@ private fun BrowseContent(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Resultado de video: miniatura ancha con su duración. */
+@Composable
+private fun VideoRow(video: Song, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(interactionSource = interaction, indication = ripple(), onClick = onClick)
+            .pressScale(interaction, pressedScale = 0.98f)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box {
+            Artwork(
+                url = video.thumbnailUrl,
+                modifier = Modifier
+                    .width(124.dp)
+                    .height(70.dp),
+                cornerRadius = 12.dp,
+                iconSize = 24.dp,
+            )
+            val duration = formatDuration(video.durationSeconds)
+            if (duration.isNotEmpty()) {
+                Text(
+                    text = duration,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(5.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(Color.Black.copy(alpha = 0.75f))
+                        .padding(horizontal = 5.dp, vertical = 1.dp),
+                )
+            }
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = video.title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = video.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

@@ -583,10 +583,22 @@ fun PopMusicApp() {
                             )
                         }
                         composable(Routes.RECOGNIZE) {
+                            // Mientras escucha se calla la app: si no, se oiría a sí misma.
+                            var resumeMusic by remember { mutableStateOf(false) }
                             RecognizeScreen(
                                 onFound = { song ->
-                                    playerViewModel.play(listOf(song), 0)
+                                    resumeMusic = false
+                                    playerViewModel.playRadio(song)
                                     openPlayer()
+                                },
+                                onListening = { listening ->
+                                    if (listening) {
+                                        resumeMusic = playerState.isPlaying
+                                        if (resumeMusic) playerViewModel.setPlaying(false)
+                                    } else if (resumeMusic) {
+                                        resumeMusic = false
+                                        playerViewModel.setPlaying(true)
+                                    }
                                 },
                             )
                         }
