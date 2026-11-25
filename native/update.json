@@ -1,15 +1,16 @@
 {
   "published": true,
-  "versionCode": 9,
-  "versionName": "0.1.9",
-  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.9/PoPMusic-v0.1.9.apk",
-  "sha256": "46c50ee9040721726af2b5fbaa0790bdbca17711e385323de3bfcd6d009f8086",
-  "sizeBytes": 19010357,
+  "versionCode": 10,
+  "versionName": "0.1.10",
+  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.10/PoPMusic-v0.1.10.apk",
+  "sha256": "0ff45388defb18c1fa27bcd93cfbeedefb418330b5bd05d286d93f1e484727bf",
+  "sizeBytes": 19026741,
   "mandatory": false,
   "changelog": [
-    "Rendimiento: la app incluye un perfil de arranque (baseline profile). Android compila con AOT las rutas principales al instalar, para que todo se vea fluido desde el primer uso sin depender de ajustes manuales.",
-    "El aviso de actualizacion aparece aunque la app ya estuviera abierta en segundo plano cuando se publico la version nueva.",
-    "El titulo 'Actualizacion disponible' se ve en el color claro del tema, no en negro.",
-    "El numero de version en Ajustes muestra la version instalada real (0.1.9)."
+    "Recomendaciones: La radio mantiene mejor el género, los artistas afines y el idioma.",
+    "Salto inmediato: Ya puedes pasar de canción desde la primera que eliges.",
+    "Reproducción: El botón de play ya no se retrasa respecto al audio.",
+    "Letras: Los remixes y versiones spanglish usan su propia letra.",
+    "Actualizaciones: Nuevo diseño del aviso de versión nueva."
   ]
 }
