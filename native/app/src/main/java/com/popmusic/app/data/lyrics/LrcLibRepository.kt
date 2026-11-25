@@ -29,7 +29,19 @@ class LrcLibRepository {
             val expectedSeconds = if (durationMs > 0L) durationMs / 1000.0 else 0.0
             val preferOfficialVideo = isOfficialVideo(rawTitle)
 
+            val version = LyricsMatcher.versionTokens(rawTitle)
             val queries = buildList {
+                // Primero con la versión: al quitar "(Tiago PZK Version)" se
+                // encontraba la letra de la canción normal.
+                if (version.isNotEmpty()) {
+                    add("${LyricsMatcher.titleWithVersion(rawTitle)} $cleanArtist".trim())
+                }
+                if (version.isEmpty() && cleanTitle.isNotBlank() && cleanArtist.isNotBlank()) {
+                    // Por campos: solo el título y artista pedidos, sin colaboraciones.
+                    add(
+                        "track_name=${encode(cleanTitle)}&artist_name=${encode(cleanArtist)}",
+                    )
+                }
                 val combined = listOf(cleanTitle, cleanArtist)
                     .filter { it.isNotBlank() }
                     .joinToString(" ")
@@ -40,7 +52,9 @@ class LrcLibRepository {
 
             var plain: Lyrics? = null
             for (query in queries) {
-                val result = fromSearchQuery(query, expectedSeconds, preferOfficialVideo) ?: continue
+                val result = fromSearchQuery(
+                    query, rawTitle, cleanArtist, version, expectedSeconds, preferOfficialVideo,
+                ) ?: continue
                 if (result.lines.isNotEmpty()) return@withContext result
                 if (plain == null) plain = result
             }
@@ -49,53 +63,59 @@ class LrcLibRepository {
 
     private fun fromSearchQuery(
         query: String,
+        title: String,
+        artist: String,
+        version: Set<String>,
         expectedSeconds: Double,
         preferOfficialVideo: Boolean,
     ): Lyrics? {
         if (query.isBlank()) return null
-        val url = "https://lrclib.net/api/search?q=${encode(query)}"
+        val url = "https://lrclib.net/api/search?" +
+            if (query.startsWith("track_name=")) query else "q=${encode(query)}"
 
         val json = request(url) ?: return null
         val array = runCatching { JSONArray(json) }.getOrNull() ?: return null
 
-        var plain: Lyrics? = null
-        var best: Lyrics? = null
-        var bestTrack = ""
-        var bestScore = Double.MAX_VALUE
+        val found = ArrayList<Pair<LyricsMatcher.Candidate, Lyrics>>()
         for (index in 0 until array.length()) {
             val item = array.optJSONObject(index) ?: continue
             val lyrics = item.toLyrics() ?: continue
-            if (lyrics.lines.isEmpty()) {
-                if (plain == null) plain = lyrics
+            val track = item.optString("trackName")
+            val trackArtist = item.optString("artistName")
+            // La letra de otra versión no sirve: mejor ninguna que una que no
+            // es la que suena. En vivo o acústica sí comparten la original.
+            if (!LyricsMatcher.keepsLyrics(version) &&
+                !LyricsMatcher.matchesVersion(version, track, trackArtist)
+            ) {
                 continue
             }
-            if (expectedSeconds <= 0.0) return lyrics
-
-            val trackName = item.optString("trackName")
-            val duration = item.optDouble("duration", 0.0)
-            val durationDiff = if (duration > 0.0) {
-                abs(duration - expectedSeconds)
-            } else {
-                Double.MAX_VALUE
+            val duration = item.optDouble("duration", 0.0).takeIf { !it.isNaN() } ?: 0.0
+            val durationDiff = when {
+                expectedSeconds <= 0.0 -> 0.0
+                duration > 0.0 -> abs(duration - expectedSeconds)
+                else -> UNKNOWN_DURATION_PENALTY
             }
-            val titlePenalty = if (preferOfficialVideo && !isOfficialVideo(trackName)) 12.0 else 0.0
-            val score = durationDiff + titlePenalty
-            if (best == null || score < bestScore) {
-                bestScore = score
-                bestTrack = trackName
-                best = lyrics
-            }
+            val videoPenalty = if (preferOfficialVideo && !isOfficialVideo(track)) 12.0 else 0.0
+            val score = durationDiff + videoPenalty +
+                LyricsMatcher.penalty(version, title, artist, track, trackArtist)
+            val text = lyrics.lines.joinToString(" ") { it.text }
+                .ifBlank { lyrics.plainText.orEmpty() }
+            found += LyricsMatcher.Candidate(index, track, trackArtist, text, score) to lyrics
         }
 
-        if (best != null) {
-            Log.d(
-                TAG,
-                "Selected \"$bestTrack\" for \"$query\" (score ${"%.1f".format(bestScore)})",
-            )
-            return best
+        val synced = found.filter { it.second.lines.isNotEmpty() }
+        val usable = synced.ifEmpty { found }
+        val chosen = LyricsMatcher.choose(usable.map { it.first })
+        if (chosen == null) {
+            Log.d(TAG, "No lyrics for \"$query\" (${array.length()} candidates)")
+            return null
         }
-        Log.d(TAG, "No synced lyrics for \"$query\" (${array.length()} candidates)")
-        return plain
+        Log.d(
+            TAG,
+            "Selected \"${chosen.track}\" (${chosen.artist}) for \"$query\" " +
+                "(score ${"%.1f".format(chosen.score)})",
+        )
+        return usable.first { it.first.index == chosen.index }.second
     }
 
     private fun isOfficialVideo(trackName: String): Boolean =
@@ -124,16 +144,20 @@ class LrcLibRepository {
     }
 
     private fun JSONObject.toLyrics(): Lyrics? {
-        val synced = optString("syncedLyrics").takeIf { it.isNotBlank() }
-        val plain = optString("plainLyrics").takeIf { it.isNotBlank() }
+        val synced = text("syncedLyrics")
+        val plain = text("plainLyrics")
         if (synced == null && plain == null) return null
         return Lyrics(
             lines = synced?.let(::parseLrc).orEmpty(),
             plainText = plain,
-            albumName = optString("albumName").takeIf { it.isNotBlank() },
-            artistName = optString("artistName").takeIf { it.isNotBlank() },
+            albumName = text("albumName"),
+            artistName = text("artistName"),
         )
     }
+
+    /** En Android, optString devuelve "null" (texto) cuando el valor es nulo. */
+    private fun JSONObject.text(name: String): String? =
+        if (isNull(name)) null else optString(name).takeIf { it.isNotBlank() }
 
     private fun encode(value: String): String = URLEncoder.encode(value, "UTF-8")
 
@@ -212,6 +236,7 @@ class LrcLibRepository {
 
     private companion object {
         const val TAG = "LrcLib"
+        const val UNKNOWN_DURATION_PENALTY = 20.0
         const val USER_AGENT = "PoPMusic/0.1 (https://github.com/4lexzx/PoPMusic)"
         val OFFSET_TAG = Regex("\\[offset:\\s*([+-]?\\d+)\\s*]", RegexOption.IGNORE_CASE)
 
