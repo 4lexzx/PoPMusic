@@ -1,18 +1,17 @@
 {
   "published": true,
-  "versionCode": 11,
-  "versionName": "0.1.11",
-  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.11/PoPMusic-v0.1.11.apk",
-  "sha256": "2abfa1cc054451c858f2d9cfb830281f2d7f9a450c197915ace739e273629b9b",
-  "sizeBytes": 19108661,
+  "versionCode": 12,
+  "versionName": "0.1.12",
+  "apkUrl": "https://github.com/4lexzx/PoPMusic/releases/download/v0.1.12/PoPMusic-v0.1.12.apk",
+  "sha256": "9702bd8151c8ad2574c02004828b3443e66c226ae25b92120a5db3afc90fd5c9",
+  "sizeBytes": 19141429,
   "mandatory": false,
   "changelog": [
-    "Fondos: 40 fondos animados en 6 secciones y vista previa antes de aplicar.",
-    "Colores: La app adapta su paleta al fondo que elijas.",
-    "Salas: Nueva interfaz y sugerencias según los gustos de cada persona.",
-    "Reproductor: Fondo animado con los colores de la carátula.",
-    "Artistas: Fotos de perfil en tus gustos y en el buscador.",
-    "Diseño: Ajustes, gustos, menús y barras renovados.",
-    "Rendimiento: Perfil de compilación ampliado."
+    "Reproductor: Carrusel de carátulas y cierre más fluido.",
+    "Información: Artista con foto y datos comprobados de cada canción.",
+    "Cuenta: Nuevo diseño y apodo.",
+    "Biblioteca: Artistas con foto y contador corregido.",
+    "Playlists: Nuevos botones y portadas al añadir canciones.",
+    "Diseño: Burbujas, menús, corazón y animaciones renovados."
   ]
 }
