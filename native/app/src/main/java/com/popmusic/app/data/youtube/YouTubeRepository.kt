@@ -76,6 +76,23 @@ class YouTubeRepository {
         }
     }
 
+    /** Artistas de YouTube Music con su foto: pares nombre → URL. */
+    suspend fun artists(query: String): List<Pair<String, String>> = withContext(Dispatchers.IO) {
+        NewPipeInitializer.ensureInitialized()
+        val handler = ServiceList.YouTube.searchQHFactory
+            .fromQuery(query, listOf("music_artists"), null)
+        val extractor = ServiceList.YouTube.getSearchExtractor(handler) as SearchExtractor
+        extractor.fetchPage()
+        extractor.initialPage.items.mapNotNull { item ->
+            val url = item.thumbnails
+                .filter { !it.url.isNullOrBlank() }
+                .maxByOrNull { it.height }
+                ?.url ?: return@mapNotNull null
+            // Google sirve cualquier tamaño: 300 px basta y no se ve borroso.
+            item.name to url.replace(Regex("=w\\d+-h\\d+"), "=w300-h300")
+        }
+    }
+
     /** Búsqueda de vídeos sin el filtro de "solo canciones" (podcasts, entrevistas…). */
     suspend fun searchVideos(query: String): List<Song> = withContext(Dispatchers.IO) {
         NewPipeInitializer.ensureInitialized()

@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.popmusic.app.domain.Song
 import com.popmusic.app.ui.components.Artwork
+import com.popmusic.app.ui.components.rememberArtistPhoto
 import com.popmusic.app.ui.components.EmptyState
 import com.popmusic.app.ui.components.GroupedSongList
 import com.popmusic.app.ui.components.PopIconButton
@@ -559,6 +560,7 @@ private fun ArtistTrendCard(
     artworkUrl: String?,
     onClick: () -> Unit,
 ) {
+    val photo = rememberArtistPhoto(artist)
     Column(
         modifier = Modifier
             .width(148.dp)
@@ -567,7 +569,7 @@ private fun ArtistTrendCard(
     ) {
         Box {
             Artwork(
-                url = artworkUrl,
+                url = photo.url ?: artworkUrl.takeIf { !photo.loading },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(148.dp),
@@ -608,6 +610,7 @@ private fun ArtistResultCard(
     artworkUrl: String?,
     onClick: () -> Unit,
 ) {
+    val photo = rememberArtistPhoto(name)
     Column(
         modifier = Modifier
             .width(112.dp)
@@ -615,9 +618,9 @@ private fun ArtistResultCard(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Artwork(
-            url = artworkUrl,
-            modifier = Modifier.size(72.dp),
-            cornerRadius = 36.dp,
+            url = photo.url ?: artworkUrl.takeIf { !photo.loading },
+            modifier = Modifier.size(96.dp),
+            cornerRadius = 48.dp,
             iconSize = 26.dp,
         )
         Spacer(Modifier.height(8.dp))
@@ -626,6 +629,7 @@ private fun ArtistResultCard(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             overflow = TextOverflow.Ellipsis,
         )
         Text(

@@ -64,21 +64,54 @@ class PartyViewModel(application: Application) : AndroidViewModel(application) {
     private val _tasteSuggestions = MutableStateFlow<List<Song>>(emptyList())
     val tasteSuggestions: StateFlow<List<Song>> = _tasteSuggestions.asStateFlow()
 
-    private var tasteJob: Job? = null
+    private val _tasteLoading = MutableStateFlow(false)
+    val tasteLoading: StateFlow<Boolean> = _tasteLoading.asStateFlow()
 
-    /** Canciones sugeridas según los gustos elegidos en la app (una vez). */
+    private var tasteJob: Job? = null
+    private var tasteKey: Any? = null
+
+    /** Mis gustos (los de este móvil): cada persona de la sala ve los suyos. */
+    val taste = app.preferences.taste
+
+    private fun queueIds(): Set<String> =
+        session.state.value.snapshot?.queue?.mapTo(HashSet()) { it.id }.orEmpty()
+
+    /** Primera carga; se repite si el usuario cambia sus gustos. */
     fun loadTasteSuggestions() {
-        if (tasteJob?.isActive == true || _tasteSuggestions.value.isNotEmpty()) return
+        if (tasteJob?.isActive == true) return
+        if (tasteKey == taste.value && _tasteSuggestions.value.isNotEmpty()) return
+        fetchSuggestions(append = false)
+    }
+
+    /** Otras canciones distintas, según los gustos de quien pulsa. */
+    fun refreshSuggestions() = fetchSuggestions(append = false)
+
+    /** Añade más al final de la lista. */
+    fun moreSuggestions() = fetchSuggestions(append = true)
+
+    private fun fetchSuggestions(append: Boolean) {
+        if (tasteJob?.isActive == true) return
         tasteJob = viewModelScope.launch {
-            val tastes = app.preferences.taste.value
-            val songs = runCatching {
-                recommendations.forTaste(
+            _tasteLoading.value = true
+            val mine = taste.value
+            val shown = _tasteSuggestions.value
+            val fresh = runCatching {
+                recommendations.tasteMix(
                     library = app.libraryRepository.state.value,
-                    tasteGenres = tastes.genres,
-                    tasteArtists = tastes.artists,
-                ).songs
+                    tasteGenres = mine.genres,
+                    tasteArtists = mine.artists,
+                    excludeIds = queueIds() + shown.map { it.id },
+                )
             }.getOrDefault(emptyList())
-            _tasteSuggestions.value = songs.take(8)
+            if (fresh.isNotEmpty()) {
+                tasteKey = mine
+                _tasteSuggestions.value = if (append) {
+                    (shown + fresh).distinctBy { it.id }
+                } else {
+                    fresh
+                }
+            }
+            _tasteLoading.value = false
         }
     }
 
@@ -140,6 +173,7 @@ class PartyViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Estado del reproductor local para los botones de la sala. */
     val playerState = app.playerConnection.state
+    val positionMs = app.playerConnection.positionMs
 
     /** Alterna el aleatorio del reproductor de la sala. */
     fun toggleShuffle() {
@@ -172,7 +206,7 @@ class PartyViewModel(application: Application) : AndroidViewModel(application) {
             _search.value = _search.value.copy(searching = true)
             val results = runCatching { youtube.search(query) }.getOrDefault(emptyList())
             _search.value = _search.value.copy(
-                results = results.take(8),
+                results = results.take(25),
                 searching = false,
             )
         }

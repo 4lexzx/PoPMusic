@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-enum class BackgroundMode { NONE, PRESET, IMAGE }
+enum class BackgroundMode { NONE, PRESET, IMAGE, ANIMATED }
 
 data class BackgroundSettings(
     val mode: BackgroundMode = BackgroundMode.NONE,

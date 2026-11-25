@@ -74,6 +74,7 @@ import com.popmusic.app.ui.components.GlassTextButton
 import com.popmusic.app.ui.components.PopIconButton
 import com.popmusic.app.ui.components.SectionHeader
 import com.popmusic.app.ui.components.SolidMenu
+import com.popmusic.app.ui.components.SolidMenuDivider
 import com.popmusic.app.ui.components.SolidMenuRow
 import com.popmusic.app.ui.components.TrackRow
 import com.popmusic.app.ui.theme.Accent
@@ -81,6 +82,7 @@ import com.popmusic.app.ui.theme.Black
 import com.popmusic.app.ui.theme.Danger
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
+import com.popmusic.app.ui.theme.OnInk
 import com.popmusic.app.ui.theme.Surface2
 import com.popmusic.app.ui.theme.pressScale
 
@@ -239,7 +241,7 @@ fun PlaylistScreen(
                     Icon(
                         imageVector = if (enabled) Icons.Rounded.PlayArrow else Icons.Rounded.QueueMusic,
                         contentDescription = "Reproducir playlist",
-                        tint = if (enabled) Black else Faint,
+                        tint = if (enabled) OnInk else Faint,
                         modifier = Modifier.size(38.dp),
                     )
                 }
@@ -305,7 +307,7 @@ fun PlaylistScreen(
                         )
                         SolidMenuRow(
                             icon = Icons.Rounded.Schedule,
-                            label = "Duración (mayor primero)",
+                            label = "Duración",
                             onClick = {
                                 viewModel.sort(PlaylistSort.DURATION)
                                 dismiss()
@@ -363,12 +365,13 @@ fun PlaylistScreen(
                             }
                             SolidMenuRow(
                                 icon = Icons.Rounded.PlaylistAdd,
-                                label = "Añadir a otra playlist",
+                                label = "Copiar a playlist",
                                 onClick = {
                                     copyTarget = song
                                     dismiss()
                                 },
                             )
+                            SolidMenuDivider()
                             SolidMenuRow(
                                 icon = Icons.Rounded.Delete,
                                 label = "Eliminar",

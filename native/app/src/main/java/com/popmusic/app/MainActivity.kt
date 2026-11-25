@@ -36,6 +36,10 @@ class MainActivity : ComponentActivity() {
         )
         requestNotificationPermission()
 
+        // Antes de componer: el tema y la barra nacen ya con la paleta del fondo.
+        com.popmusic.app.ui.components.applyAmbientPalette(
+            (application as PoPMusicApplication).preferences.settings.value,
+        )
         setContent {
             LaunchedEffect(Unit) {
                 withFrameNanos { }

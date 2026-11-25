@@ -8,19 +8,24 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import com.popmusic.app.ui.theme.BgElev
+import com.popmusic.app.ui.theme.LocalReduceMotion
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
@@ -28,7 +33,11 @@ import coil3.BitmapImage
 import coil3.SingletonImageLoader
 import coil3.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Fondo del reproductor estilo Echo (PlayerBackgroundStyle.GRADIENT, que es su
@@ -43,6 +52,8 @@ import kotlinx.coroutines.withContext
 internal fun PlayerPaletteWash(
     artworkUrl: String?,
     modifier: Modifier = Modifier,
+    /** Los colores de la carátula se mueven despacio por el fondo. */
+    motion: Boolean = true,
 ) {
     if (artworkUrl.isNullOrBlank()) {
         // Sin carátula: base OPACA para no dejar ver la pantalla de atrás
@@ -52,6 +63,7 @@ internal fun PlayerPaletteWash(
     }
 
     val context = LocalContext.current
+    val moving = motion && !LocalReduceMotion.current
     var colors by remember(artworkUrl) { mutableStateOf(gradientCache.get(artworkUrl)) }
 
     LaunchedEffect(artworkUrl) {
@@ -74,24 +86,68 @@ internal fun PlayerPaletteWash(
             label = "paletteWash",
         ) { stops ->
             if (stops != null && stops.size >= 3) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colorStops = arrayOf(
-                                    0f to stops[0],
-                                    0.5f to stops[1],
-                                    1f to stops[2],
-                                ),
-                            ),
-                        )
-                        .background(Color.Black.copy(alpha = 0.2f)),
-                )
+                LivingGradient(stops, moving)
             }
         }
     }
 }
+
+/**
+ * El degradado de siempre (color → color oscuro → negro) con manchas de los
+ * otros tonos de la carátula flotando encima. Abajo se funde a negro para que
+ * los controles se lean igual que antes.
+ */
+@Composable
+private fun LivingGradient(stops: List<Color>, moving: Boolean) {
+    val time = remember { mutableFloatStateOf(4f) }
+    LaunchedEffect(moving) {
+        if (!moving) return@LaunchedEffect
+        var last = withFrameNanos { it }
+        while (true) {
+            delay(WASH_FRAME_MS)
+            withFrameNanos { now ->
+                time.floatValue += ((now - last) / 1e9f).coerceAtMost(0.1f)
+                last = now
+            }
+        }
+    }
+    val accents = stops.drop(3).ifEmpty { listOf(stops[0], stops[1]) }
+    // El tiempo solo se lee al dibujar: nada se recompone en cada fotograma.
+    Canvas(Modifier.fillMaxSize()) {
+        val t = time.floatValue
+        drawRect(
+            Brush.verticalGradient(0f to stops[0], 0.5f to stops[1], 1f to stops[2]),
+        )
+        repeat(5) { i ->
+            val color = if (i == 4) stops[0] else accents[i % accents.size]
+            val speed = 0.34f + i * 0.06f
+            val center = Offset(
+                size.width * (0.5f + 0.55f * sin(t * speed + i * 1.9f)),
+                size.height * (0.38f + 0.34f * cos(t * speed * 0.85f + i * 2.3f)),
+            )
+            val radius = size.maxDimension * (0.36f + 0.09f * sin(t * 0.45f + i))
+            drawCircle(
+                Brush.radialGradient(
+                    listOf(color.copy(alpha = 0.88f), color.copy(alpha = 0f)),
+                    center = center,
+                    radius = radius,
+                ),
+                radius = radius,
+                center = center,
+            )
+        }
+        drawRect(Color.Black.copy(alpha = 0.12f))
+        drawRect(
+            Brush.verticalGradient(
+                0.50f to Color.Transparent,
+                0.80f to Color.Black.copy(alpha = 0.55f),
+                1f to Color.Black.copy(alpha = 0.92f),
+            ),
+        )
+    }
+}
+
+private const val WASH_FRAME_MS = 30L
 
 /** Colores del degradado por URL de carátula (evita re-extracciones). */
 private val gradientCache = object : LruCache<String, List<Color>>(32) {}
@@ -162,7 +218,37 @@ private fun gradientColorsOf(palette: Palette): List<Color> {
         green = (primary.green * 0.6f).coerceAtLeast(0f),
         blue = (primary.blue * 0.6f).coerceAtLeast(0f),
     )
-    return listOf(primary, mid, Color.Black)
+    // Otros tonos de la carátula, asentados para que el texto blanco se lea.
+    val accents = candidates
+        .sortedByDescending { swatchWeight(it) }
+        .map { Color(it.rgb) }
+        .filter { colorDistance(it, primary) > 0.18f }
+        .distinct()
+        .take(3)
+        .map(::settle)
+    // Carátulas de un solo color: variantes vecinas para que se note el movimiento.
+    val variants = listOf(shift(primary, 24f, 0.9f), shift(primary, -24f, 0.62f), shift(primary, 8f, 0.42f))
+    return listOf(primary, mid, Color.Black) + (accents + variants).take(4)
+}
+
+private fun colorDistance(a: Color, b: Color): Float =
+    abs(a.red - b.red) + abs(a.green - b.green) + abs(a.blue - b.blue)
+
+private fun shift(color: Color, degrees: Float, brightness: Float): Color {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+    hsv[0] = (hsv[0] + degrees + 360f) % 360f
+    hsv[2] = (hsv[2] * brightness).coerceIn(0.14f, 0.7f)
+    return Color(android.graphics.Color.HSVToColor(hsv))
+}
+
+/** Limita el brillo del tono. */
+private fun settle(color: Color): Color {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(color.toArgb(), hsv)
+    hsv[1] = (hsv[1] * 1.15f).coerceAtMost(1f)
+    hsv[2] = hsv[2].coerceIn(0.18f, 0.66f)
+    return Color(android.graphics.Color.HSVToColor(hsv))
 }
 
 private fun isVibrant(color: Color): Boolean {

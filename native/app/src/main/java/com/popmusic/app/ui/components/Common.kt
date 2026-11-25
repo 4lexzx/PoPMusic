@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.popmusic.app.PoPMusicApplication
 import com.popmusic.app.domain.Song
+import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.pressScale
 
 @Composable
@@ -257,8 +258,8 @@ fun TrackRow(
                             onMoreClick?.invoke()
                         }
                     },
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    iconSize = 22.dp,
+                    tint = Faint,
+                    iconSize = 19.dp,
                 )
                 if (moreMenu != null) {
                     SolidMenu(

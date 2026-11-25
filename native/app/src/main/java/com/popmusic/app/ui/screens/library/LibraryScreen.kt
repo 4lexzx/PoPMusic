@@ -46,7 +46,7 @@ import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Link
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.QueueMusic
@@ -94,6 +94,7 @@ import com.popmusic.app.ui.components.GlassTextButton
 import com.popmusic.app.ui.components.GlassTextField
 import com.popmusic.app.ui.components.PopIconButton
 import com.popmusic.app.ui.components.SolidMenu
+import com.popmusic.app.ui.components.SolidMenuDivider
 import com.popmusic.app.ui.components.SolidMenuRow
 import com.popmusic.app.ui.components.copyAndOpenSpotifyExport
 import com.popmusic.app.ui.components.spotifyExportText
@@ -412,6 +413,7 @@ fun LibraryScreen(
                                             dismiss()
                                         },
                                     )
+                                    SolidMenuDivider()
                                     SolidMenuRow(
                                         icon = Icons.Rounded.Delete,
                                         label = "Eliminar playlist",
@@ -558,6 +560,7 @@ fun LibraryScreen(
                                             dismiss()
                                         },
                                     )
+                                    SolidMenuDivider()
                                     SolidMenuRow(
                                         icon = Icons.Rounded.Delete,
                                         label = "Eliminar playlist",
@@ -1146,26 +1149,32 @@ private fun LibrarySongList(
 @Composable
 private fun MoreChip(onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
+    // Zona táctil de 40 dp con un botón visible pequeño y discreto.
     Box(
         modifier = Modifier
-            .size(32.dp)
-            .clip(CircleShape)
-            .background(Color.Black.copy(alpha = 0.45f))
-            .border(1.dp, Color.White.copy(alpha = 0.20f), CircleShape)
+            .size(40.dp)
             .clickable(
                 interactionSource = interaction,
-                indication = ripple(bounded = false, radius = 16.dp),
+                indication = null,
                 onClick = onClick,
             )
-            .pressScale(interaction, pressedScale = 0.9f),
+            .pressScale(interaction, pressedScale = 0.88f),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.MoreVert,
-            contentDescription = "Opciones de la playlist",
-            tint = Ink,
-            modifier = Modifier.size(18.dp),
-        )
+        Box(
+            modifier = Modifier
+                .size(width = 32.dp, height = 24.dp)
+                .clip(CircleShape)
+                .background(Color(0xD9101012)),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.MoreHoriz,
+                contentDescription = "Opciones de la playlist",
+                tint = Color.White,
+                modifier = Modifier.size(17.dp),
+            )
+        }
     }
 }
 
@@ -1218,7 +1227,7 @@ private fun LibraryCard(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(8.dp),
+                        .padding(2.dp),
                 ) {
                     var menuOpen by remember { mutableStateOf(false) }
                     MoreChip(

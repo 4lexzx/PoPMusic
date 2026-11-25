@@ -50,11 +50,10 @@ import com.popmusic.app.data.updates.UpdateInfo
 import com.popmusic.app.data.updates.UpdateInstaller
 import com.popmusic.app.ui.components.GlassDialog
 import com.popmusic.app.ui.components.GlassTextButton
-import com.popmusic.app.ui.theme.BrandBlue
-import com.popmusic.app.ui.theme.BrandOrange
-import com.popmusic.app.ui.theme.BrandPink
 import com.popmusic.app.ui.theme.Ink
 import com.popmusic.app.ui.theme.Muted
+import com.popmusic.app.ui.theme.OnInk
+import com.popmusic.app.ui.theme.Surface3
 import com.popmusic.app.ui.theme.pressScale
 import java.util.Locale
 
@@ -124,7 +123,7 @@ fun UpdateDialog(
                             .fillMaxWidth(animatedProgress)
                             .fillMaxHeight()
                             .clip(CircleShape)
-                            .background(BrandGradient),
+                            .background(Ink),
                     )
                 }
                 Spacer(Modifier.height(8.dp))
@@ -218,7 +217,7 @@ private fun UpdateHeader(info: UpdateInfo) {
                 .size(132.dp)
                 .background(
                     Brush.radialGradient(
-                        listOf(BrandPink.copy(alpha = 0.34f), Color.Transparent),
+                        listOf(Ink.copy(alpha = 0.12f), Color.Transparent),
                     ),
                 ),
             contentAlignment = Alignment.Center,
@@ -258,10 +257,10 @@ private fun UpdateHeader(info: UpdateInfo) {
                 text = info.versionName,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black,
+                color = OnInk,
                 modifier = Modifier
                     .clip(CircleShape)
-                    .background(BrandGradient)
+                    .background(Ink)
                     .padding(horizontal = 12.dp, vertical = 4.dp),
             )
             if (info.sizeBytes > 0L) {
@@ -285,13 +284,13 @@ private fun ChangelogRow(entry: String) {
                 .padding(top = 1.dp)
                 .size(20.dp)
                 .clip(CircleShape)
-                .background(BrandGradient),
+                .background(Surface3),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
-                tint = Color.Black,
+                tint = Ink,
                 modifier = Modifier.size(14.dp),
             )
         }
@@ -335,7 +334,7 @@ private fun UpdateButton(text: String, onClick: () -> Unit, enabled: Boolean) {
             .clip(RoundedCornerShape(16.dp))
             .then(
                 if (enabled) {
-                    Modifier.background(BrandGradient)
+                    Modifier.background(Ink)
                 } else {
                     Modifier.background(Ink.copy(alpha = 0.10f))
                 },
@@ -354,12 +353,10 @@ private fun UpdateButton(text: String, onClick: () -> Unit, enabled: Boolean) {
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold,
-            color = if (enabled) Color.Black else Muted,
+            color = if (enabled) OnInk else Muted,
         )
     }
 }
-
-private val BrandGradient = Brush.linearGradient(listOf(BrandBlue, BrandPink, BrandOrange))
 
 private fun formatSize(bytes: Long): String =
     String.format(Locale.getDefault(), "%.1f MB", bytes / (1024.0 * 1024.0))

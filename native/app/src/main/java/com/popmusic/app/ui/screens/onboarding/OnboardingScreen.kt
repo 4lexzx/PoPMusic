@@ -68,15 +68,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.popmusic.app.PoPMusicApplication
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Person
+import com.popmusic.app.ui.screens.tastes.TasteCard
+import com.popmusic.app.ui.screens.tastes.PodcastSwitch
+import com.popmusic.app.ui.screens.tastes.GenreGrid
+import com.popmusic.app.ui.screens.tastes.ArtistGrid
+import com.popmusic.app.ui.theme.Surface3
+import com.popmusic.app.ui.theme.Surface2
+import com.popmusic.app.ui.theme.OnInk
 import com.popmusic.app.data.prefs.AppPreferences
 import com.popmusic.app.data.prefs.TasteSettings
 import com.popmusic.app.data.recommendations.PODCAST_TOPICS
 import com.popmusic.app.data.recommendations.TASTE_GENRES
 import com.popmusic.app.ui.components.GlassTextField
 import com.popmusic.app.ui.components.PopLogo
+import com.popmusic.app.ui.components.rememberArtistPhoto
 import com.popmusic.app.ui.theme.Accent
-import com.popmusic.app.ui.theme.BrandBlue
-import com.popmusic.app.ui.theme.BrandPink
 import com.popmusic.app.ui.theme.Faint
 import com.popmusic.app.ui.theme.Ink
 import com.popmusic.app.ui.theme.BgElev
@@ -184,9 +192,7 @@ fun OnboardingScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF0C0C16), Color(0xFF06060C)),
-                ),
+                Brush.verticalGradient(listOf(Surface2, BgElev)),
             )
             .statusBarsPadding()
             .imePadding(),
@@ -255,13 +261,14 @@ fun OnboardingScreen(
                 Text(
                     text = active.title,
                     style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
                     color = Ink,
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = active.subtitle,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Faint,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Muted,
                 )
                 Spacer(Modifier.height(20.dp))
 
@@ -364,30 +371,16 @@ private fun GenresStep(
     selected: Set<String>,
     onToggle: (String) -> Unit,
 ) {
-    SectionTitle("Géneros", trailing = if (selected.isEmpty()) null else "${selected.size} elegidos")
-    Spacer(Modifier.height(10.dp))
-    LiquidGlass(shape = RoundedCornerShape(24.dp)) {
-        FlowRow(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            TASTE_GENRES.forEach { genre ->
-                TasteChip(
-                    label = genre.label,
-                    selected = genre.label in selected,
-                    onClick = { onToggle(genre.label) },
-                )
-            }
-        }
-    }
-    Spacer(Modifier.height(12.dp))
+    GenreGrid(selected = selected, onToggle = onToggle)
+    Spacer(Modifier.height(14.dp))
     Text(
-        text = "Elige 3 o más para mejores resultados.",
+        text = when (selected.size) {
+            0 -> "Elige 3 o más para mejores resultados."
+            1, 2 -> "Llevas ${selected.size}. Con 3 o más acertamos mejor."
+            else -> "${selected.size} géneros elegidos. ¡Perfecto!"
+        },
         style = MaterialTheme.typography.bodyMedium,
-        color = Faint,
+        color = Muted,
     )
 }
 
@@ -402,8 +395,12 @@ private fun ArtistsStep(
     onFocusChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LiquidGlass(shape = RoundedCornerShape(24.dp)) {
-        Column(modifier = Modifier.padding(14.dp)) {
+    TasteCard(
+        title = "Tus artistas",
+        icon = Icons.Rounded.Person,
+        trailing = "${artists.size} de $MAX_ARTISTS",
+    ) {
+        Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 GlassTextField(
                     value = input,
@@ -436,35 +433,24 @@ private fun ArtistsStep(
                     }
                 }
             }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = "${artists.size} de $MAX_ARTISTS artistas",
-                style = MaterialTheme.typography.labelMedium,
-                color = Faint,
-            )
         }
     }
 
-    Spacer(Modifier.height(22.dp))
-    SectionTitle("Sugerencias")
-    Spacer(Modifier.height(10.dp))
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        ARTIST_SUGGESTIONS
-            .filter { suggestion -> artists.none { it.equals(suggestion, ignoreCase = true) } }
-            .forEach { suggestion ->
-                TasteChip(
-                    label = suggestion,
-                    selected = false,
-                    enabled = artists.size < MAX_ARTISTS,
-                    onClick = { onSuggestion(suggestion) },
-                )
-            }
+    Spacer(Modifier.height(14.dp))
+    TasteCard(title = "Sugerencias", icon = Icons.Rounded.Star) {
+        ArtistGrid(
+            suggestions = ARTIST_SUGGESTIONS,
+            selected = artists,
+            canAdd = artists.size < MAX_ARTISTS,
+            onToggle = { name ->
+                val current = artists.firstOrNull { it.equals(name, ignoreCase = true) }
+                if (current != null) onRemove(current) else onSuggestion(name)
+            },
+        )
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PodcastsStep(
     podcast: Boolean,
@@ -472,40 +458,15 @@ private fun PodcastsStep(
     topics: Set<String>,
     onToggleTopic: (String) -> Unit,
 ) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        TasteChip(
-            label = "Sí, escucho podcasts",
-            selected = podcast,
-            onClick = { onPodcastChange(true) },
-        )
-        TasteChip(
-            label = "Solo música",
-            selected = !podcast,
-            onClick = { onPodcastChange(false) },
-        )
-    }
-
+    PodcastSwitch(podcast = podcast, onChange = onPodcastChange)
+    Spacer(Modifier.height(14.dp))
     if (podcast) {
-        Spacer(Modifier.height(22.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Rounded.Podcasts,
-                contentDescription = null,
-                tint = Faint,
-                modifier = Modifier.size(18.dp),
-            )
-            Spacer(Modifier.size(8.dp))
-            SectionTitle(
-                "Temas de podcast",
-                trailing = if (topics.isEmpty()) null else "${topics.size} elegidos",
-            )
-        }
-        Spacer(Modifier.height(10.dp))
-        LiquidGlass(shape = RoundedCornerShape(24.dp)) {
+        TasteCard(
+            title = "Temas",
+            icon = Icons.Rounded.Podcasts,
+            trailing = if (topics.isEmpty()) null else "${topics.size} elegidos",
+        ) {
             FlowRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(14.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -522,14 +483,13 @@ private fun PodcastsStep(
         Text(
             text = "Aparecerán secciones de podcasts en tu inicio.",
             style = MaterialTheme.typography.bodyMedium,
-            color = Faint,
+            color = Muted,
         )
     } else {
-        Spacer(Modifier.height(24.dp))
         Text(
             text = "Perfecto. Tu inicio será solo música.",
             style = MaterialTheme.typography.bodyLarge,
-            color = Faint,
+            color = Muted,
         )
     }
 }
@@ -538,15 +498,15 @@ private fun PodcastsStep(
 private fun StepDots(current: Int, total: Int) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.padding(top = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, end = 12.dp),
     ) {
         repeat(total) { index ->
-            val active = index <= current
             Box(
                 modifier = Modifier
-                    .size(width = if (active) 22.dp else 8.dp, height = 4.dp)
+                    .weight(1f)
+                    .height(4.dp)
                     .clip(RoundedCornerShape(50))
-                    .background(if (active) Ink else Color.White.copy(alpha = 0.16f)),
+                    .background(if (index <= current) Ink else Ink.copy(alpha = 0.14f)),
             )
         }
     }
@@ -598,22 +558,10 @@ internal fun TasteChip(
             .clip(RoundedCornerShape(50))
             .background(
                 when {
-                    // Tanda 9: seleccionado = degradado de marca (azul→magenta).
-                    selected -> Brush.horizontalGradient(
-                        listOf(BrandBlue, BrandPink),
-                    )
-                    enabled -> SolidColor(Color.White.copy(alpha = 0.06f))
-                    else -> SolidColor(Color.White.copy(alpha = 0.03f))
+                    selected -> Ink
+                    enabled -> Surface3
+                    else -> Surface3.copy(alpha = 0.5f)
                 },
-            )
-            .border(
-                1.dp,
-                when {
-                    selected -> Color.Transparent
-                    enabled -> Color.White.copy(alpha = 0.10f)
-                    else -> Color.White.copy(alpha = 0.05f)
-                },
-                RoundedCornerShape(50),
             )
             .clickable(
                 interactionSource = interaction,
@@ -628,7 +576,7 @@ internal fun TasteChip(
             Icon(
                 imageVector = Icons.Rounded.Check,
                 contentDescription = null,
-                tint = Ink,
+                tint = OnInk,
                 modifier = Modifier.size(15.dp),
             )
             Spacer(Modifier.size(6.dp))
@@ -637,8 +585,8 @@ internal fun TasteChip(
             text = label,
             style = MaterialTheme.typography.labelLarge,
             color = when {
-                selected -> Ink
-                enabled -> Muted
+                selected -> OnInk
+                enabled -> Ink
                 else -> Faint.copy(alpha = 0.45f)
             },
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
@@ -647,26 +595,35 @@ internal fun TasteChip(
 }
 
 @Composable
-internal fun SelectedArtistChip(artist: String, onRemove: () -> Unit) {
+internal fun SelectedArtistChip(artist: String, onRemove: () -> Unit, showPhoto: Boolean = true) {
+    val photo = if (showPhoto) rememberArtistPhoto(artist).url else null
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(Accent.copy(alpha = 0.16f))
-            .border(1.dp, Accent.copy(alpha = 0.45f), RoundedCornerShape(50))
-            .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+            .background(Ink)
+            .padding(start = if (photo != null) 5.dp else 12.dp, end = 6.dp, top = 5.dp, bottom = 5.dp),
     ) {
+        if (photo != null) {
+            coil3.compose.AsyncImage(
+                model = photo,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.size(26.dp).clip(RoundedCornerShape(50)),
+            )
+            Spacer(Modifier.size(8.dp))
+        }
         Text(
             text = artist,
             style = MaterialTheme.typography.labelLarge,
-            color = Ink,
+            color = OnInk,
         )
         Spacer(Modifier.size(6.dp))
         Box(
             modifier = Modifier
                 .size(22.dp)
                 .clip(RoundedCornerShape(50))
-                .background(Color.White.copy(alpha = 0.10f))
+                .background(OnInk.copy(alpha = 0.12f))
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
                     indication = ripple(bounded = false, radius = 11.dp),
@@ -677,7 +634,7 @@ internal fun SelectedArtistChip(artist: String, onRemove: () -> Unit) {
             Icon(
                 imageVector = Icons.Rounded.Close,
                 contentDescription = "Quitar $artist",
-                tint = Ink.copy(alpha = 0.8f),
+                tint = OnInk,
                 modifier = Modifier.size(14.dp),
             )
         }
@@ -690,12 +647,7 @@ internal fun AddChip(enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(if (enabled) Ink.copy(alpha = 0.16f) else Color.White.copy(alpha = 0.05f))
-            .border(
-                1.dp,
-                if (enabled) Ink.copy(alpha = 0.45f) else Color.White.copy(alpha = 0.08f),
-                RoundedCornerShape(50),
-            )
+            .background(if (enabled) Ink else Surface3)
             .clickable(
                 interactionSource = interaction,
                 indication = ripple(bounded = true),
@@ -708,7 +660,7 @@ internal fun AddChip(enabled: Boolean, onClick: () -> Unit) {
         Text(
             text = "Añadir",
             style = MaterialTheme.typography.labelLarge,
-            color = if (enabled) Ink else Faint,
+            color = if (enabled) OnInk else Faint,
             fontWeight = FontWeight.SemiBold,
         )
     }
@@ -752,8 +704,8 @@ private fun GlassTextAction(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Color.White.copy(alpha = 0.06f))
-            .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
+            .background(Surface3)
+            .border(1.dp, Ink.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
             .clickable(
                 interactionSource = interaction,
                 indication = ripple(bounded = true),
@@ -766,7 +718,7 @@ private fun GlassTextAction(
         Text(
             text = text,
             style = MaterialTheme.typography.labelLarge,
-            color = Faint,
+            color = Muted,
             textAlign = TextAlign.Center,
         )
     }
@@ -782,7 +734,7 @@ private fun PrimaryAction(
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(Ink.copy(alpha = 0.92f))
+            .background(Ink)
             .clickable(
                 interactionSource = interaction,
                 indication = ripple(bounded = true, color = Color.Black),
@@ -796,7 +748,7 @@ private fun PrimaryAction(
             text = text,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = BgElev,
+            color = OnInk,
             textAlign = TextAlign.Center,
         )
     }
