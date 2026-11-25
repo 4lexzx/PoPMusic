@@ -17,7 +17,8 @@ import java.util.concurrent.ConcurrentHashMap
 class LyricsRepository(context: Context) {
 
     private val network = LrcLibRepository()
-    private val directory = File(context.cacheDir, "lyrics").apply { mkdirs() }
+    // "lyrics_v2": la caché anterior guarda letras de la versión equivocada.
+    private val directory = File(context.cacheDir, "lyrics_v2").apply { mkdirs() }
     private val offsets = context.getSharedPreferences(OFFSETS_NAME, Context.MODE_PRIVATE)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val jobs = ConcurrentHashMap<String, Deferred<Lyrics?>>()

@@ -191,7 +191,7 @@ class PlayerConnection(private val context: Context) {
             pendingQueue = pendingQueue?.let { (queue, index) -> (queue + songs) to index }
             return
         }
-        mediaController.addMediaItems(songs.map { it.toMediaItem(0) })
+        mediaController.addMediaItems(songs.map { it.toMediaItem(APPEND_INDEX) })
         nearEndNotified = false
         val skipFrom = pendingSkipId ?: return
         pendingSkipId = null
@@ -479,6 +479,8 @@ class PlayerConnection(private val context: Context) {
     }
 
     companion object {
+        /** Canciones añadidas al final: no hay pista inicial que resolver. */
+        const val APPEND_INDEX = -1
         const val EXTRA_START_INDEX = "com.popmusic.app.START_INDEX"
         private const val TAG = "PlayerConnection"
         private const val URL_TTL_MS = 20 * 60 * 1000L

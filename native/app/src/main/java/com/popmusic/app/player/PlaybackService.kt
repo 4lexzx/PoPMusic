@@ -805,9 +805,24 @@ class PlaybackService : MediaSessionService() {
                 return future
             }
 
-            val startIndex = (mediaItems.first().mediaMetadata.extras
+            val requestedIndex = mediaItems.first().mediaMetadata.extras
                 ?.getInt(PlayerConnection.EXTRA_START_INDEX, 0)
-                ?: 0).coerceIn(0, mediaItems.lastIndex)
+                ?: 0
+            if (requestedIndex == PlayerConnection.APPEND_INDEX) {
+                // Añadir a la cola responde YA. Si se espera a resolver la URL,
+                // Media3 congela el estado del MediaController: la canción
+                // sonaba y la pantalla seguía cargando. La siguiente la
+                // resuelve onTimelineChanged; el resto se calienta después.
+                future.set(mediaItems)
+                scope.launch {
+                    kotlinx.coroutines.delay(APPEND_WARM_DELAY_MS)
+                    mediaItems.take(MAX_QUEUE_WARM).forEach { item ->
+                        scope.launch { prefetchPermits.withPermit { resolveItem(item) } }
+                    }
+                }
+                return future
+            }
+            val startIndex = requestedIndex.coerceIn(0, mediaItems.lastIndex)
 
         scope.launch {
             val items = mediaItems.toMutableList()
@@ -1205,6 +1220,7 @@ private fun handlePlaybackError(player: Player) {
          * Con pocas basta (el resto se resuelve al acercarse su turno).
          */
         const val MAX_QUEUE_WARM = 10
+        const val APPEND_WARM_DELAY_MS = 3_000L
         /** Acción custom del botón de repetir de la notificación. */
         const val COMMAND_CYCLE_REPEAT = "popmusic.CYCLE_REPEAT"
         const val MIN_BUFFER_MS = 15_000
