@@ -12,7 +12,6 @@ val localProperties = Properties().apply {
         file.inputStream().use { stream -> load(stream) }
     }
 }
-val auddApiKey = localProperties.getProperty("audd.apiKey") ?: ""
 val supabaseUrl = localProperties.getProperty("supabase.url") ?: ""
 val supabaseAnonKey = localProperties.getProperty("supabase.anonKey") ?: ""
 val updateManifestUrl = localProperties.getProperty("update.url")
@@ -40,10 +39,9 @@ android {
         applicationId = "com.popmusic.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 12
-        versionName = "0.1.12"
+        versionCode = 13
+        versionName = "0.1.13"
 
-        buildConfigField("String", "AUDD_API_KEY", "\"$auddApiKey\"")
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
         buildConfigField("String", "SUPABASE_REDIRECT_URL", "\"popmusic://auth-callback\"")

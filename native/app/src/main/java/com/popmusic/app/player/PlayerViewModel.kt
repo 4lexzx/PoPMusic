@@ -84,6 +84,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application) 
      * construye con canciones parecidas a la elegida, no con el resto de la
      * lista ordenada que viniera de detrás.
      */
+    fun setPlaying(playing: Boolean) = connection.setPlaying(playing)
+
     fun playRadio(
         seed: Song,
         genreHint: String? = null,

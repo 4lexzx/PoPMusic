@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.popmusic.app.PoPMusicApplication
 import com.popmusic.app.data.charts.ChartsRepository
 import com.popmusic.app.data.filter.ContentFilters
+import com.popmusic.app.data.filter.RelatedVideos
 import com.popmusic.app.data.library.LibraryState
 import com.popmusic.app.data.recommendations.DiscoveryPool
 import com.popmusic.app.data.recommendations.RecommendationsRepository
@@ -17,6 +18,8 @@ import com.popmusic.app.data.youtube.YouTubeRepository
 import com.popmusic.app.domain.Song
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -45,6 +48,16 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         private set
 
     var results by mutableStateOf<List<Song>>(emptyList())
+        private set
+
+    /**
+     * Videos relacionados con la búsqueda. Viven solo en esta pantalla: no se
+     * añaden a [DiscoveryPool], así que no llegan a radios ni recomendaciones.
+     */
+    var videos by mutableStateOf<List<Song>>(emptyList())
+        private set
+
+    var videosLoading by mutableStateOf(false)
         private set
 
     var forYou by mutableStateOf<List<Song>>(emptyList())
@@ -149,6 +162,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
     fun onQueryChange(value: String) {
         query = value
         searchJob?.cancel()
+        clearVideos()
 
         val term = value.trim()
         if (term.length < 2) {
@@ -170,7 +184,13 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         if (term.isEmpty()) return
 
         searchJob?.cancel()
+        clearVideos()
         searchJob = viewModelScope.launch { performSearch(term) }
+    }
+
+    private fun clearVideos() {
+        videos = emptyList()
+        videosLoading = false
     }
 
     fun toggleSource() {
@@ -178,6 +198,7 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         prefs.edit().putString(KEY_SOURCE, source.name).apply()
         // Re-ejecuta la búsqueda actual con la nueva fuente.
         searchJob?.cancel()
+        clearVideos()
         val term = query.trim()
         if (term.length < 2) {
             results = emptyList()
@@ -200,6 +221,28 @@ class SearchViewModel(application: Application) : AndroidViewModel(application) 
         }
         isLoading = true
         error = null
+        coroutineScope {
+            // A la vez que las canciones, sin hacerlas esperar.
+            videosLoading = true
+            val music = async { videoSearch { repository.musicVideos(term) } }
+            val web = async { videoSearch { repository.searchVideos(term) } }
+            searchSongs(term)
+            val found = music.await() + web.await()
+            if (query.trim() != term) return@coroutineScope
+            videos = RelatedVideos.pick(term, found, results)
+            videosLoading = false
+        }
+    }
+
+    private suspend fun videoSearch(block: suspend () -> List<Song>): List<Song> = try {
+        block()
+    } catch (cancel: CancellationException) {
+        throw cancel
+    } catch (_: Throwable) {
+        emptyList()
+    }
+
+    private suspend fun searchSongs(term: String) {
         val outcome = try {
             Result.success(repository.search(term))
         } catch (cancel: CancellationException) {

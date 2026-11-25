@@ -31,29 +31,38 @@ class YouTubeRepository {
         // Primero YouTube Music con filtro "solo canciones": evita videos de YouTube,
         // canales y playlists en los resultados. Fallback a la búsqueda web de YouTube.
         val fromMusic = runCatching {
-            val handler = ServiceList.YouTube.searchQHFactory
-                .fromQuery(query, listOf("music_songs"), null)
-            val extractor = ServiceList.YouTube.getSearchExtractor(handler) as SearchExtractor
-            extractor.fetchPage()
-            extractor.initialPage.items.mapNotNull { item ->
-                val stream = item as? StreamInfoItem ?: return@mapNotNull null
-                val videoId = videoIdFrom(stream.url) ?: return@mapNotNull null
-                if (stream.duration <= 0L) return@mapNotNull null
-
-                Song(
-                    id = videoId,
-                    title = stream.name.cleanForDisplay(),
-                    artist = stream.uploaderName.orEmpty().cleanForDisplay(),
-                    durationSeconds = stream.duration.coerceAtLeast(0L),
-                    thumbnailUrl = bestThumbnail(stream, videoId),
-                )
-            }
+            musicSearch(query, "music_songs")
         }.getOrNull().orEmpty()
 
         if (fromMusic.isNotEmpty()) {
             fromMusic.distinctBy { it.id }
         } else {
             youtubeWebSearch(query)
+        }
+    }
+
+    /** Videos musicales de YouTube Music (en vivo, covers…). Solo para el buscador. */
+    suspend fun musicVideos(query: String): List<Song> = withContext(Dispatchers.IO) {
+        NewPipeInitializer.ensureInitialized()
+        musicSearch(query, "music_videos").distinctBy { it.id }
+    }
+
+    private fun musicSearch(query: String, filter: String): List<Song> {
+        val handler = ServiceList.YouTube.searchQHFactory.fromQuery(query, listOf(filter), null)
+        val extractor = ServiceList.YouTube.getSearchExtractor(handler) as SearchExtractor
+        extractor.fetchPage()
+        return extractor.initialPage.items.mapNotNull { item ->
+            val stream = item as? StreamInfoItem ?: return@mapNotNull null
+            val videoId = videoIdFrom(stream.url) ?: return@mapNotNull null
+            if (stream.duration <= 0L) return@mapNotNull null
+
+            Song(
+                id = videoId,
+                title = stream.name.cleanForDisplay(),
+                artist = stream.uploaderName.orEmpty().cleanForDisplay(),
+                durationSeconds = stream.duration,
+                thumbnailUrl = bestThumbnail(stream, videoId),
+            )
         }
     }
 

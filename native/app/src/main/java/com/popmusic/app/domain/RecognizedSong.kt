@@ -4,4 +4,5 @@ data class RecognizedSong(
     val title: String,
     val artist: String,
     val album: String? = null,
+    val artworkUrl: String? = null,
 )
