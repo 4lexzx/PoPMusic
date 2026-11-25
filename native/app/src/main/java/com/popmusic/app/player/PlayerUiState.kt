@@ -10,6 +10,11 @@ data class PlayerUiState(
     val title: String = "",
     val artist: String = "",
     val artworkUrl: String? = null,
+    /** Vecinas en la cola, para el carrusel de carátulas. */
+    val previousArtworkUrl: String? = null,
+    val nextArtworkUrl: String? = null,
+    val hasPrevious: Boolean = false,
+    val hasNext: Boolean = false,
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
     val repeatMode: Int = Player.REPEAT_MODE_OFF,

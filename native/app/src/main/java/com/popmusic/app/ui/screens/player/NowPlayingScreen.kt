@@ -1,5 +1,8 @@
 package com.popmusic.app.ui.screens.player
 
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.SizeTransform
@@ -180,16 +183,6 @@ fun NowPlayingScreen(
     val currentDurationMs by rememberUpdatedState(state.durationMs)
     val currentOnSeek by rememberUpdatedState(onSeek)
     val currentOnBack by rememberUpdatedState(onBack)
-    val currentOnNext by rememberUpdatedState(onNext)
-    val currentOnPrevious by rememberUpdatedState(onPrevious)
-
-    // Deslizar la carátula cambia de pista: a la derecha = anterior,
-    // a la izquierda = siguiente. Se suma a los botones, no los sustituye.
-    val swipeX = remember { mutableFloatStateOf(0f) }
-    val swipeScope = rememberCoroutineScope()
-    val swipeThresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
-    // Distancia de salida para la transición en carrusel (fuera de pantalla).
-    val swipeOutPx = with(LocalDensity.current) { 340.dp.toPx() }
 
     // Letras (carga compartida con LyricsScreen vía el mismo ViewModel).
     val lyricsViewModel: LyricsViewModel = viewModel()
@@ -213,54 +206,64 @@ fun NowPlayingScreen(
     // reproductor. El detector vive en la raíz y la carátula ya no consume
     // arrastres verticales (se quitó el gesto de abrir la letra), así que
     // arrastrar sobre la foto también cierra.
-    var dragY by remember { mutableFloatStateOf(0f) }
+    val dragY = remember { Animatable(0f) }
+    var dragTarget by remember { mutableFloatStateOf(0f) }
+    var closing by remember { mutableStateOf(false) }
     var dragScreenHeightPx by remember { mutableFloatStateOf(1f) }
     val dragScope = rememberCoroutineScope()
-    val closeThresholdPx = with(LocalDensity.current) { 140.dp.toPx() }
+    val closeThresholdPx = with(LocalDensity.current) { 130.dp.toPx() }
+    val flingPx = with(LocalDensity.current) { 520.dp.toPx() }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .onSizeChanged { dragScreenHeightPx = it.height.toFloat().coerceAtLeast(1f) }
             .graphicsLayer {
-                // Solo desplazamiento y fundido. No escalar: esta capa lleva
-                // el GlassBackdrop desenfocado y reescalarlo a 60 fps produce
-                // un efecto borroso y con saltos al arrastrar.
-                translationY = dragY
-                alpha = if (dragY > 0f) {
-                    (1f - (dragY / dragScreenHeightPx) * 0.45f).coerceIn(0.55f, 1f)
-                } else {
-                    1f
+                // Solo desplazamiento y esquinas: no se reescala el fondo
+                // desenfocado, así sigue al dedo sin saltos.
+                translationY = dragY.value
+                val t = (dragY.value / (dragScreenHeightPx * 0.25f)).coerceIn(0f, 1f)
+                if (t > 0f) {
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(
+                        topStart = (36f * t).dp,
+                        topEnd = (36f * t).dp,
+                    )
+                    clip = true
                 }
             }
-            .pointerInput(Unit) {
-                detectVerticalDragGestures(
-                    onDragEnd = {
-                        if (dragY >= closeThresholdPx) {
-                            // Ítem 1: cierre INSTANTÁneo. Sin animación
-                            // extra: la transición de la navegación sigue
-                            // desde donde quedó el arrastre y detrás ya está
-                            // el fotograma de la pantalla anterior.
-                            currentOnBack()
-                        } else if (dragY > 0f) {
-                            dragScope.launch {
-                                animate(dragY, 0f) { value, _ -> dragY = value }
-                            }
-                        }
-                    },
-                    onDragCancel = {
-                        if (dragY > 0f) {
-                            dragScope.launch { animate(dragY, 0f) { value, _ -> dragY = value } }
-                        }
-                    },
-                    onVerticalDrag = { change, dragAmount ->
-                        if (dragAmount > 0f || dragY > 0f) {
-                            change.consume()
-                            dragY = (dragY + dragAmount).coerceAtLeast(0f)
-                        }
-                    },
-                )
-            },
+            .draggable(
+                orientation = Orientation.Vertical,
+                state = rememberDraggableState { delta ->
+                    if (closing) return@rememberDraggableState
+                    dragTarget = (dragTarget + delta).coerceAtLeast(0f)
+                    dragScope.launch { dragY.snapTo(dragTarget) }
+                },
+                onDragStarted = { if (!closing) dragTarget = dragY.value },
+                // En un ámbito propio: otro toque no puede cancelar el cierre.
+                onDragStopped = { velocity -> if (!closing) dragScope.launch {
+                    if (dragTarget > closeThresholdPx || (velocity > flingPx && dragTarget > 0f)) {
+                        // Sigue con la velocidad del dedo hasta salir.
+                        closing = true
+                        dragY.animateTo(
+                            dragScreenHeightPx,
+                            spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = 300f,
+                                visibilityThreshold = 24f,
+                            ),
+                            initialVelocity = velocity.coerceAtLeast(0f),
+                        )
+                        currentOnBack()
+                    } else {
+                        dragY.animateTo(
+                            0f,
+                            spring(dampingRatio = 0.82f, stiffness = 420f),
+                            initialVelocity = velocity,
+                        )
+                        dragTarget = 0f
+                    }
+                } },
+            ),
     ) {
         // Fondo estilo Echo (estilo GRADIENT por defecto): gradiente con los
         // colores extraídos de la carátula (Palette) superpuesto al desenfocado,
@@ -351,101 +354,18 @@ fun NowPlayingScreen(
                     val artSize = minOf(maxWidth, maxHeight - 72.dp)
                         .coerceAtLeast(140.dp)
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(artSize)
-                                .graphicsLayer {
-                                    translationX = swipeX.floatValue
-                                    // La carátula se inclina y se desvanece al
-                                    // arrastrarla, como una tarjeta que sale.
-                                    rotationZ = (swipeX.floatValue / swipeOutPx) * 8f
-                                    val t = (kotlin.math.abs(swipeX.floatValue) / swipeOutPx)
-                                        .coerceIn(0f, 1f)
-                                    alpha = 1f - t * 0.55f
-                                    scaleX = 1f - t * 0.08f
-                                    scaleY = scaleX
-                                }
-                                .pointerInput(Unit) {
-                                    detectHorizontalDragGestures(
-                                        onDragStart = { swipeX.floatValue = 0f },
-                                        onDragEnd = {
-                                            val x = swipeX.floatValue
-                                            when {
-                                                x >= swipeThresholdPx -> swipeScope.launch {
-                                                    // Sale hacia la derecha, cambia
-                                                    // de pista y la nueva entra desde
-                                                    // la izquierda con muelle suave.
-                                                    animate(
-                                                        x,
-                                                        swipeOutPx,
-                                                        animationSpec = tween(170),
-                                                    ) { value, _ -> swipeX.floatValue = value }
-                                                    currentOnPrevious()
-                                                    animate(
-                                                        -swipeOutPx,
-                                                        0f,
-                                                        animationSpec = spring(
-                                                            stiffness = Spring.StiffnessLow,
-                                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                                        ),
-                                                    ) { value, _ -> swipeX.floatValue = value }
-                                                }
-
-                                                x <= -swipeThresholdPx -> swipeScope.launch {
-                                                    animate(
-                                                        x,
-                                                        -swipeOutPx,
-                                                        animationSpec = tween(170),
-                                                    ) { value, _ -> swipeX.floatValue = value }
-                                                    currentOnNext()
-                                                    animate(
-                                                        swipeOutPx,
-                                                        0f,
-                                                        animationSpec = spring(
-                                                            stiffness = Spring.StiffnessLow,
-                                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                                        ),
-                                                    ) { value, _ -> swipeX.floatValue = value }
-                                                }
-
-                                                else -> swipeScope.launch {
-                                                    animate(
-                                                        x,
-                                                        0f,
-                                                        animationSpec = spring(
-                                                            stiffness = Spring.StiffnessMedium,
-                                                            dampingRatio = Spring.DampingRatioNoBouncy,
-                                                        ),
-                                                    ) { value, _ -> swipeX.floatValue = value }
-                                                }
-                                            }
-                                        },
-                                        onDragCancel = {
-                                            val from = swipeX.floatValue
-                                            swipeScope.launch {
-                                                animate(
-                                                    from,
-                                                    0f,
-                                                    animationSpec = spring(
-                                                        stiffness = Spring.StiffnessMedium,
-                                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                                    ),
-                                                ) { value, _ -> swipeX.floatValue = value }
-                                            }
-                                        },
-                                        onHorizontalDrag = { change, amount ->
-                                            change.consume()
-                                            swipeX.floatValue =
-                                                (swipeX.floatValue + amount).coerceIn(
-                                                    -swipeOutPx,
-                                                    swipeOutPx,
-                                                )
-                                        },
-                                    )
-                                },
-                        ) {
+                        ArtworkCarousel(
+                            mediaId = state.mediaId,
+                            previousArtwork = state.previousArtworkUrl,
+                            nextArtwork = state.nextArtworkUrl,
+                            hasPrevious = state.hasPrevious,
+                            hasNext = state.hasNext,
+                            onPrevious = onPrevious,
+                            onNext = onNext,
+                            size = artSize,
+                        ) { override ->
                             PlayerArtwork(
-                                artworkUrl = state.artworkUrl,
+                                artworkUrl = override ?: state.artworkUrl,
                                 isPlaying = state.isPlaying,
                                 isBuffering = state.isBuffering,
                                 onTogglePlayPause = onTogglePlayPause,
@@ -909,14 +829,14 @@ private fun PlayerTopMenu(
             ) {
                 val menuShown = remember { Animatable(0f) }
                 LaunchedEffect(Unit) {
-                    menuShown.animateTo(1f, tween(150))
+                    menuShown.animateTo(1f, spring(dampingRatio = 0.72f, stiffness = 520f))
                 }
                 Column(
                     modifier = Modifier
                         .width(196.dp)
                         .graphicsLayer {
-                            alpha = menuShown.value
-                            val s = 0.95f + 0.05f * menuShown.value
+                            alpha = menuShown.value.coerceIn(0f, 1f)
+                            val s = 0.72f + 0.28f * menuShown.value
                             scaleX = s
                             scaleY = s
                             // Crece desde la esquina superior derecha (hacia abajo).

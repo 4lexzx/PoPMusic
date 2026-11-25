@@ -200,8 +200,12 @@ fun LibraryScreen(
         state.favorites.mapTo(HashSet()) { it.id }
     }
     val artists = remember(allSongs) {
-        allSongs.groupBy { it.artist }
-            .toList()
+        // "Maná - Topic" y "Maná" son el mismo artista.
+        allSongs.filter { it.artist.isNotBlank() }
+            .groupBy { it.artist.trim().removeSuffix(" - Topic").trim().lowercase() }
+            .map { (_, songs) ->
+                songs.first().artist.trim().removeSuffix(" - Topic").trim() to songs
+            }
             .sortedBy { it.first.lowercase() }
     }
 
@@ -233,7 +237,6 @@ fun LibraryScreen(
                     Text(
                         text = librarySummary(
                             favorites = state.favorites.size,
-                            downloads = state.downloads.size,
                             playlists = state.playlists.size,
                         ),
                         style = MaterialTheme.typography.bodyMedium,
@@ -424,7 +427,6 @@ fun LibraryScreen(
                                         },
                                     )
                                 },
-                                nameBorder = true,
                                 modifier = Modifier.animateItem(),
                             )
                         }
@@ -452,7 +454,7 @@ fun LibraryScreen(
                 )
 
                 LibraryFilter.ARTISTS -> LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                    columns = GridCells.Fixed(3),
                     state = artistsGridState,
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(bottom = 170.dp),
@@ -475,9 +477,9 @@ fun LibraryScreen(
                         }
                     } else {
                         items(artists, key = { it.first }) { (artist, songs) ->
-                            LibraryCard(
-                                covers = songs.map { it.thumbnailUrl },
-                                title = artist,
+                            LibraryArtist(
+                                name = artist,
+                                fallback = songs.firstNotNullOfOrNull { it.thumbnailUrl },
                                 subtitle = songCount(songs.size),
                                 onClick = { onPlay(songs, 0) },
                                 modifier = Modifier.animateItem(),
@@ -571,7 +573,6 @@ fun LibraryScreen(
                                         },
                                     )
                                 },
-                                nameBorder = true,
                                 modifier = Modifier.animateItem(),
                             )
                         }
@@ -1189,8 +1190,6 @@ private fun LibraryCard(
     /** Menú compacto sólido anclado al chip ⋯; recibe el cierre. */
     menu: (@Composable (dismiss: () -> Unit) -> Unit)? = null,
     badge: (@Composable () -> Unit)? = null,
-    /** Ítem 11 (tanda 3): borde sutil en el nombre (solo playlists). */
-    nameBorder: Boolean = false,
 ) {
     val interaction = remember { MutableInteractionSource() }
     Column(
@@ -1257,22 +1256,14 @@ private fun LibraryCard(
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            modifier = if (nameBorder) {
-                Modifier
-                    .border(1.dp, Faint.copy(alpha = 0.30f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
-            } else {
-                Modifier
-            },
+            modifier = Modifier.padding(horizontal = 4.dp),
         )
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodyMedium,
             color = Faint,
             maxLines = 1,
-            // El nombre va en un chip con borde: el subtítulo se alinea con
-            // su texto (borde 1dp + padding 8dp) para no desentarajarlo.
-            modifier = if (nameBorder) Modifier.padding(start = 9.dp) else Modifier,
+            modifier = Modifier.padding(horizontal = 4.dp),
         )
         Spacer(Modifier.height(2.dp))
     }
@@ -1307,13 +1298,54 @@ private fun AddFab(onClick: () -> Unit) {
 private fun Playlist.coverCovers(): List<String?> =
     songs.map { it.thumbnailUrl }
 
-private fun librarySummary(favorites: Int, downloads: Int, playlists: Int): String {
-    val total = favorites + downloads + playlists
-    return when (total) {
-        0 -> "Tu música aparecerá aquí"
-        1 -> "1 colección"
-        else -> "$total colecciones"
+@Composable
+private fun LibraryArtist(
+    name: String,
+    fallback: String?,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val photo = com.popmusic.app.ui.components.rememberArtistPhoto(name)
+    val interaction = remember { MutableInteractionSource() }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .enterOnVisible()
+            .clickable(interactionSource = interaction, indication = null, onClick = onClick)
+            .pressScale(interaction, pressedScale = 0.94f),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        com.popmusic.app.ui.components.Artwork(
+            // Mientras se busca la foto no se enseña la carátula: no parpadea.
+            url = photo.url ?: fallback.takeIf { !photo.loading },
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(CircleShape),
+            cornerRadius = 200.dp,
+            iconSize = 34.dp,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = name,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = Faint,
+            maxLines = 1,
+        )
     }
+}
+
+private fun librarySummary(favorites: Int, playlists: Int): String {
+    val parts = buildList {
+        if (playlists > 0) add(if (playlists == 1) "1 playlist" else "$playlists playlists")
+        if (favorites > 0) add(if (favorites == 1) "1 favorita" else "$favorites favoritas")
+    }
+    return parts.joinToString(" · ").ifBlank { "Tu música aparecerá aquí" }
 }
 
 private fun songCount(count: Int): String = when (count) {

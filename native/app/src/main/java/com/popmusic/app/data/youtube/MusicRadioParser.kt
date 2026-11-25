@@ -58,6 +58,29 @@ internal object MusicRadioParser {
         )
     }
 
+    /** Artista, álbum y año del primer tema (la propia semilla). */
+    fun meta(root: JSONObject, videoId: String): YouTubeRepository.MusicMeta? {
+        val panel = findObject(root, "playlistPanelRenderer") ?: return null
+        val video = panel.optJSONArray("contents").objects().firstNotNullOfOrNull { item ->
+            val direct = item.optJSONObject("playlistPanelVideoRenderer")
+                ?: item.optJSONObject("playlistPanelVideoWrapperRenderer")
+                    ?.optJSONObject("primaryRenderer")
+                    ?.optJSONObject("playlistPanelVideoRenderer")
+            direct?.takeIf { it.optString("videoId") == videoId }
+        } ?: return null
+        // Solo el audio oficial trae "artista • álbum • año"; un vídeo trae visitas.
+        if (videoType(video) != AUDIO_TYPE) return null
+        val parts = text(video.optJSONObject("longBylineText")).split(" • ").map { it.trim() }
+        if (parts.size < 3) return null
+        val artist = video.optJSONObject("longBylineText")?.optJSONArray("runs").objects()
+            .firstOrNull()?.optString("text").orEmpty().trim()
+        return YouTubeRepository.MusicMeta(
+            artist = artist,
+            album = parts[1],
+            year = parts.last().takeIf { it.matches(Regex("(19|20)\\d{2}")) },
+        )
+    }
+
     private fun videoType(video: JSONObject): String =
         video.optJSONObject("navigationEndpoint")
             ?.optJSONObject("watchEndpoint")

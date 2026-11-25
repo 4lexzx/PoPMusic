@@ -1,9 +1,17 @@
 package com.popmusic.app.ui.screens.info
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,7 +29,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,100 +41,81 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
-import com.popmusic.app.data.info.SongStory
-import com.popmusic.app.data.info.SongStoryRepository
+import com.popmusic.app.data.info.SongFacts
+import com.popmusic.app.data.info.SongFactsRepository
 import com.popmusic.app.domain.Song
 import com.popmusic.app.ui.components.Artwork
 import com.popmusic.app.ui.components.GlassBackdrop
+import com.popmusic.app.ui.components.MusicLoader
 import com.popmusic.app.ui.components.PopIconButton
 import com.popmusic.app.ui.glass.backdrop.backdrops.LayerBackdrop
 import com.popmusic.app.ui.glass.backdrop.backdrops.layerBackdrop
-import com.popmusic.app.ui.screens.lyrics.LyricsViewModel
-import com.popmusic.app.ui.theme.Faint
+import com.popmusic.app.ui.screens.player.PlayerPaletteWash
 import com.popmusic.app.ui.theme.Ink
-import com.popmusic.app.ui.theme.LiquidGlass
-import com.popmusic.app.ui.theme.Surface2
+import com.popmusic.app.ui.theme.Muted
 import java.util.Locale
+import kotlinx.coroutines.CancellationException
 
+/**
+ * Ficha de la canción: primero el artista y después los datos. Solo muestra
+ * información comprobada; lo que no se encuentra, no aparece.
+ */
 @Composable
 fun SongInfoScreen(
     song: Song?,
     onBack: () -> Unit,
     ambientBackdrop: LayerBackdrop? = null,
     modifier: Modifier = Modifier,
-    viewModel: LyricsViewModel = viewModel(),
 ) {
+    val context = LocalContext.current
     val songId = song?.id.orEmpty()
-    val title = song?.title.orEmpty()
-    val artist = song?.artist.orEmpty()
+    var facts by remember(songId) { mutableStateOf<SongFacts?>(null) }
+    var loading by remember(songId) { mutableStateOf(song != null) }
+    var attempt by remember(songId) { mutableStateOf(0) }
 
-    LaunchedEffect(songId, title, artist, song?.durationSeconds) {
-        if (title.isNotBlank()) {
-            viewModel.load(
-                songId = songId,
-                title = title,
-                artist = artist,
-                durationMs = (song?.durationSeconds ?: 0L) * 1_000,
-            )
+    LaunchedEffect(songId, attempt) {
+        val current = song ?: return@LaunchedEffect
+        loading = true
+        facts = try {
+            SongFactsRepository(context.applicationContext).facts(current)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            null
         }
-    }
-
-    var youtubeAvatar by remember(songId) { mutableStateOf<String?>(null) }
-    LaunchedEffect(songId) {
-        if (songId.isNotBlank()) {
-            val details = runCatching {
-                com.popmusic.app.data.youtube.YouTubeRepository().videoDetails(songId)
-            }.getOrNull()
-            youtubeAvatar = details?.avatarUrl
-        }
-    }
-
-    var story by remember(songId, title, artist) { mutableStateOf<SongStory?>(null) }
-    var storyLoading by remember(songId, title, artist) { mutableStateOf(title.isNotBlank()) }
-    LaunchedEffect(songId, title, artist) {
-        if (title.isBlank()) {
-            storyLoading = false
-            return@LaunchedEffect
-        }
-        story = null
-        storyLoading = true
-        story = runCatching { SongStoryRepository().story(title, artist) }.getOrNull()
-        storyLoading = false
+        loading = false
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        GlassBackdrop(
-            url = song?.thumbnailUrl,
-            modifier = Modifier
+        Box(
+            Modifier
                 .fillMaxSize()
                 .then(
-                    if (ambientBackdrop != null) {
-                        Modifier.layerBackdrop(ambientBackdrop)
-                    } else {
-                        Modifier
-                    },
+                    if (ambientBackdrop != null) Modifier.layerBackdrop(ambientBackdrop) else Modifier,
                 ),
-            imageAlpha = 0.55f,
-            dimTop = 0.30f,
-            dimBottom = 0.97f,
-        )
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding()
-                .navigationBarsPadding(),
         ) {
+            GlassBackdrop(
+                url = song?.thumbnailUrl,
+                modifier = Modifier.fillMaxSize(),
+                imageAlpha = 0.5f,
+                dimTop = 0.4f,
+                dimBottom = 0.97f,
+            )
+            PlayerPaletteWash(artworkUrl = song?.thumbnailUrl)
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.28f)))
+        }
+
+        Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 PopIconButton(
@@ -137,9 +125,10 @@ fun SongInfoScreen(
                 )
                 Spacer(Modifier.size(6.dp))
                 Text(
-                    text = "Información de la canción",
+                    text = "Información",
                     style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.weight(1f),
+                    fontWeight = FontWeight.Bold,
+                    color = Ink,
                 )
             }
 
@@ -148,228 +137,237 @@ fun SongInfoScreen(
                     .fillMaxWidth()
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                song?.let {
-                    LiquidGlass(
-                        shape = RoundedCornerShape(30.dp),
-                        elevation = 22.dp,
-                        modifier = Modifier.fillMaxWidth(),
+                when {
+                    song == null -> Unit
+
+                    loading -> Box(
+                        Modifier.fillMaxWidth().padding(vertical = 90.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Artwork(
-                            url = it.thumbnailUrl,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(320.dp)
-                                .padding(12.dp),
-                            cornerRadius = 22.dp,
-                            iconSize = 64.dp,
-                        )
+                        MusicLoader(size = 34.dp, color = Ink)
                     }
-                }
 
-                LiquidGlass(
-                    shape = RoundedCornerShape(28.dp),
-                    elevation = 20.dp,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
-                    ) {
-                        Text(
-                            text = title.ifBlank { "Sin canción" },
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = artist.ifBlank { "—" },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Ink.copy(alpha = 0.72f),
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        InfoRow("Duración", formatDuration((song?.durationSeconds ?: 0L) * 1_000))
-                        viewModel.albumDisplay?.takeIf { album -> album.isNotBlank() }
-                            ?.let { InfoRow("Álbum", it) }
-                        Spacer(Modifier.height(16.dp))
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    facts == null -> {
+                        SongCard(song, null)
+                        InfoCard {
                             Text(
-                                text = "Sobre el artista",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Ink,
+                                "No se pudo conectar para buscar la información.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Muted,
                             )
-                            Spacer(Modifier.weight(1f))
-                            if (viewModel.artistInfoLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Faint,
-                                )
-                            }
-                        }
-
-                        val info = viewModel.artistInfo
-                        val avatarUrl = info?.imageUrl?.takeIf { it.isNotBlank() } ?: youtubeAvatar
-                        Spacer(Modifier.height(10.dp))
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(14.dp),
-                        ) {
-                            Box(
+                            Text(
+                                "Reintentar",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Ink,
                                 modifier = Modifier
-                                    .size(64.dp)
                                     .clip(CircleShape)
-                                    .background(Surface2),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Rounded.Person,
-                                    contentDescription = null,
-                                    tint = Faint,
-                                    modifier = Modifier.size(30.dp),
-                                )
-                                if (avatarUrl != null) {
-                                    AsyncImage(
-                                        model = avatarUrl,
-                                        contentDescription = null,
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier
-                                            .size(64.dp)
-                                            .clip(CircleShape),
-                                    )
-                                }
-                            }
-                            Column {
-                                Text(
-                                    text = info?.name?.takeIf { it.isNotBlank() }
-                                        ?: artist.ifBlank { "Artista desconocido" },
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = Ink,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Text(
-                                    text = if (viewModel.artistInfoLoading) {
-                                        "Buscando información…"
-                                    } else {
-                                        "Artista de la canción"
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Faint,
-                                )
-                            }
-                        }
-                        val summary = info?.summary
-                        if (!summary.isNullOrBlank()) {
-                            Spacer(Modifier.height(10.dp))
-                            Text(
-                                text = summary,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Ink.copy(alpha = 0.80f),
-                                lineHeight = 18.sp,
+                                    .clickable { attempt++ }
+                                    .padding(vertical = 10.dp),
                             )
-                        } else if (!viewModel.artistInfoLoading) {
-                            Spacer(Modifier.height(8.dp))
+                        }
+                    }
+
+                    else -> {
+                        val info = facts ?: return@Column
+                        Appear { ArtistCard(info) }
+                        Appear { SongCard(song, info) }
+                        info.story?.let { story -> Appear { StoryCard(story) } }
+                        if (info.sources.isNotEmpty()) {
                             Text(
-                                text = "Sin biografía disponible",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Faint,
+                                "Fuentes: ${info.sources.joinToString(" · ")}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Ink.copy(alpha = 0.5f),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
                             )
                         }
                     }
                 }
-
-                LiquidGlass(
-                    shape = RoundedCornerShape(28.dp),
-                    elevation = 20.dp,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 18.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "Music DNA",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = Ink,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                            Spacer(Modifier.weight(1f))
-                            if (storyLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(16.dp),
-                                    strokeWidth = 2.dp,
-                                    color = Faint,
-                                )
-                            }
-                        }
-                        Spacer(Modifier.height(8.dp))
-                        val currentStory = story
-                        when {
-                            storyLoading -> Text(
-                                text = "Buscando la historia de la canción…",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Faint,
-                            )
-
-                            currentStory != null -> {
-                                val extract = currentStory.extract
-                                Text(
-                                    text = if (extract.length > 900) {
-                                        extract.take(900).trimEnd() + "…"
-                                    } else {
-                                        extract
-                                    },
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Ink.copy(alpha = 0.80f),
-                                    lineHeight = 18.sp,
-                                )
-                                Spacer(Modifier.height(10.dp))
-                                Text(
-                                    text = if (currentStory.lang == "es") {
-                                        "Basado en Wikipedia"
-                                    } else {
-                                        "Basado en Wikipedia (EN)"
-                                    },
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Faint,
-                                )
-                            }
-
-                            else -> Text(
-                                text = "Sin historia disponible",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Faint,
-                            )
-                        }
-                    }
-                }
+                Spacer(Modifier.height(24.dp))
             }
         }
     }
 }
 
 @Composable
-private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.padding(vertical = 3.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Faint,
-            modifier = Modifier.width(84.dp),
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Ink,
-            modifier = Modifier.weight(1f),
-        )
+private fun Appear(content: @Composable () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + slideInVertically(spring(dampingRatio = 0.85f, stiffness = 320f)) { it / 6 },
+    ) { content() }
+}
+
+@Composable
+private fun InfoCard(content: @Composable ColumnScope.() -> Unit) {
+    val shape = RoundedCornerShape(26.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(Color.Black.copy(alpha = 0.34f))
+            .border(1.dp, Color.White.copy(alpha = 0.08f), shape)
+            .animateContentSize(spring(dampingRatio = 0.9f, stiffness = 400f))
+            .padding(18.dp),
+        content = content,
+    )
+}
+
+@Composable
+private fun CardTitle(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        fontWeight = FontWeight.SemiBold,
+        color = Muted,
+    )
+    Spacer(Modifier.height(12.dp))
+}
+
+@Composable
+private fun ArtistCard(info: SongFacts) {
+    InfoCard {
+        CardTitle("Artista")
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(88.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.10f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.Person,
+                    null,
+                    tint = Ink.copy(alpha = 0.6f),
+                    modifier = Modifier.size(40.dp),
+                )
+                if (info.artistPhoto != null) {
+                    AsyncImage(
+                        model = info.artistPhoto,
+                        contentDescription = "Foto de ${info.artist}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    info.artist ?: "Artista desconocido",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Ink,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val detail = when {
+                    info.artist == null -> "Sin información disponible"
+                    info.genre != null -> info.genre
+                    else -> null
+                }
+                if (detail != null) {
+                    Text(detail, style = MaterialTheme.typography.bodyMedium, color = Muted)
+                }
+            }
+        }
+        info.bio?.let { bio ->
+            Spacer(Modifier.height(14.dp))
+            Text(
+                bio,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Ink.copy(alpha = 0.86f),
+                lineHeight = 21.sp,
+            )
+        }
     }
 }
 
-private fun formatDuration(durationMs: Long): String {
-    val totalSeconds = durationMs / 1000
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format(Locale.US, "%d:%02d", minutes, seconds)
+@Composable
+private fun SongCard(song: Song, info: SongFacts?) {
+    InfoCard {
+        CardTitle("Canción")
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Artwork(
+                url = song.thumbnailUrl,
+                modifier = Modifier.size(72.dp),
+                cornerRadius = 16.dp,
+                iconSize = 28.dp,
+            )
+            Spacer(Modifier.width(14.dp))
+            Text(
+                info?.title ?: song.title,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Ink,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        val rows = buildList {
+            info?.year?.let { add("Año de lanzamiento" to it) }
+            info?.album?.let { add("Álbum" to it) }
+            info?.genre?.let { add("Género" to it) }
+            info?.track?.let { add("Pista" to it) }
+            if (song.durationSeconds > 0L) add("Duración" to formatDuration(song.durationSeconds))
+            info?.uploader?.let { add("Publicado por" to it) }
+        }
+        if (rows.isNotEmpty()) Spacer(Modifier.height(10.dp))
+        rows.forEachIndexed { index, (label, value) ->
+            if (index > 0) {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.07f)))
+            }
+            Row(Modifier.fillMaxWidth().padding(vertical = 11.dp)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Muted,
+                    modifier = Modifier.width(140.dp),
+                )
+                Text(
+                    value,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Ink,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
 }
+
+@Composable
+private fun StoryCard(story: String) {
+    var expanded by remember(story) { mutableStateOf(false) }
+    InfoCard {
+        CardTitle("Sobre la canción")
+        Text(
+            story,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Ink.copy(alpha = 0.86f),
+            lineHeight = 21.sp,
+            maxLines = if (expanded) Int.MAX_VALUE else 6,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (story.length > 300) {
+            Text(
+                if (expanded) "Ver menos" else "Ver más",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = Ink,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 10.dp),
+            )
+        }
+    }
+}
+
+private fun formatDuration(seconds: Long): String =
+    String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60)

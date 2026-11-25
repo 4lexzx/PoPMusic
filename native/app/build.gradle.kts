@@ -40,8 +40,8 @@ android {
         applicationId = "com.popmusic.app"
         minSdk = 26
         targetSdk = 37
-        versionCode = 11
-        versionName = "0.1.11"
+        versionCode = 12
+        versionName = "0.1.12"
 
         buildConfigField("String", "AUDD_API_KEY", "\"$auddApiKey\"")
         buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")

@@ -84,6 +84,17 @@ class AppPreferences(context: Context) {
     private val _taste = MutableStateFlow(loadTaste())
     val taste: StateFlow<TasteSettings> = _taste.asStateFlow()
 
+    private val _nickname = MutableStateFlow(prefs.getString(KEY_NICKNAME, null).orEmpty())
+
+    /** Apodo elegido por el usuario; vacío = usar el nombre de la cuenta. */
+    val nickname: StateFlow<String> = _nickname.asStateFlow()
+
+    fun setNickname(value: String) {
+        val clean = value.trim().replace(Regex("\\s+"), " ").take(MAX_NICKNAME)
+        _nickname.value = clean
+        prefs.edit().putString(KEY_NICKNAME, clean).apply()
+    }
+
     fun update(transform: (BackgroundSettings) -> BackgroundSettings) {
         val next = transform(_settings.value)
         _settings.value = next
@@ -256,6 +267,8 @@ class AppPreferences(context: Context) {
     }
 
     private companion object {
+        const val KEY_NICKNAME = "nickname"
+        const val MAX_NICKNAME = 20
         const val KEY_MODE = "bg_mode"
         const val KEY_PRESET = "bg_preset"
         const val KEY_IMAGE = "bg_image"

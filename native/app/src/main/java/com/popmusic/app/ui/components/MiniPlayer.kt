@@ -1,5 +1,8 @@
 package com.popmusic.app.ui.components
 
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -108,10 +111,10 @@ fun MiniPlayer(
     val scope = rememberCoroutineScope()
     val offsetX = remember { Animatable(0f) }
     val thresholdPx = with(androidx.compose.ui.platform.LocalDensity.current) { 72.dp.toPx() }
-    val returnSpec = spring<Float>(
-        dampingRatio = Spring.DampingRatioNoBouncy,
-        stiffness = Spring.StiffnessLow,
-    )
+    val returnSpec = spring<Float>(dampingRatio = 0.85f, stiffness = 380f)
+    var dragTarget by remember { mutableFloatStateOf(0f) }
+    val currentNext by rememberUpdatedState(onNext)
+    val currentPrevious by rememberUpdatedState(onPrevious)
 
     // Sólida con "Cristal líquido" APAGADO (como la nav: Surface3 + borde);
     // lente líquida solo al activar el ajuste (la mini forma parte de la
@@ -120,29 +123,26 @@ fun MiniPlayer(
     val pillModifier = Modifier
         .widthIn(max = 340.dp)
         .height(if (compact) 56.dp else 64.dp)
-        .pointerInput(Unit) {
-            detectHorizontalDragGestures(
-                onDragCancel = {
-                    scope.launch { offsetX.animateTo(0f, returnSpec) }
-                },
-                onHorizontalDrag = { _, dragAmount ->
-                    scope.launch {
-                        offsetX.snapTo(
-                            (offsetX.value + dragAmount)
-                                .coerceIn(-thresholdPx * 1.6f, thresholdPx * 1.6f),
-                        )
-                    }
-                },
-                onDragEnd = {
-                    val offset = offsetX.value
-                    when {
-                        offset <= -thresholdPx -> onNext()
-                        offset >= thresholdPx -> onPrevious()
-                    }
-                    scope.launch { offsetX.animateTo(0f, returnSpec) }
-                },
-            )
-        }
+        .draggable(
+            orientation = Orientation.Horizontal,
+            state = rememberDraggableState { delta ->
+                dragTarget = (dragTarget + delta).coerceIn(-thresholdPx * 2.2f, thresholdPx * 2.2f)
+                scope.launch { offsetX.snapTo(dragTarget) }
+            },
+            onDragStarted = { dragTarget = offsetX.value },
+            onDragStopped = { velocity -> scope.launch {
+                val next = dragTarget < -thresholdPx || (velocity < -900f && dragTarget < 0f)
+                val previous = dragTarget > thresholdPx || (velocity > 900f && dragTarget > 0f)
+                if (next || previous) {
+                    val out = if (next) -thresholdPx * 5f else thresholdPx * 5f
+                    offsetX.animateTo(out, tween(150))
+                    if (next) currentNext() else currentPrevious()
+                    offsetX.snapTo(-out)
+                }
+                offsetX.animateTo(0f, returnSpec)
+                dragTarget = 0f
+            } },
+        )
     val pillContent: @Composable BoxScope.() -> Unit = {
         Row(
             modifier = Modifier
