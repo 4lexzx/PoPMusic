@@ -9,7 +9,7 @@
 import { resolveAudioUrl } from "./audio.mjs";
 
 const ITUNES_API = "https://itunes.apple.com";
-const LRCLIB_API = "https://api.lrclib.net";
+const LRCLIB_API = "https://lrclib.net/api";
 const TIMEOUT_MS = 6_000;
 
 export function cors(res) {
@@ -213,13 +213,16 @@ export async function handleRequest(req, res) {
       const track = url.searchParams.get("track") ?? "";
       const artist = url.searchParams.get("artist") ?? "";
       if (!track) return send(res, 200, { lyrics: null });
-      const search = new URL(`${LRCLIB_API}/tracksearch`);
+      const search = new URL(`${LRCLIB_API}/search`);
       search.searchParams.set("track_name", track);
       if (artist) search.searchParams.set("artist_name", artist);
       let best = null;
       try {
         const rows = await fetchJson(search.toString());
-        best = Array.isArray(rows) ? rows[0] : null;
+        // Primero una con letra sincronizada; si no, la primera que tenga texto.
+        best = Array.isArray(rows)
+          ? rows.find((r) => r.syncedLyrics) ?? rows.find((r) => r.plainLyrics) ?? null
+          : null;
       } catch {
         // Sin LrcLib: mejor devolver null que un 502.
       }
