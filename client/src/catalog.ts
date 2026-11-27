@@ -166,8 +166,8 @@ export async function dzRelated(id: string, limit = 20): Promise<Artist[]> {
   return (data.data || []).map(mapArtist)
 }
 
-export async function dzTop(id: string, limit = 10): Promise<Track[]> {
-  return tracksOf(await dz(`artist/${raw(id)}/top?limit=${limit}`))
+export async function dzTop(id: string, limit = 10, index = 0): Promise<Track[]> {
+  return tracksOf(await dz(`artist/${raw(id)}/top?limit=${limit}${index ? `&index=${index}` : ''}`))
 }
 
 /** Radio del artista: canciones suyas y de artistas parecidos. */

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Play, Pause, Search, X, LoaderCircle, ArrowRight, Sparkles, TrendingUp, Disc3, ListMusic, UserRound, Shapes, Lightning, Fire,
 } from '../icons'
@@ -27,7 +27,7 @@ const FEED_TTL = 30 * 60 * 1000
 let feedCache: { key: string; at: number; engine: FeedEngine; sections: Section[] } | null = null
 
 /** El último feed se guarda en disco: al abrir la app se ve al instante. */
-const DISK_KEY = 'popmusic-client-feed-v1'
+const DISK_KEY = 'popmusic-client-feed-v2'
 function readDisk(): { key: string; at: number; sections: Section[] } | null {
   try { return JSON.parse(localStorage.getItem(DISK_KEY) || 'null') } catch { return null }
 }
@@ -39,17 +39,18 @@ export default function HomeView({ recent, favorites, playlists, country }: Prop
   const app = useApp()
   const [query, setQuery] = useState('')
   const searching = query.trim().length >= 2
+  const playlistSongs = useMemo(() => playlists.flatMap((p) => p.tracks), [playlists])
 
   // La clave cambia cuando cambian tus artistas principales, no con cada canción.
   const key = useMemo(
-    () => `${country}|${profile(favorites, recent).slice(0, 6).map((s) => s.name).join(',')}`,
-    [favorites, recent, country],
+    () => `${country}|${profile(favorites, recent, playlistSongs).slice(0, 6).map((s) => s.name).join(',')}`,
+    [favorites, recent, playlistSongs, country],
   )
   const fresh = !!feedCache && feedCache.key === key && Date.now() - feedCache.at < FEED_TTL
   const engine = useRef<FeedEngine | null>(null)
   const disk = useRef(fresh ? null : readDisk())
   if (!engine.current) {
-    engine.current = fresh ? feedCache!.engine : new FeedEngine(favorites, recent, country)
+    engine.current = fresh ? feedCache!.engine : new FeedEngine(favorites, recent, country, playlistSongs)
     // Feed guardado de la sesión anterior: se muestra ya y no se repite.
     if (!fresh && disk.current?.key === key) engine.current.markSeen(disk.current.sections)
   }
@@ -66,7 +67,7 @@ export default function HomeView({ recent, favorites, playlists, country }: Prop
   useEffect(() => {
     if (feedCache && feedCache.key === key && feedCache.engine === engine.current) return
     if (feedCache && feedCache.key !== key) {
-      engine.current = new FeedEngine(favorites, recent, country)
+      engine.current = new FeedEngine(favorites, recent, country, playlistSongs)
       setSections([])
     }
     feedCache = { key, at: Date.now(), engine: engine.current!, sections: [] }
@@ -106,7 +107,7 @@ export default function HomeView({ recent, favorites, playlists, country }: Prop
         stalledAt.current = Date.now()
         setTimeout(() => setRetry((r) => r + 1), 2600)
       }
-      if (owner === engine.current) setSections((s) => [...s, ...next.filter((n) => !s.some((x) => x.key === n.key))])
+      if (owner === engine.current) startTransition(() => setSections((s) => [...s, ...next.filter((n) => !s.some((x) => x.key === n.key))]))
     } finally {
       busy.current = false
       setLoading(false)

@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { ArtQuality, Track } from './types'
+import type { Album, Artist, ArtQuality, Track } from './types'
 import type { Playlist } from './store'
 
 export function formatTime(ms: number): string {
@@ -45,7 +45,11 @@ export interface AppActions {
   fav: (track: Track) => void
   addToPlaylist: (playlistId: string, track: Track) => void
   removeFromPlaylist: (playlistId: string, trackId: string) => void
-  createPlaylist: (name: string, first?: Track) => string
+  createPlaylist: (name: string, first?: Track | Track[], source?: string) => string
+  isAlbumSaved: (id: string) => boolean
+  toggleAlbum: (album: Album) => void
+  isFollowing: (id: string) => boolean
+  toggleArtist: (artist: Artist) => void
   navigate: (route: Route) => void
   toast: (title: string, detail?: string) => void
 }

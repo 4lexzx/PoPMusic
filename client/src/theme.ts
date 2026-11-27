@@ -12,7 +12,8 @@ import type { ThemeMode } from './types'
 type RGB = [number, number, number]
 
 const PALETTES = {
-  dark: { fg: [255, 255, 255], bg: [11, 11, 15], panel: [24, 24, 30], solid: [236, 236, 241] },
+  // Oscuro = negro de verdad (fondo #000, paneles casi negros).
+  dark: { fg: [255, 255, 255], bg: [0, 0, 0], panel: [14, 14, 16], solid: [236, 236, 241] },
   light: { fg: [22, 22, 28], bg: [244, 244, 247], panel: [253, 253, 255], solid: [24, 24, 30] },
 } satisfies Record<string, Record<string, RGB>>
 

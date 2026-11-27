@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import {
   ChevronDown, Play, Pause, SkipBack, SkipForward, Shuffle, Repeat, Repeat1, Heart, Volume2, VolumeX,
   LoaderCircle, Minus, Plus, Timer, Sparkles, Check,
@@ -8,6 +8,7 @@ import { activeLine } from '../lyrics'
 import { formatTime, useApp } from '../ui'
 import { hd } from '../api'
 import { Cover } from './Cover'
+import { WindowControls } from './Chrome'
 
 interface Props {
   track: Track | null
@@ -50,7 +51,7 @@ export default function FullPlayer(p: Props) {
 
   return (
     <div className={`fullPlayer forceDark ${closing ? 'closing' : ''} ${hasLyrics || p.loading ? '' : 'noLyrics'}`}>
-      <div className="fpBackdrop" style={p.track ? { backgroundImage: `url(${hd(p.track.coverUrl, 600)})` } : undefined} />
+      <div className="fpBackdrop" style={p.track ? { backgroundImage: `url(${hd(p.track.coverUrl, 120)})` } : undefined} />
       <div className="fpShade" />
 
       <header className="fpTop">
@@ -66,6 +67,7 @@ export default function FullPlayer(p: Props) {
             <button onClick={() => p.onSettings({ ...p.settings, lyricsOffset: p.settings.lyricsOffset + 250 })}><Plus size={13} /></button>
           </div>
         )}
+        <WindowControls />
       </header>
 
       <section className="fpLeft">
@@ -179,7 +181,7 @@ function EffectPicker({ value, onChange }: { value: LyricsEffect; onChange: (v: 
   )
 }
 
-function Lyrics({ lines, loading, getTime, offset, synced, size, blur, effect, onSeek }: {
+const Lyrics = memo(function Lyrics({ lines, loading, getTime, offset, synced, size, blur, effect, onSeek }: {
   lines: LyricLine[]; loading: boolean; getTime: () => number; offset: number; synced: boolean
   size: Settings['lyricsSize']; blur: boolean; effect: LyricsEffect; onSeek: (ms: number) => void
 }) {
@@ -216,6 +218,7 @@ function Lyrics({ lines, loading, getTime, offset, synced, size, blur, effect, o
     let raf = 0
     let lastPos = 0
     let lastWordsLine = -1
+    let spanCache: { line: number; spans: HTMLElement[] } = { line: -1, spans: [] }
     const tick = () => {
       const pos = getTime() + offset
       const jumped = Math.abs(pos - lastPos) > 1500
@@ -243,7 +246,8 @@ function Lyrics({ lines, loading, getTime, offset, synced, size, blur, effect, o
         // Palabra por palabra: progreso de cada una según su inicio y su duración
         // (si una nota se sostiene, su palabra tarda más en llenarse).
         if (el && line.words?.length) {
-          const spans = el.querySelectorAll<HTMLElement>('.w')
+          if (spanCache.line !== idx) spanCache = { line: idx, spans: Array.from(el.querySelectorAll<HTMLElement>('.w')) }
+          const spans = spanCache.spans
           const wpos = pos + WORD_LEAD_MS
           line.words.forEach((w, k) => {
             const p = Math.min(1, Math.max(0, (wpos - w.t) / Math.max(1, w.d || 300)))
@@ -302,7 +306,7 @@ function Lyrics({ lines, loading, getTime, offset, synced, size, blur, effect, o
         const style: React.CSSProperties = synced
           ? {
             transitionDelay: `${Math.min(6, Math.max(0, dist)) * 45}ms`,
-            filter: blur && active >= 0 && state !== 'now' ? `blur(${Math.min(3.5, Math.abs(dist) * 0.8 + (gap === i ? 0.8 : 0))}px)` : undefined,
+            filter: blur && active >= 0 && state !== 'now' && Math.abs(dist) <= 5 ? `blur(${Math.min(2.5, Math.abs(dist) * 0.6)}px)` : undefined,
           }
           : {}
         const next = lines[i + 1]
@@ -334,4 +338,4 @@ function Lyrics({ lines, loading, getTime, offset, synced, size, blur, effect, o
       <div className="lyricsPad" />
     </section>
   )
-}
+})

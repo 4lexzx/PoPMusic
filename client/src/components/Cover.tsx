@@ -40,13 +40,20 @@ export function Cover({ src, size, className = '', alt = '', sharp = true }: Pro
   )
 }
 
-/** Portada de 4 carátulas para playlists con varias canciones. */
+/**
+ * Portada de playlist hecha con sus carátulas, como Liner: 1 carátula ocupa
+ * todo; 2 van en dos columnas; con 3 la primera ocupa la columna izquierda;
+ * con 4 o más, cuadrícula 2×2. Separadas por una línea fina.
+ */
 export function Collage({ covers, size }: { covers: string[]; size?: number }) {
-  const unique = [...new Set(covers.filter(Boolean))]
-  if (unique.length < 4) return <Cover src={unique[0]} size={size} />
+  // Una carátula por álbum: varias canciones del mismo disco no repiten portada.
+  const unique = [...new Set(covers.filter(Boolean))].slice(0, 4)
+  const style = size ? { width: size, height: size } : undefined
+  if (unique.length <= 1) return <Cover src={unique[0]} size={size} />
+  const cell = size ? (unique.length === 2 ? size : size / 2) : 300
   return (
-    <div className="cover collage" style={size ? { width: size, height: size } : undefined}>
-      {unique.slice(0, 4).map((c) => <Cover key={c} src={c} size={size ? size / 2 : 160} />)}
+    <div className={`cover collage n${unique.length}`} style={style}>
+      {unique.map((c) => <div key={c} className="collageCell"><Cover src={c} size={cell} /></div>)}
     </div>
   )
 }

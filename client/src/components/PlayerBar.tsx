@@ -13,6 +13,8 @@ interface Props {
   duration: number
   /** Posición exacta del audio en ms, para animar el avance a 60 fps. */
   getTime: () => number
+  /** Duración real del audio que suena (0 si aún no se sabe). */
+  getDuration: () => number
   preview: boolean
   volume: number
   shuffle: boolean
@@ -40,27 +42,62 @@ export default function PlayerBar(p: Props) {
   const card = useRef<HTMLDivElement>(null)
   const [scrub, setScrub] = useState<number | null>(null)
   const fill = useRef<HTMLDivElement>(null)
+  const edge = useRef<HTMLDivElement>(null)
   const scrubRef = useRef<number | null>(null)
   scrubRef.current = scrub
   const durRef = useRef(p.duration)
   durRef.current = p.duration
+  const loadingRef = useRef(app.resolving)
+  loadingRef.current = app.resolving
+  const trackRef = useRef(p.track?.id)
+  const tickRef = useRef<() => void>(() => {})
+  // Al arrastrar para buscar, el relleno sigue al ratón al instante.
+  useEffect(() => { if (scrub !== null) tickRef.current() }, [scrub])
 
-  // El avance se pinta en cada frame leyendo el audio, no a saltos de timeupdate.
+  /**
+   * Avance a 60 fps: toda la tarjeta se va llenando de luz de izquierda a
+   * derecha según la duración real del audio (como Liner). Mientras carga la
+   * siguiente canción se queda en 0 (antes leía el tiempo de la anterior).
+   */
   useEffect(() => {
-    let raf = 0
     let shown = 0
-    const tick = () => {
-      const d = durRef.current
-      const target = d > 0 ? Math.min(1, (scrubRef.current ?? p.getTime()) / d) : 0
-      // Suavizado: al buscar o cambiar de canción se desliza en vez de saltar.
-      shown += (target - shown) * (Math.abs(target - shown) > 0.002 ? 0.18 : 1)
-      if (fill.current) fill.current.style.transform = shown > 0 ? `translateX(calc(${(shown - 1) * 100}% + 70px))` : 'translateX(-100%)'
-      raf = requestAnimationFrame(tick)
+    let lastTrack = trackRef.current
+    // El ancho se guarda aparte: leer clientWidth en cada actualización obligaba
+    // a recalcular el diseño de toda la página.
+    let w = card.current?.clientWidth || 0
+    const ro = new ResizeObserver((entries) => { w = entries[0]?.contentRect.width || w })
+    if (card.current) ro.observe(card.current)
+    let lastPx = -1
+    const paint = (value: number, jump: boolean) => {
+      // Solo se pinta si el borde se mueve al menos 1 px (una canción avanza
+      // ~1 px cada 150 ms): nada de animar 144 veces por segundo sin necesidad.
+      const px = Math.round(value * w)
+      if (px === lastPx && !jump) return
+      lastPx = px
+      const t = jump ? 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)' : 'none'
+      if (fill.current) { fill.current.style.transition = t; fill.current.style.transform = `scaleX(${value.toFixed(4)})` }
+      if (edge.current) {
+        edge.current.style.transition = jump ? `${t}, opacity 0.3s` : 'opacity 0.3s'
+        edge.current.style.transform = `translateX(${px - 48}px)`
+        edge.current.style.opacity = value > 0.002 && value < 0.998 ? '1' : '0'
+      }
     }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    const tick = () => {
+      if (trackRef.current !== lastTrack) { lastTrack = trackRef.current; shown = 0; paint(0, true) }
+      const d = p.getDuration() || durRef.current
+      const time = scrubRef.current ?? (loadingRef.current ? 0 : p.getTime())
+      const target = d > 0 ? Math.min(1, Math.max(0, time / d)) : 0
+      const jump = Math.abs(target - shown) > 0.02 && scrubRef.current === null
+      shown = target
+      paint(shown, jump)
+    }
+    tick()
+    tickRef.current = tick
+    const timer = window.setInterval(tick, 100)
+    return () => { clearInterval(timer); ro.disconnect() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  trackRef.current = p.track?.id
 
   const ratioAt = (clientX: number) => {
     const r = card.current!.getBoundingClientRect()
@@ -69,12 +106,13 @@ export default function PlayerBar(p: Props) {
 
   const onPointerDown = (e: React.PointerEvent) => {
     // Solo el fondo de la tarjeta sirve para buscar; los botones siguen siendo botones.
-    if ((e.target as HTMLElement).closest('button, input, .noScrub') || !p.duration) return
+    const d = p.getDuration() || p.duration
+    if ((e.target as HTMLElement).closest('button, input, .noScrub') || !d) return
     e.currentTarget.setPointerCapture(e.pointerId)
-    setScrub(ratioAt(e.clientX) * p.duration)
+    setScrub(ratioAt(e.clientX) * d)
   }
   const onPointerMove = (e: React.PointerEvent) => {
-    if (scrub !== null) setScrub(ratioAt(e.clientX) * p.duration)
+    if (scrub !== null) setScrub(ratioAt(e.clientX) * (p.getDuration() || p.duration))
   }
   const onPointerUp = () => {
     if (scrub !== null) p.onSeek(scrub)
@@ -93,8 +131,8 @@ export default function PlayerBar(p: Props) {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
-        <div className="playerTint" style={p.track ? { backgroundImage: `url(${p.track.coverUrl})` } : undefined} />
-        <div className="playerFill" ref={fill} />
+        <div className="playerFill" ref={fill} aria-hidden="true" />
+        <div className="playerEdge" ref={edge} aria-hidden="true" />
         <div className="pcLeft">
           <button className="pcArt swapIn" key={`art-${p.track?.id}`} onClick={p.onExpand} title="Abrir reproductor" disabled={!p.track}>
             <Cover src={p.track?.coverUrl} size={64} />

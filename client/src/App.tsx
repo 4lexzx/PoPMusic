@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { LyricLine, Settings, Track } from './types'
+import type { Album, Artist, LyricLine, Settings, Track } from './types'
 import { fetchLyrics, fetchPreview, hd } from './api'
 import { similarTo } from './recommend'
 import type { PrefetchPriority, RemoteCommand } from './electron.d'
@@ -16,6 +16,7 @@ import HomeView from './components/HomeView'
 import SearchView from './components/SearchView'
 import LibraryView from './components/LibraryView'
 import SettingsModal from './components/SettingsModal'
+import UpdateNotice, { useUpdateCheck } from './components/UpdateNotice'
 import { AlbumView, ArtistView, CollectionView, PlaylistView, RemotePlaylistView } from './components/EntityView'
 import PlayerBar from './components/PlayerBar'
 import FullPlayer from './components/FullPlayer'
@@ -36,6 +37,7 @@ export default function App() {
     return loadSettings().startup === 'empty' ? { ...q, tracks: [], index: 0 } : q
   })
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const update = useUpdateCheck()
   const [playing, setPlaying] = useState(false)
   const [resolving, setResolving] = useState(false)
   const resolvingRef = useRef(false)
@@ -49,7 +51,13 @@ export default function App() {
   const [fullOpen, setFullOpen] = useState(false)
   const [queueOpen, setQueueOpen] = useState(false)
   const [toasts, setToasts] = useState<{ id: number; title: string; detail?: string }[]>([])
-  const audioRef = useRef<HTMLAudioElement>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  /** Dos reproductores: el que suena y otro en reserva con la siguiente canción ya en búfer. */
+  const audioEls = useRef<(HTMLAudioElement | null)[]>([null, null])
+  const [active, setActive] = useState(0)
+  const activeRef = useRef(0)
+  audioRef.current = audioEls.current[activeRef.current]
+  const preloaded = useRef<{ id: string; idx: number } | null>(null)
   const loadTokenRef = useRef(0)
   const fadeRef = useRef<number | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
@@ -61,6 +69,10 @@ export default function App() {
   const favIdsRef = useRef<Set<string>>(new Set())
   /** Posición real del audio en ms (estable: no cambia entre renders). */
   const getAudioTime = useCallback(() => (audioRef.current ? audioRef.current.currentTime * 1000 : 0), [])
+  const getAudioDuration = useCallback(() => {
+    const a = audioRef.current
+    return a && Number.isFinite(a.duration) && a.duration > 0 ? a.duration * 1000 : 0
+  }, [])
 
   /** Pide a yt-dlp la canción por adelantado para que suene al instante. */
   const prefetch = useCallback((t: Track, priority: PrefetchPriority = 'hover') => {
@@ -70,7 +82,7 @@ export default function App() {
   useEffect(() => saveLibrary(library), [library])
   useEffect(() => saveSettings(settings), [settings])
   useEffect(() => saveQueue(queue), [queue])
-  useEffect(() => { if (audioRef.current) audioRef.current.volume = settings.volume }, [settings.volume])
+  useEffect(() => { audioEls.current.forEach((a) => { if (a) a.volume = settings.volume }) }, [settings.volume])
   useEffect(() => { document.documentElement.classList.toggle('reduceMotion', settings.reduceMotion) }, [settings.reduceMotion])
 
   // Tema y color de énfasis (con contraste calculado) sobre :root.
@@ -85,8 +97,10 @@ export default function App() {
 
   // Salida de audio elegida en Ajustes → Audio.
   useEffect(() => {
-    const audio = audioRef.current as (HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> }) | null
-    if (audio?.setSinkId) audio.setSinkId(settings.outputDevice || '').catch(() => {})
+    for (const el of audioEls.current) {
+      const audio = el as (HTMLAudioElement & { setSinkId?: (id: string) => Promise<void> }) | null
+      if (audio?.setSinkId) audio.setSinkId(settings.outputDevice || '').catch(() => {})
+    }
   }, [settings.outputDevice])
 
   // Precarga la siguiente canción en cuanto la actual ya suena (no a la vez,
@@ -95,7 +109,22 @@ export default function App() {
     const upcoming = queue.tracks.slice(queue.index + 1, queue.index + 3)
     if (!upcoming.length || resolving) return
     const timer = setTimeout(() => upcoming.forEach((t) => prefetch(t, 'next')), 300)
-    return () => clearTimeout(timer)
+    // La siguiente se deja ya cargada en el reproductor de reserva: al pasar
+    // suena al instante, sin esperar a que YouTube empiece a enviar audio.
+    const next = upcoming[0]
+    let alive = true
+    const buffer = setTimeout(async () => {
+      if (!hasFullAudio || preloaded.current?.id === next.id) return
+      const url = await resolveAudio(next.artists, next.title)
+      const idx = 1 - activeRef.current
+      const spare = audioEls.current[idx]
+      if (!alive || !url || !spare) return
+      spare.preload = 'auto'
+      spare.src = url
+      spare.load()
+      preloaded.current = { id: next.id, idx }
+    }, 1500)
+    return () => { alive = false; clearTimeout(timer); clearTimeout(buffer) }
   }, [queue.index, queue.tracks, resolving, prefetch])
 
   // ----- superposición y cartel multimedia de Windows -----
@@ -174,8 +203,28 @@ export default function App() {
     setProgress(0)
     setDurationMs(track.durationMs || 0)
     setLibrary((prev) => upsertRecent(prev, track))
+    const pre = preloaded.current
+    preloaded.current = null
+    const spare = pre && pre.id === track.id && pre.idx !== activeRef.current ? audioEls.current[pre.idx] : null
+    if (spare && spare.src) {
+      const old = audioRef.current
+      if (old) { old.pause(); old.removeAttribute('src'); old.load() }
+      activeRef.current = pre!.idx
+      audioRef.current = spare
+      setActive(pre!.idx)
+      spare.volume = settings.volume
+      spare.currentTime = 0
+      setResolving(false)
+      setPreview(false)
+      if (Number.isFinite(spare.duration) && spare.duration > 0) setDurationMs(spare.duration * 1000)
+      if (autoplay) { try { await spare.play(); setPlaying(true) } catch { /* se reintenta abajo */ } }
+      if (!spare.paused || !autoplay) return
+    }
     const audio = audioRef.current
     if (!audio) return
+    // El de reserva tenía otra canción: se descarta para no cargar de más.
+    const other = audioEls.current[1 - activeRef.current]
+    if (other && other.src && !spare) { other.removeAttribute('src'); other.load() }
     audio.pause()
     setResolving(true)
     setPreview(false)
@@ -251,10 +300,9 @@ export default function App() {
       else { setPlaying(false); return }
     }
     if (nextIndex < 0) nextIndex = 0
-    const go = () => playAt(nextIndex)
-    if (settings.crossfade > 0 && playing && !auto) fadeOut(Math.min(1500, settings.crossfade * 250), go)
-    else go()
-  }, [queue, settings.crossfade, settings.autoplay, playing, fadeOut, playAt, loadTrack])
+    // Al pasar de canción a mano se corta en el acto: nada de seguir oyendo la anterior.
+    playAt(nextIndex)
+  }, [queue, settings.autoplay, playAt, loadTrack])
 
   // Sin fin: cuando quedan pocas canciones en la cola, se añaden parecidas.
   const extending = useRef(false)
@@ -324,7 +372,7 @@ export default function App() {
       audio.removeEventListener('error', onErr)
       audio.removeEventListener('ended', onEnd)
     }
-  }, [advance])
+  }, [advance, active])
 
   const toggle = useCallback(() => {
     const audio = audioRef.current
@@ -380,12 +428,31 @@ export default function App() {
   }, [toast, favIds])
   const isFavorite = useCallback((id: string) => favIds.has(id), [favIds])
 
-  const createPlaylist = useCallback((name: string, first?: Track) => {
+  const createPlaylist = useCallback((name: string, first?: Track | Track[], source?: string) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-    setLibrary((p) => ({ ...p, playlists: [...p.playlists, { id, name, tracks: first ? [first] : [], createdAt: Date.now() }] }))
-    toast('Playlist creada', name)
+    const tracks = Array.isArray(first) ? first : first ? [first] : []
+    setLibrary((p) => ({ ...p, playlists: [...p.playlists, { id, name, tracks, createdAt: Date.now(), source }] }))
+    toast(source ? 'Lista importada' : 'Playlist creada', tracks.length > 1 ? `${name} · ${tracks.length} canciones` : name)
     return id
   }, [toast])
+
+  // Álbumes guardados y artistas seguidos.
+  const albumIds = useMemo(() => new Set((library.albums || []).map((a) => a.id)), [library.albums])
+  const artistIds = useMemo(() => new Set((library.artists || []).map((a) => a.id)), [library.artists])
+  const isAlbumSaved = useCallback((id: string) => albumIds.has(id), [albumIds])
+  const isFollowing = useCallback((id: string) => artistIds.has(id), [artistIds])
+  const toggleAlbum = useCallback((album: Album) => {
+    const saved = albumIds.has(album.id)
+    toast(saved ? 'Álbum quitado de tu biblioteca' : 'Álbum guardado en tu biblioteca', album.title)
+    const slim = { ...album, tracks: undefined }
+    setLibrary((p) => ({ ...p, albums: saved ? (p.albums || []).filter((a) => a.id !== album.id) : [slim, ...(p.albums || [])] }))
+  }, [albumIds, toast])
+  const toggleArtist = useCallback((artist: Artist) => {
+    const on = artistIds.has(artist.id)
+    toast(on ? 'Dejaste de seguir' : 'Ahora sigues a', artist.name)
+    const slim: Artist = { id: artist.id, name: artist.name, picture: artist.picture, fans: artist.fans }
+    setLibrary((p) => ({ ...p, artists: on ? (p.artists || []).filter((a) => a.id !== artist.id) : [slim, ...(p.artists || [])] }))
+  }, [artistIds, toast])
 
   const addToPlaylist = useCallback((playlistId: string, track: Track) => {
     setLibrary((p) => ({
@@ -474,14 +541,16 @@ export default function App() {
 
   const actions: AppActions = useMemo(() => ({
     current, playing, resolving, playlists: library.playlists,
+    isAlbumSaved, toggleAlbum, isFollowing, toggleArtist,
     play, activate, startRadio, prefetch, toggle, playNext, addToQueue, isFavorite, fav, addToPlaylist, removeFromPlaylist, createPlaylist, navigate, toast,
-  }), [current, playing, resolving, library.playlists, play, activate, startRadio, prefetch, toggle, playNext, addToQueue, isFavorite, fav,
+  }), [current, playing, resolving, library.playlists, isAlbumSaved, toggleAlbum, isFollowing, toggleArtist, play, activate, startRadio, prefetch, toggle, playNext, addToQueue, isFavorite, fav,
     addToPlaylist, removeFromPlaylist, createPlaylist, navigate, toast])
 
   const totalMs = durationMs || current?.durationMs || 0
   const routeKey = JSON.stringify(route)
 
-  const page = (() => {
+  // Memorizada: el avance de la canción (4 tics/s) no redibuja el inicio entero.
+  const page = useMemo(() => {
     switch (route.name) {
       case 'home': return <HomeView recent={library.recent} favorites={library.favorites} playlists={library.playlists} country={settings.country} />
       case 'search': return <SearchView country={settings.country} initial={route.q} />
@@ -508,16 +577,15 @@ export default function App() {
         )
       }
     }
-  })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeKey, library, settings.country, navigate, toast])
 
   return (
     <ArtQualityContext.Provider value={settings.artQuality}>
       <AppContext.Provider value={actions}>
-        <div className="app" style={{ '--tint': settings.tint } as React.CSSProperties}>
-          <audio ref={audioRef} preload="auto" />
-          <div className="backdrop">
-            {current && <div key={current.id} className="backdropArt" style={{ backgroundImage: `url(${hd(current.coverUrl, 300)})` }} />}
-          </div>
+        <div className={`app ${current ? '' : 'noPlayer'}`}>
+          <audio ref={(el) => { audioEls.current[0] = el; if (activeRef.current === 0) audioRef.current = el }} preload="auto" />
+          <audio ref={(el) => { audioEls.current[1] = el; if (activeRef.current === 1) audioRef.current = el }} preload="auto" />
           <ResizeEdges />
 
           <Sidebar route={route} favorites={library.favorites} playlists={library.playlists} />
@@ -533,12 +601,13 @@ export default function App() {
             </div>
           </main>
 
-          <PlayerBar
+          {current && <PlayerBar
               track={current}
               progress={progress}
               duration={totalMs}
               preview={preview}
               getTime={getAudioTime}
+              getDuration={getAudioDuration}
               volume={settings.volume}
               shuffle={queue.shuffle}
               repeat={queue.repeat}
@@ -553,7 +622,7 @@ export default function App() {
               onLyrics={() => current && setFullOpen(!fullOpen)}
               onQueue={() => setQueueOpen(!queueOpen)}
               onExpand={() => setFullOpen(true)}
-            />
+            />}
 
           {queueOpen && (
             <QueuePanel
@@ -594,11 +663,13 @@ export default function App() {
               settings={settings}
               onChange={setSettings}
               onClose={() => setSettingsOpen(false)}
-              onClearLibrary={() => { setLibrary({ favorites: [], recent: [], playlists: [] }); toast('Biblioteca borrada') }}
+              onClearLibrary={() => { setLibrary({ favorites: [], recent: [], playlists: [], albums: [], artists: [] }); toast('Biblioteca borrada') }}
               onClearRecent={() => { setLibrary((l) => ({ ...l, recent: [] })); toast('Historial borrado') }}
               stats={{ favorites: library.favorites.length, recent: library.recent.length, playlists: library.playlists.length }}
             />
           )}
+
+          {update.info && <UpdateNotice info={update.info} onClose={update.dismiss} />}
 
           <Toasts items={toasts} />
         </div>

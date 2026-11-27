@@ -1,8 +1,10 @@
 const { app, BrowserWindow, ipcMain, shell, session, screen, globalShortcut } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
-const { resolveAudio } = require('./audio.cjs')
+const { resolveAudio, ytdlpBinary } = require('./audio.cjs')
+const { importLink } = require('./importer.cjs')
 const overlay = require('./overlay.cjs')
+const updater = require('./updater.cjs')
 
 function debug(msg) {
   try {
@@ -11,6 +13,14 @@ function debug(msg) {
   } catch {}
   console.log('[PoP Music]', msg)
 }
+
+// Los datos (biblioteca, ajustes, caché) siguen en la carpeta de siempre
+// aunque la app ahora se llame "PoP Music": así no se pierde nada al actualizar.
+app.setPath('userData', path.join(app.getPath('appData'), 'popmusic-client'))
+app.setAppUserModelId('com.popmusic.client')
+// En portátiles con dos gráficas, usar la dedicada (NVIDIA/AMD) en vez de la
+// integrada: el scroll y las animaciones van mucho más fluidos.
+app.commandLine.appendSwitch('force_high_performance_gpu')
 
 const DEV = process.env.NODE_ENV === 'development' || process.env.POP_DEV === '1'
 const DEV_URL = 'http://localhost:5180'
@@ -100,6 +110,15 @@ app.whenReady().then(() => {
     }
   })
 
+  // Importar una lista desde un enlace (Spotify, YouTube, SoundCloud, Apple Music, Deezer).
+  ipcMain.handle('import-link', async (_event, link) => {
+    try {
+      return { ok: true, data: await importLink(String(link || ''), ytdlpBinary) }
+    } catch (error) {
+      return { ok: false, error: error && error.message ? error.message : String(error) }
+    }
+  })
+
   // Caché de imágenes y audio del navegador interno (Ajustes → Almacenamiento).
   ipcMain.handle('cache', async (_event, action) => {
     const ses = session.defaultSession
@@ -148,6 +167,7 @@ app.whenReady().then(() => {
   })
 
   overlay.registerIpc()
+  updater.register()
   createWindow()
 
   // Atajo global para mostrar/ocultar la superposición.

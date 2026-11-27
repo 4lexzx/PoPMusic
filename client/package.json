@@ -1,6 +1,6 @@
 {
   "name": "popmusic-client",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -32,7 +32,7 @@
   "main": "electron/main.cjs",
   "build": {
     "appId": "com.popmusic.client",
-    "productName": "PoP Music Client",
+    "productName": "PoP Music",
     "directories": {
       "output": "release"
     },
@@ -45,13 +45,13 @@
     },
     "nsis": {
       "oneClick": false,
-      "artifactName": "PoP Music Client Setup-${version}.${ext}",
+      "artifactName": "PoPMusic-PC-Setup-${version}.${ext}",
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "PoP Music Client"
+      "shortcutName": "PoP Music"
     }
   },
-  "description": "Reproductor de música PoP Music (cliente limpio)",
+  "description": "PoP Music para PC",
   "author": {
     "name": "4lexzx"
   }

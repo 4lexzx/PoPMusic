@@ -1,4 +1,4 @@
-import type { Settings, Track } from './types'
+import type { Album, Artist, Settings, Track } from './types'
 import { DEFAULT_SETTINGS } from './api'
 
 export interface Playlist {
@@ -6,12 +6,17 @@ export interface Playlist {
   name: string
   tracks: Track[]
   createdAt: number
+  /** Enlace de origen si se importó (Spotify, YouTube…). */
+  source?: string
 }
 
 export interface Library {
   favorites: Track[]
   recent: Track[]
   playlists: Playlist[]
+  /** Álbumes guardados y artistas seguidos (pestañas de Biblioteca). */
+  albums: Album[]
+  artists: Artist[]
 }
 
 export interface QueueState {
@@ -25,7 +30,7 @@ const LIB_KEY = 'popmusic-client-library-v1'
 const SET_KEY = 'popmusic-client-settings-v1'
 const QUEUE_KEY = 'popmusic-client-queue-v1'
 
-const EMPTY: Library = { favorites: [], recent: [], playlists: [] }
+const EMPTY: Library = { favorites: [], recent: [], playlists: [], albums: [], artists: [] }
 const EMPTY_QUEUE: QueueState = { tracks: [], index: 0, shuffle: false, repeat: 'off' }
 
 function read<T>(key: string, fallback: T): T {

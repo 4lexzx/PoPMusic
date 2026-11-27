@@ -152,4 +152,4 @@ function isCached(artist, title) {
   return !!cached(`${artist}|${title}`.toLowerCase())
 }
 
-module.exports = { resolveAudio, isCached, binaryPath }
+module.exports = { resolveAudio, isCached, binaryPath, ytdlpBinary }

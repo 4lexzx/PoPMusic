@@ -10,6 +10,16 @@ export interface NowPlaying {
   liked: boolean
 }
 
+export interface ImportedList {
+  source: 'spotify' | 'youtube' | 'soundcloud' | 'apple' | 'deezer'
+  title: string
+  cover: string
+  /** Solo Deezer: tipo e id para leerlo con la API del catálogo. */
+  kind?: 'playlist' | 'album' | 'track'
+  id?: string
+  items: { title: string; artist: string; durationMs?: number; cover?: string }[]
+}
+
 export type PrefetchPriority = 'next' | 'hover' | 'idle'
 export type RemoteCommand = 'toggle' | 'next' | 'prev' | 'like'
 
@@ -22,6 +32,12 @@ declare global {
       deezer?: (apiPath: string) => Promise<any>
       netease?: (apiPath: string) => Promise<any>
       cache?: (action: 'size' | 'clear') => Promise<number>
+      appVersion?: () => Promise<string>
+      updateCheck?: () => Promise<{ available: boolean; version?: string; notes?: string; page?: string; asset?: { name: string; url: string; size: number } }>
+      updateDownload?: (url: string, size: number) => Promise<string>
+      updateInstall?: (file: string) => void
+      onUpdateProgress?: (cb: (p: { done: number; total: number }) => void) => () => void
+      importLink?: (link: string) => Promise<{ ok: true; data: ImportedList } | { ok: false; error: string }>
       windowAction?: (action: 'minimize' | 'maximize' | 'close') => void
       onWindowState?: (cb: (state: { maximized: boolean }) => void) => () => void
       getBounds?: () => Promise<{ x: number; y: number; width: number; height: number }>

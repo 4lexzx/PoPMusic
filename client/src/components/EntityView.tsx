@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Play, Shuffle, Search, ListEnd, Music2, Pencil, Trash2, LoaderCircle, Check, Radio as RadioIcon } from '../icons'
+import { Play, Shuffle, Search, ListEnd, Music2, Pencil, Trash2, LoaderCircle, Check, Radio as RadioIcon, Heart, Plus } from '../icons'
 import type { Album, Artist, RemotePlaylist, Track } from '../types'
 import { getAlbum, getArtist } from '../api'
 import { dzPlaylist } from '../catalog'
@@ -101,6 +101,12 @@ export function AlbumView({ id }: { id: string }) {
         onSubtitle={album.artistId ? () => app.navigate({ name: 'artist', id: album.artistId!, title: album.artist }) : undefined}
         chips={[album.year ? String(album.year) : '', `${countLabel(tracks.length)} · ${formatLength(total(tracks))}`]}
         tracks={tracks}
+        extra={(
+          <button className={`btnGlass square like ${app.isAlbumSaved(album.id) ? 'on' : ''}`} onClick={() => app.toggleAlbum(album)}
+            title={app.isAlbumSaved(album.id) ? 'Quitar de tu biblioteca' : 'Guardar en tu biblioteca'}>
+            <Heart size={17} fill={app.isAlbumSaved(album.id) ? 'currentColor' : 'none'} />
+          </button>
+        )}
       />
       <FilterableList tracks={tracks} numbered empty="Este álbum no tiene canciones disponibles." />
     </div>
@@ -135,8 +141,13 @@ export function ArtistView({ id, title }: { id: string; title?: string }) {
         title={artist.name}
         chips={[artist.fans ? `${artist.fans.toLocaleString('es')} fans` : '', artist.albums?.length ? `${artist.albums.length} lanzamientos` : '']}
         tracks={top}
-        extra={top[0] && (
-          <button className="btnGlass" onClick={() => app.startRadio(top[0])}><RadioIcon size={16} />Radio</button>
+        extra={(
+          <>
+            <button className={`btnGlass ${app.isFollowing(artist.id) ? 'following' : ''}`} onClick={() => app.toggleArtist(artist)}>
+              {app.isFollowing(artist.id) ? <Check size={16} /> : <Plus size={16} />}{app.isFollowing(artist.id) ? 'Siguiendo' : 'Seguir'}
+            </button>
+            {top[0] && <button className="btnGlass" onClick={() => app.startRadio(top[0])}><RadioIcon size={16} />Radio</button>}
+          </>
         )}
       />
       {top.length > 0 && (

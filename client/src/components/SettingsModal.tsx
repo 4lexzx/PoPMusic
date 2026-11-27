@@ -78,6 +78,10 @@ export default function SettingsModal({ settings, onChange, onClose, onClearLibr
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([])
   const [cacheSize, setCacheSize] = useState<number | null>(null)
   const panel = useRef<HTMLDivElement>(null)
+  const [version, setVersion] = useState('0.4.0')
+  const [checking, setChecking] = useState(false)
+  const [upToDate, setUpToDate] = useState(false)
+  useEffect(() => { window.popApi?.appVersion?.().then(setVersion).catch(() => {}) }, [])
   const close = () => { setClosing(true); setTimeout(onClose, 180) }
 
   useEffect(() => {
@@ -211,8 +215,6 @@ export default function SettingsModal({ settings, onChange, onClose, onClearLibr
       id: 'custom', group: 'Preferencias', label: 'Personalización', icon: <Paintbrush size={17} />,
       desc: 'Fondo, carátulas y movimiento.',
       rows: [
-        { title: 'Color de la portada en el fondo', hint: 'Cuánto tiñe la carátula que suena el fondo de la app.', keywords: 'tinte',
-          control: <Slider value={settings.tint} min={0} max={1} step={0.05} onChange={(v) => set('tint', v)} label={`${Math.round(settings.tint * 100)}%`} /> },
         { title: 'Calidad de las carátulas', hint: 'Más resolución se ve más nítida pero usa más datos.', keywords: 'hd imagen',
           control: <Segment<ArtQuality> value={settings.artQuality} onChange={(v) => set('artQuality', v)} options={[[600, 'Normal'], [1000, 'HD'], [1400, 'Máxima']]} /> },
         { title: 'Reducir animaciones', hint: 'Quita movimientos y desenfoques animados.',
@@ -248,16 +250,25 @@ export default function SettingsModal({ settings, onChange, onClose, onClearLibr
           <div className="aboutCard">
             <Logo full height={46} />
             <div>
-              <strong>PoP Music para PC · v0.3.0</strong>
+              <strong>PoP Music para PC · v{version}</strong>
               <small>Música sin anuncios, letras sincronizadas y carátulas en HD.</small>
-              <small>Catálogo: Deezer e iTunes · Letras: LrcLib · Audio: yt-dlp</small>
+              <small>Catálogo: Deezer e iTunes · Letras: LrcLib y NetEase · Audio: yt-dlp</small>
             </div>
+            {window.popApi?.updateCheck && (
+              <button className="btnGlass aboutUpdate" disabled={checking} onClick={async () => {
+                setChecking(true)
+                const res = await window.popApi!.updateCheck!()
+                setChecking(false)
+                if (res.available) { onClose(); window.dispatchEvent(new Event('pop-check-update')) }
+                else setUpToDate(true)
+              }}>{checking ? 'Buscando…' : upToDate ? 'Tienes la última versión' : 'Buscar actualizaciones'}</button>
+            )}
           </div>
         ) },
       ],
     },
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [settings, devices, cacheSize, stats, custom])
+  ], [settings, devices, cacheSize, stats, custom, version, checking, upToDate])
 
   const q = query.trim().toLowerCase()
   const matches = q

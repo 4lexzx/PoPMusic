@@ -7,9 +7,9 @@
 :root {
   /* Valores por defecto (oscuro). theme.ts los reescribe según el tema y el énfasis. */
   --fg: 255, 255, 255;
-  --bg: 11, 11, 15;
-  --panel: 24, 24, 30;
-  --base: #0b0b0f;
+  --bg: 0, 0, 0;
+  --panel: 14, 14, 16;
+  --base: #000000;
   --solid: #ececf1;
   --on-solid: #121216;
   --accent: #ececf1;
@@ -206,7 +206,7 @@ html:not(.maximized) .app { border-radius: 12px; overflow: hidden; }
 .quickTile {
   position: relative; display: flex; align-items: center; gap: 12px; height: 64px; padding-right: 12px;
   border-radius: var(--r-m); overflow: clip; text-align: left; background: var(--f2); border: 1px solid var(--line);
-  transition: background 0.15s; animation: rise 0.35s var(--ease) both; animation-delay: calc(var(--i) * 25ms);
+  transition: background 0.15s; animation: rise 0.35s var(--ease) backwards; animation-delay: calc(var(--i) * 25ms);
 }
 .quickTile .cover { width: 64px !important; height: 64px !important; border-radius: 0; }
 .quickTile:hover, .quickTile.active { background: var(--f3); }
@@ -244,7 +244,7 @@ html:not(.maximized) .app { border-radius: 12px; overflow: hidden; }
 .shelfRow::-webkit-scrollbar { display: none; }
 .card {
   display: grid; gap: 3px; text-align: left; min-width: 0; padding: 8px; margin: -8px; border-radius: var(--r-m);
-  scroll-snap-align: start; transition: background 0.2s; animation: rise 0.35s var(--ease) both; animation-delay: calc(var(--i, 0) * 20ms);
+  scroll-snap-align: start; transition: background 0.2s; animation: rise 0.35s var(--ease) backwards; animation-delay: calc(var(--i, 0) * 20ms);
 }
 .card:hover { background: var(--f1); }
 .card strong { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 8px; }
@@ -276,7 +276,7 @@ html:not(.maximized) .app { border-radius: 12px; overflow: hidden; }
 .trackRow {
   display: grid; grid-template-columns: 44px minmax(0, 2fr) minmax(0, 1.2fr) 34px 52px 34px; align-items: center; gap: 12px;
   height: 60px; padding: 0 8px; border-radius: var(--r-m); transition: background 0.12s;
-  animation: rise 0.3s var(--ease) both; animation-delay: calc(var(--i) * 15ms);
+  animation: rise 0.3s var(--ease) backwards; animation-delay: calc(var(--i) * 15ms);
 }
 .trackList.numbered .trackRow { grid-template-columns: 32px minmax(0, 1fr) 34px 52px 34px; height: 52px; }
 .trackRow:hover { background: var(--f2); }
@@ -352,7 +352,7 @@ html:not(.maximized) .app { border-radius: 12px; overflow: hidden; }
 .genreTile {
   position: relative; height: 104px; padding: 14px 16px; border-radius: var(--r-m); overflow: hidden;
   text-align: left; font: 700 20px var(--font-display); letter-spacing: -0.01em;
-  transition: transform 0.25s var(--ease), filter 0.2s; animation: rise 0.35s var(--ease) both; animation-delay: calc(var(--i) * 25ms);
+  transition: transform 0.25s var(--ease), filter 0.2s; animation: rise 0.35s var(--ease) backwards; animation-delay: calc(var(--i) * 25ms);
 }
 .genreTile::after { content: ""; position: absolute; right: -18px; bottom: -26px; width: 90px; height: 90px; border-radius: 50%; border: 14px solid rgba(var(--fg), 0.18); }
 .genreTile:hover { transform: translateY(-2px); filter: brightness(1.08); }
@@ -403,7 +403,7 @@ html:not(.maximized) .app { border-radius: 12px; overflow: hidden; }
 .libText strong { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 8px; }
 .libText span { color: var(--t3); font-size: 12.5px; }
 .libList { display: grid; gap: 4px; }
-.libRow { display: flex; align-items: center; gap: 14px; padding: 6px; border-radius: var(--r-m); text-align: left; animation: rise 0.3s var(--ease) both; animation-delay: calc(var(--i) * 15ms); }
+.libRow { display: flex; align-items: center; gap: 14px; padding: 6px; border-radius: var(--r-m); text-align: left; animation: rise 0.3s var(--ease) backwards; animation-delay: calc(var(--i) * 15ms); }
 .libRow:hover { background: var(--f2); }
 .libRow .cardArt { width: 56px; }
 .libRow .libText strong { margin: 0; }
@@ -824,7 +824,7 @@ html:not(.electron) .resize, html.maximized .resize { display: none; }
 .swapIn { animation: swapIn 0.4s var(--ease); }
 @keyframes swapIn { from { opacity: 0; transform: translateY(6px); } }
 .pcPlay svg, .fpPlay svg { transition: transform 0.2s var(--ease); }
-.shelf { animation: rise 0.45s var(--ease) both; content-visibility: auto; contain-intrinsic-size: auto 300px; }
+.shelf { animation: rise 0.45s var(--ease) backwards; content-visibility: auto; contain-intrinsic-size: auto 300px; }
 .shelfRow { scroll-behavior: smooth; }
 .quickTile .cover img, .trackLead .cover img { transition: opacity 0.25s var(--ease); }
 .trackRow { transition: background 0.15s, transform 0.2s var(--ease); }
@@ -991,3 +991,153 @@ html.overlayRoot, html.overlayRoot body, html.overlayRoot #root { background: tr
 .fx-fade .lyric.now .w:not(.sung):not(.singing) { opacity: 0.12; filter: blur(4px); transform: translateY(4px); }
 
 .reduceMotion .fx-bounce .lyric.now .w.singing { animation: none; }
+
+/* =========================== v0.7 · Collage como Liner =========================== */
+.collage { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1.5px; background: rgba(var(--fg), 0.08); }
+.collage .collageCell { position: relative; overflow: hidden; min-width: 0; min-height: 0; }
+.collage .collageCell .cover { position: absolute; inset: 0; width: 100% !important; height: 100% !important; border-radius: 0; }
+.collage.n2 .collageCell { grid-row: span 2; }
+.collage.n3 .collageCell:first-child { grid-row: span 2; }
+.cardArt .collage, .cardArt > .likedCover { width: 100% !important; height: 100% !important; border-radius: 10px; }
+.card:hover .collage .cover img { transform: none; }
+.card:hover .collage { filter: brightness(1.12); }
+.collage { transition: filter 0.3s var(--ease); }
+
+/* Barra de avance visible: línea fina en el borde superior del reproductor */
+.playerLine { position: absolute; left: 0; right: 0; top: 0; height: 3px; z-index: 2; pointer-events: none; background: rgba(var(--fg), 0.1); }
+.playerLine i {
+  position: absolute; inset: 0; transform-origin: left; transform: scaleX(0);
+  background: var(--accent); box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.7); border-radius: 0 3px 3px 0;
+}
+.playerCard:hover .playerLine { height: 4px; }
+.playerCard.scrubbing .playerLine { height: 5px; }
+.playerLine { transition: height 0.2s var(--ease); }
+
+/* Biblioteca */
+.libTabs { padding: 4px; border-radius: 12px; }
+.libTabs button { height: 32px; padding: 0 16px; font-size: 13.5px; }
+.libGrid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 26px 22px; }
+.library .card { padding: 0; margin: 0; }
+.library .card:hover { background: none; }
+.library .card .cardArt { overflow: hidden; border-radius: 10px; }
+.library .card.artistCard .cardArt { border-radius: 50%; }
+.library .libText strong { font-size: 14.5px; }
+.library .libText span { font-size: 13px; }
+.libRow .cardArt { width: 56px; height: 56px; flex-shrink: 0; overflow: hidden; border-radius: 8px; }
+.libRow.artistCard .cardArt { border-radius: 50%; }
+.libRow .cardArt > * { width: 100% !important; height: 100% !important; }
+.fab {
+  position: sticky; float: right; bottom: 0; margin: 20px 0 0 auto; z-index: 6; width: 52px; height: 52px;
+  display: grid; place-items: center; border-radius: 16px; background: var(--accent); color: var(--on-accent);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4); transition: transform 0.2s var(--ease);
+}
+.fab:hover { transform: scale(1.06); }
+.fab:active { transform: scale(0.95); }
+
+/* Diálogo de nueva lista / importar */
+.dialog {
+  width: min(460px, 100%); display: grid; gap: 14px; padding: 20px; border-radius: 18px;
+  background: rgb(var(--panel)); border: 1px solid var(--line); box-shadow: 0 40px 120px rgba(0, 0, 0, 0.5);
+  animation: modalIn 0.26s var(--ease);
+}
+.modalLayer.closing .dialog { animation: modalOut 0.16s var(--ease) forwards; }
+.dialog header { display: flex; justify-content: space-between; gap: 10px; }
+.dialog h2 { font: 650 17px var(--font-display); }
+.dialog header p { color: var(--t3); margin-top: 3px; }
+.segGroup.wide { display: grid; grid-template-columns: 1fr 1fr; padding: 4px; border-radius: 12px; }
+.segGroup.wide button { width: auto; height: 36px; font-weight: 600; }
+.field {
+  position: relative; display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 12px 0 14px; border-radius: 12px;
+  background: var(--f1); border: 1px solid var(--line); color: var(--t3);
+}
+.field:focus-within { border-color: rgba(var(--fg), 0.28); }
+.field input { flex: 1; min-width: 0; height: 100%; background: none; border: 0; outline: 0; color: var(--t1); font-size: 14px; }
+.fieldInfo { position: relative; display: grid; place-items: center; cursor: help; }
+.fieldInfo .tip {
+  position: absolute; right: -6px; bottom: calc(100% + 10px); width: 260px; padding: 10px 12px; border-radius: 10px;
+  background: rgb(var(--panel)); border: 1px solid var(--line); box-shadow: 0 14px 40px rgba(0, 0, 0, 0.4);
+  color: var(--t2); font-size: 12px; line-height: 1.45; opacity: 0; transform: translateY(4px); pointer-events: none;
+  transition: opacity 0.15s, transform 0.2s var(--ease);
+}
+.fieldInfo:hover .tip, .fieldInfo:focus .tip { opacity: 1; transform: none; }
+.importProgress { display: grid; gap: 8px; color: var(--t2); font-size: 12.5px; }
+.importProgress span { display: flex; align-items: center; gap: 8px; }
+.importProgress .bar { height: 5px; border-radius: 5px; background: var(--f2); overflow: hidden; }
+.importProgress .bar i { display: block; height: 100%; border-radius: 5px; background: var(--accent); transition: width 0.3s var(--ease); }
+.dialogError { padding: 10px 12px; border-radius: 10px; background: rgba(255, 90, 90, 0.1); color: var(--danger); font-size: 13px; }
+.dialog footer { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+.btnGlass.following { color: var(--accent); }
+
+/* Aviso de actualización */
+.updateCard { width: min(380px, 100%); }
+.updateCard p a, .linkBtn { color: var(--accent); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.updateCard p a:hover, .linkBtn:hover { text-decoration: underline; }
+.updateActions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.updateActions button { justify-content: center; height: 38px; }
+.aboutCard .aboutUpdate { margin-left: auto; }
+.fab { position: fixed; float: none; right: 30px; bottom: 98px; margin: 0; }
+
+/* =========================================================================
+   v0.4.1 · Rendimiento y fondo negro
+   - Fondo negro sólido: sin la carátula difuminada detrás de todo (era caro y
+     provocaba el destello de color al cambiar de canción).
+   - Sin desenfoques en vivo en botones y paneles; animaciones solo con
+     transform/opacity (las que la GPU hace gratis).
+   ========================================================================= */
+.backdrop, .backdropArt, .playerTint { display: none !important; }
+.app { background: var(--base); }
+.stage, .rail, .playerCard { background: rgb(var(--panel)); }
+.light .stage, .light .rail, .light .playerCard { background: rgb(var(--panel)); }
+.glassBtn, .btnGlass, .winControls, .searchField, .fxBtn, .offsetPill, .chip, .segGroup, .rail nav, .railPins,
+.listPanel, .setPanel, .queuePanel, .toast { backdrop-filter: none !important; }
+.glassBtn, .winControls, .fxBtn, .offsetPill { background: rgba(var(--fg), 0.08); }
+.searchField { background: rgba(var(--fg), 0.06); }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.card:hover .cardArt .cover img { transform: none; }
+
+/* Sin canción no hay reproductor: el contenido ocupa todo el alto */
+.app.noPlayer { grid-template-rows: minmax(0, 1fr); grid-template-areas: "rail main"; }
+.app.noPlayer .fab { bottom: 28px; }
+
+/* Reproductor: la tarjeta entera se va coloreando según avanza la canción */
+.playerFill {
+  position: absolute; inset: 0; width: 100%; z-index: 0; pointer-events: none; transform-origin: left center;
+  transform: scaleX(0); background: rgba(var(--fg), 0.085); -webkit-mask-image: none; mask-image: none;
+  will-change: transform;
+}
+.playerEdge {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 48px; z-index: 0; pointer-events: none; opacity: 0;
+  background: linear-gradient(90deg, rgba(var(--fg), 0) 0%, rgba(var(--fg), 0.07) 100%);
+  will-change: transform; transition: opacity 0.3s;
+}
+.playerCard > .pcLeft, .playerCard > .pcCenter, .playerCard > .pcRight { position: relative; z-index: 1; }
+.playerCard.scrubbing .playerFill { background: rgba(var(--fg), 0.13); }
+.playerLine { display: none; }
+.pcArt .cover-empty { background: rgba(var(--fg), 0.06); }
+
+/* Letras más ligeras */
+.lyric { will-change: auto; transition: transform 0.6s var(--ease), opacity 0.45s var(--ease); }
+.synced .lyric.now { will-change: transform; filter: none !important; text-shadow: 0 0 26px rgba(255, 255, 255, 0.22); }
+.fpBackdrop { animation: none !important; inset: -8%; filter: blur(60px) saturate(1.35); transform: none; }
+.fpShade { background: rgba(0, 0, 0, 0.55); }
+.fpTop { right: 12px; }
+.fpTop .winControls { position: static; margin-left: 6px; background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.12); }
+.fpTop .fxPicker { margin-left: auto; }
+
+/* Superposición en negro */
+.pill { background: #000; border-color: rgba(255, 255, 255, 0.12); }
+
+/* Accesos de la barra lateral: collage entero, sin cortes */
+.pin { width: 40px; height: 40px; padding: 0; overflow: hidden; border-radius: 10px; flex-shrink: 0; }
+.pin > .cover, .pin > .collage { width: 40px !important; height: 40px !important; border-radius: 0 !important; }
+.pin .collage .collageCell .cover { border-radius: 0 !important; }
+.pin.on { box-shadow: 0 0 0 2px var(--accent); }
+.railPins { align-items: center; padding: 10px 0 2px; }
+
+/* Rendimiento al hacer scroll por contenido nuevo: sin animación de entrada por
+   tarjeta/fila ni fundido por imagen (cada una era una animación más que el
+   navegador tenía que recalcular en cada fotograma). Solo la página entra con fundido. */
+.card, .quickTile, .trackRow, .libRow, .genreTile, .shelf, .lyricBlock { animation: none !important; }
+.cover img { transition: none; opacity: 1; }
+.fpArt img, .entityArt .cover img, .heroArt img { transition: opacity 0.3s var(--ease); }
+.fpArt:not(.is-loaded) img, .entityArt .cover:not(.is-loaded) img { opacity: 0; }

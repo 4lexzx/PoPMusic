@@ -135,7 +135,10 @@ function finishWords(lines: LyricLine[]): LyricLine[] {
     const ws = line.words || []
     ws.forEach((w, j) => {
       const after = ws[j + 1]?.t ?? line.end!
-      if (!w.d || w.d <= 0) w.d = Math.max(60, after - w.t)
+      const gap = Math.max(60, after - w.t)
+      // Sin duración real: lo que se tarda en cantarla (por sílabas), sin pasar
+      // del inicio de la siguiente. Antes rellenaba también el silencio de después.
+      if (!w.d || w.d <= 0) w.d = Math.min(gap, Math.max(200, syllables(w.text) * 210 + 90))
     })
   })
   return lines
