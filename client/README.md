@@ -6,15 +6,25 @@ al cliente de `desktop/` sin haber tocado nunca ese directorio.
 
 ## Funciones actuales
 
-- Búsqueda musical a través del backend propio en Vercel: solo canciones,
-  carátulas de álbum reales, sin videos.
-- **Audio completo** resuelto localmente con `yt-dlp` desde el proceso principal
-  de Electron (sin CORS y sin servicios de Liner). Si no hay Electron, cae al
-  endpoint del backend y, por último, al preview de 30 s de iTunes.
-- Biblioteca local: favoritos, recientes y playlists (crear, añadir, quitar).
-  Todo se guarda en `localStorage`.
-- Letras desde LrcLib vía el backend.
-- Límite de errores: si la interfaz falla, muestra un mensaje y permite reiniciar.
+- **Inicio sin fin y solo música**: mezclas por artista, "Porque escuchas…",
+  artistas que te pueden gustar, tops del país y mundiales, listas destacadas y
+  géneros. Se arma con tus "Me gusta" y lo que escuchas, nunca repite canciones
+  y sigue cargando mientras bajas. Catálogo de Deezer (carátulas hasta 1400 px
+  y fotos de artistas); iTunes para el top por país.
+- **Audio completo** con `yt-dlp` desde el proceso principal de Electron. Se
+  prepara antes del clic (al pasar el ratón, primer resultado de búsqueda,
+  siguientes de la cola) y se guarda en disco hasta que caduca el enlace.
+  Al acabar la cola sigue con canciones parecidas.
+- **Letras palabra por palabra** sincronizadas a 60 fps: tiempos reales de
+  LrcLib o NetEase (o estimados por sílabas) y cinco efectos (Karaoke, Brillo,
+  Rebote, Aparecer, Por línea).
+- **Buscador** en el propio inicio (el fondo se desenfoca) y página completa
+  con canciones, álbumes y artistas.
+- **Reproductor flotante** y **superposición** siempre encima al minimizar
+  (Alt+Shift+O). Teclas multimedia de Windows.
+- **Temas** claro, oscuro o del sistema y color de énfasis con contraste
+  automático. Ajustes en una ventana con buscador.
+- Biblioteca local: me gusta, recientes y playlists, en `localStorage`.
 
 ## Arrancar
 
@@ -22,7 +32,8 @@ al cliente de `desktop/` sin haber tocado nunca ese directorio.
 cd client
 npm install
 npm run dev            # navegador en http://localhost:5180
-npm run electron       # ventana de Electron (requiere npm run dev aparte)
+npm run electron:dev   # ventana de Electron (requiere npm run dev aparte)
+npm start              # compila y abre Electron sin servidor de desarrollo
 ```
 
 ## Generar instalador
