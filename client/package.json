@@ -45,7 +45,10 @@
     },
     "nsis": {
       "oneClick": false,
-      "artifactName": "PoP Music Client Setup-${version}.${ext}"
+      "artifactName": "PoP Music Client Setup-${version}.${ext}",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "PoP Music Client"
     }
   },
   "description": "Reproductor de música PoP Music (cliente limpio)",
